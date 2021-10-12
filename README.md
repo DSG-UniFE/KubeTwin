@@ -1,4 +1,6 @@
-# SISFC
+# KubeTwin
+
+KubeTwin is a SISFC fork.
 
 [![Gem Version](https://badge.fury.io/rb/sisfc.svg)](https://badge.fury.io/rb/sisfc)
 [![Build Status](https://travis-ci.org/mtortonesi/sisfc.png?branch=master)](https://travis-ci.org/mtortonesi/sisfc)
