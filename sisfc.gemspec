@@ -28,4 +28,6 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency 'minitest', '~> 5.14.2'
   spec.add_development_dependency 'minitest-reporters', '~> 1.4.2'
   spec.add_development_dependency 'minitest-spec-context', '~> 0.0.4'
+  spec.add_development_dependency 'dry-validation', '~> 1.7'
+  spec.add_development_dependency 'dry-auto_inject', '~> 0.8.0'
 end
