@@ -87,20 +87,20 @@ module SISFC
 
         def new_task(sim, n, time)
             create_task = TaskContainer["operations.create_task"]
-            @task_queue << create_task.call(n_cycles: n, arrival_time: time)
+            @task_queue << create_task.call(n_cycles: n, arrival_time: time, queue_time: "0")
             if @trace
                 @task_queue.each_cons(2) do |x,y|
                   if y[1] < x[1]
-                    raise "Inconsistent ordering in request_queue!!!!"
+                    raise "Inconsistent ordering in request_queue!"
                   end
                 end
             end
 
-            exec_new_task(sim, n, time) unless @busy
+            exec_new_task(sim, time) unless @busy
         end
         
 
-        def exec_new_task(sim, n, time)
+        def exec_new_task(sim, time)
             raise "Container not available (id: #{@containerId})" if @state == CONTAINER_TERMINATED or @state == CONTAINER_WAITING or @busy
             
             unless task_queue.empty? or @state == CONTAINER_TERMINATED
@@ -113,6 +113,7 @@ module SISFC
                     logger.info "Container #{@containerId} fulfilling a new request at time #{time} for #{service_time_task} seconds"
                 end
 
+                t.queue_time += time - t.arrival_time
                 @working_time += service_time_task
 
                 "Total working time: #{@working_time}"
