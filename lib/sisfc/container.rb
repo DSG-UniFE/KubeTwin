@@ -16,7 +16,7 @@ module SISFC
         rule(:memory) {key.failure("No memory limit") if value <= 0}
     end
 
-    class Requests < Dry::Validation::Contract
+    class Guaranteed < Dry::Validation::Contract
         params do
             required(:cpu).filled(:integer)
             required(:memory).filled(:integer)
@@ -27,25 +27,26 @@ module SISFC
     end
 
 
-    class TaskContainer
+    class RequestContainer
         extend Dry::Container::Mixin
 
-        register "tasks_repository" do
-            TasksRepository.new
+        register "requests_repository" do
+            RequestsRepository.new
         end
 
-        register "operations.create_task" do
-            CreateTask.new
+        register "operations.create_request" do
+            CreateRequest.new
         end
     end
 
-    Import = Dry::AutoInject(TaskContainer)
+    Import = Dry::AutoInject(RequestContainer)
 
-    class CreateTask
-        include Import["tasks_repository"]
+    class CreateRequest 
+        include Import["tasks_repository"] 
 
-        def call(tasks_attrs)
-            tasks_repository.create(tasks_attrs)
+
+        def call(requests_attrs)
+            requests_repository.create(requests_attrs)
         end
     end
     
@@ -67,11 +68,11 @@ module SISFC
             @port               = port
             @state              = Container::CONTAINER_WAITING
             @limits             = Limits.new("cpu" => "500", "memory" => "500")
-            @requests           = Requests.new("cpu" => "500", "memory" => "500")
+            @guaranteed         = Guaranteed.new("cpu" => "500", "memory" => "500")
             @startedTime        = Time.now
         
             @busy           = false
-            @task_queue     = []
+            @request_queue     = []
 
             @trace = opts[:trace] ? true : false
             @working_time   = 0.0
@@ -86,37 +87,36 @@ module SISFC
 
 
         def new_task(sim, n, time)
-            create_task = TaskContainer["operations.create_task"]
-            @task_queue << create_task.call(n_cycles: n, arrival_time: time, queue_time: "0")
+            create_request = RequestContainer["operations.create_request"]
+            @request_queue << create_request.call(n_cycles: n, arrival_time: time)
             if @trace
-                @task_queue.each_cons(2) do |x,y|
+                @request_queue.each_cons(2) do |x,y|
                   if y[1] < x[1]
                     raise "Inconsistent ordering in request_queue!"
                   end
                 end
             end
 
-            exec_new_task(sim, time) unless @busy
+            try_servicing_new_request(sim, time) unless @busy
         end
         
 
-        def exec_new_task(sim, time)
+        def try_servicing_new_request(sim, time)
             raise "Container not available (id: #{@containerId})" if @state == CONTAINER_TERMINATED or @state == CONTAINER_WAITING or @busy
             
-            unless task_queue.empty? or @state == CONTAINER_TERMINATED
-                t = task_queue.shift
+            unless @request_queue.empty? or @state == CONTAINER_TERMINATED
+                r = @request_queue.shift
 
-                nc = t.n_cycles
-                service_time_task = nc/@requests.cpu
+                nc = r.n_cycles
+                service_time_request = nc/@guaranteed.cpu
 
                 if @trace
-                    logger.info "Container #{@containerId} fulfilling a new request at time #{time} for #{service_time_task} seconds"
+                    logger.info "Container #{@containerId} fulfilling a new request at time #{time} for #{service_time_request} seconds"
                 end
 
-                t.queue_time += time - t.arrival_time
-                @working_time += service_time_task
-
-                "Total working time: #{@working_time}"
+               
+                r.update_queuing_time(time - r.arrival_time)
+                r.step_completed(service_time_request)
 
                 # schedule completion of workflow step
                 sim.new_event(Event::ET_WORKFLOW_STEP_COMPLETED, nc, time + working_time, self)
@@ -131,8 +131,8 @@ module SISFC
         def request_resources(moreCpu)
             raise "Impossible assign resources, container is still running" if @state == CONTAINER_RUNNING
 
-            @requests.cpu += moreCpu
-            raise "CPU limits error, too much resources in request" if @requests.cpu > @limits.cpu 
+            @guaranteed.cpu += moreCpu
+            raise "CPU limits error, too much resources in request" if @guaranteed.cpu > @limits.cpu 
             @state = CONTAINER_WAITING
             
             "Resources assigned, waiting for setup..."
