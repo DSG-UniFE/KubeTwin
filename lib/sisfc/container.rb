@@ -86,7 +86,7 @@ module SISFC
         end
 
 
-        def new_task(sim, n, time)
+        def new_request(sim, n, time)
             create_request = RequestContainer["operations.create_request"]
             @request_queue << create_request.call(n_cycles: n, arrival_time: time)
             if @trace
