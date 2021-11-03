@@ -106,6 +106,8 @@ module SISFC
             unless task_queue.empty? or @state == CONTAINER_TERMINATED
                 t = task_queue.shift
 
+                # retrieve service time
+                # TODO verify the unit of service time (s/ms)?
                 nc = t.n_cycles
                 service_time_task = nc/@requests.cpu
 
@@ -113,7 +115,13 @@ module SISFC
                     logger.info "Container #{@containerId} fulfilling a new request at time #{time} for #{service_time_task} seconds"
                 end
 
-                t.queue_time += time - t.arrival_time
+                t.update_queuing_time(time - t.arrival_time)
+
+                # update the request's workinginformation
+                t.step_completed(service_time_task)
+
+                # sempre meglio non reinventare la ruota
+                #t.queue_time += time - t.arrival_time
                 @working_time += service_time_task
 
                 "Total working time: #{@working_time}"
