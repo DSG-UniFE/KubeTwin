@@ -16,6 +16,7 @@ module SISFC
         rule(:memory) {key.failure("No memory limit") if value <= 0}
     end
 
+    # qui forse sceglierei un nome differente
     class Requests < Dry::Validation::Contract
         params do
             required(:cpu).filled(:integer)
@@ -27,6 +28,9 @@ module SISFC
     end
 
 
+
+    # aspettiamo qui a creare un task_container
+    # da valutare
     class TaskContainer
         extend Dry::Container::Mixin
 
@@ -84,9 +88,10 @@ module SISFC
             @state = Container::CONTAINER_RUNNING
         end
 
-
+        # to do
         def new_task(sim, n, time)
             create_task = TaskContainer["operations.create_task"]
+            # perchè queu_time come stringa? direi float
             @task_queue << create_task.call(n_cycles: n, arrival_time: time, queue_time: "0")
             if @trace
                 @task_queue.each_cons(2) do |x,y|
