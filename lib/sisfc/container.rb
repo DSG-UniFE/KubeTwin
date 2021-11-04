@@ -1,56 +1,17 @@
 
-require 'dry-validation'
-require 'dry-auto_inject'
+#require 'dry-validation'
+#require 'dry-auto_inject'
 require_relative './logger'
 require_relative './event'
-require_relative './request'
 
 module SISFC
     
-    class Limits < Dry::Validation::Contract
-        params do 
-            required(:cpu).filled(:integer)
-            required(:memory).filled(:integer)
+    class RequestInfo < Struct.new(:request, :service_time, :arrival_time)
+        include Comparable
+        def <=>(o)
+          arrival_time <=> o.arrival_time
         end
-    
-        rule(:cpu) {key.failure("No Cpu limit") if value <= 0}
-        rule(:memory) {key.failure("No memory limit") if value <= 0}
-    end
-
-    class Guaranteed < Dry::Validation::Contract
-        params do
-            required(:cpu).filled(:integer)
-            required(:memory).filled(:integer)
-        end
-
-        rule(:cpu) {key.failure("No Cpu request") if value <= 0}
-        rule(:memory) {key.failure("No memory request") if value <= 0}
-    end
-
-
-    class RequestContainer
-        extend Dry::Container::Mixin
-
-        register "requests_repository" do
-            RequestsRepository.new
-        end
-
-        register "operations.create_request" do
-            CreateRequest.new
-        end
-    end
-
-    Import = Dry::AutoInject(RequestContainer)
-
-    class CreateRequest 
-        include Import["tasks_repository"] 
-
-
-        def call(requests_attrs)
-            requests_repository.create(requests_attrs)
-        end
-    end
-    
+      end
 
     class Container
         
@@ -60,18 +21,27 @@ module SISFC
         CONTAINER_TERMINATED   = 2      #began execution and then either ran to completion or failed for some reason
 
 
-        attr_reader :containerId, :imageId, :state, :port, :state, :startedTime, #:nRestart
+        attr_reader :containerId, :imageId, :port, :endCode #endCode = 0 if all operations successfull, 0 if there's any kind of error
+        Guaranteed = Struct.new(:cpu, :memory)
+        Limits = Struct.new(:cpu, :memory)
         
-        
-        def initialize(containerId, imageId, port)
+        def initialize(containerId, imageId, port, opts={})
             @containerId        = containerId
             @imageId            = imageId
             @port               = port
             @state              = Container::CONTAINER_WAITING
-            @limits             = Limits.new("cpu" => "500", "memory" => "500")
-            @guaranteed         = Guaranteed.new("cpu" => "500", "memory" => "500")
+            @limits             = Limits.new(500, 500)
+            @guaranteed         = Guaranteed.new(500, 500)
             @startedTime        = Time.now
-        
+            
+            @service_n_cycles = if opts[:n_cycles]
+                opts[:n_cycles]
+            else
+                rand(1..10)
+            end
+
+            #@service_noise
+            
             @busy           = false
             @request_queue     = []
 
@@ -85,10 +55,11 @@ module SISFC
             sleep(0.002)
             @state = Container::CONTAINER_RUNNING
         end
-        
-        def new_request(sim, n, time)
-            create_request = RequestContainer["operations.create_request"]
-            @request_queue << create_request.call(n_cycles: n, arrival_time: time)
+
+
+        def new_request(sim, r, time)
+            @request_queue << RequestInfo.new(r, @service_n_cycles.next, time)
+
             if @trace
                 @request_queue.each_cons(2) do |x,y|
                   if y[1] < x[1]
@@ -102,35 +73,31 @@ module SISFC
         
 
         def try_servicing_new_request(sim, time)
-            raise "Container not available (id: #{@containerId})" if @state == CONTAINER_TERMINATED or @state == CONTAINER_WAITING or @busy
+            raise "Container not available (id: #{@containerId})" if @state != Container::CONTAINER_RUNNING or @busy
             
-            unless @request_queue.empty? or @state == CONTAINER_TERMINATED
+            unless @request_queue.empty? or @state == Container::CONTAINER_TERMINATED
                 r = @request_queue.shift
 
-                # retrieve service time
-                # TODO verify the unit of service time (s/ms)?
-                nc = r.n_cycles
+                nc = r.service_time
                 service_time_request = nc/@guaranteed.cpu
 
                 if @trace
                     logger.info "Container #{@containerId} fulfilling a new request at time #{time} for #{service_time_request} seconds"
                 end
 
-                t.update_queuing_time(time - t.arrival_time)
+                # update the request's working information
+                r.update_queuing_time(time - r.arrival_time)
 
-                # update the request's workinginformation
-                t.step_completed(service_time_task)
-
-                #@working_time += service_time_task
-
-                "Total working time: #{@working_time}"
+                r.step_completed(service_time_request)
 
                 # schedule completion of workflow step
                 sim.new_event(Event::ET_WORKFLOW_STEP_COMPLETED, nc, time + working_time, self)
 
             end
             
-            @busy = false
+            @endCode = 0
+            @state   = Container::CONTAINER_TERMINATED    
+            @busy    = false
 
         end
 
