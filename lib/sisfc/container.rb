@@ -25,7 +25,7 @@ module SISFC
         Guaranteed = Struct.new(:cpu, :memory)
         Limits = Struct.new(:cpu, :memory)
         
-        def initialize(containerId, imageId, port, opts={})
+        def initialize(containerId, imageId, port, n_cycles, opts={})
             @containerId        = containerId
             @imageId            = imageId
             @port               = port
@@ -34,16 +34,19 @@ module SISFC
             @guaranteed         = Guaranteed.new(500, 500)
             @startedTime        = Time.now
             
-            @service_n_cycles = if opts[:n_cycles]
-                opts[:n_cycles]
-            else
-                rand(1..10)
-            end
+            @service_n_cycles = n_cycles
 
-            #@service_noise
+            @service_noise_rv = if opts[:seed]
+              orig_std_conf = opts[:service_noise_distribution]
+              std_conf = orig_std_conf.dup
+              std_conf[:args] = orig_std_conf[:args].merge(seed: opts[:seed])
+              ERV::RandomVariable.new(std_conf)
+            else 
+              ERV::RandomVariable.new(opts[:service_noise_distribution])
+            end
             
             @busy           = false
-            @request_queue     = []
+            @request_queue  = [] # queue incoming requests
 
             @trace = opts[:trace] ? true : false
             @working_time   = 0.0
@@ -79,7 +82,9 @@ module SISFC
                 r = @request_queue.shift
 
                 nc = r.service_time
-                service_time_request = nc/@guaranteed.cpu
+
+                # here simulate service time based on cpu and on a random noise
+                service_time_request = (nc/@guaranteed.cpu) + @service_noise_rv.sample
 
                 if @trace
                     logger.info "Container #{@containerId} fulfilling a new request at time #{time} for #{service_time_request} seconds"
