@@ -13,7 +13,8 @@ module SISFC
 
         attr_reader :podId, :podName, :podIp, :node
 
-        def initialize(podId, podName, podIp, nodeIp)
+        # here fix it
+        def initialize(podId, podName, podIp, nodeIp, label)
             @podId          = podId
             @podName        = podName
             @podIp          = podIp
@@ -21,6 +22,7 @@ module SISFC
             @container      = Container.new(0, 1, opts[:port])       #@containers = {}
             @startTime      = Time.now
             @status         = Pod::POD_PENDING
+            @label          = label
             
             #@namespace      = "default"
             #priority       = 0 

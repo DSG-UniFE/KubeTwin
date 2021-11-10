@@ -13,15 +13,19 @@ module SISFC
             @pods               = {}
         end
 
-        def assignPod(pod, label)
-            @pods[label] ||= []
+        # assign a pod to a service
+        # label is part of the pod's description
+        def assignPod(pod)
+            @pods[pod.label] ||= []
             raise 'Error! Pod is already present!' if @pods[label].include? pod
-            
-            if @selector == label
-                @pods[label] << pod
+
+            # check
+            if @selector == pod.label
+                @pods[pod.label] << pod
             end
         end
 
+        # who calls this method?
         def get_random_pod(label, random: nil)
             if @pods.has_key? label
               if random
