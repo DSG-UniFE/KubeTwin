@@ -16,15 +16,16 @@ module SISFC
         end
 
         # service is a reference to a Service object
-        def registerService(service)    
+        def registerService(service) 
+          # do we need null check here
           raise 'Error! Service is already present!' if @services.include? service.selector
           @services[service.selector] = service
         end
 
         def deregisterService(service)    
             raise 'Error! Service is not registred!' unless @services.include? service.selector
-            @services[service.selector] = service
-          end
+            @services.delete(service.selector)
+        end
 
         # here name is the name of the Service
         # the name of the service corresponds to the label / selector 

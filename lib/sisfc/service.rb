@@ -34,8 +34,7 @@ module SISFC
                 @pods[label].sample
               end
             end
-          end
-
+        end
 
     end
 
