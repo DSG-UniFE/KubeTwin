@@ -31,9 +31,7 @@ module SISFC
 
     def startUpPod
       @container.startupC
-      if @container.state != Container::CONTAINER_RUNNING
-        raise 'Setup container error'
-        end
+      raise 'Setup container error' if @container.state != Container::CONTAINER_RUNNING
 
       @status = Pod::POD_RUNNING
       # "Pod started successfully"
