@@ -27,8 +27,6 @@ module KUBETWIN
       # class?
       @service = service
       # optional parameter to set the control loop?
-
-      #@podReplicas = []
     end
 
     # change the number of replicas
@@ -39,6 +37,7 @@ module KUBETWIN
     end
 
 
+    #@podReplicas = []
     #possible method to replicate Pods
     #def assignReplica(pod)
       #raise 'Error! Pod label and selector are different!' if @selector != pod.label
@@ -53,7 +52,6 @@ module KUBETWIN
           #@podReplicas.size += 1
       #end
     #end
-
     
   end
 end
