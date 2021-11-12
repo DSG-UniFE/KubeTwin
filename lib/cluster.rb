@@ -2,7 +2,7 @@
 
 require 'forwardable'
 
-module SISFC
+module KUBETWIN
 
   class Cluster
     extend Forwardable

@@ -6,6 +6,10 @@
 .config
 .env
 .ruby-version
+.DS_Store
+.vscode/
+examples/request.csv
+examples/request.csv
 coverage
 Gemfile.lock
 InstalledFiles
