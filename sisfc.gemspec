@@ -8,9 +8,9 @@ Gem::Specification.new do |spec|
   spec.version       = SISFC::VERSION
   spec.authors       = ['Mauro Tortonesi']
   spec.email         = ['mauro.tortonesi@unife.it']
-  spec.description   = %q{Simulator for IT Services in Federated Clouds}
-  spec.summary       = %q{A simulator for business-driven IT management research capable of evaluating IT service component placement in federated Cloud environments}
-  spec.homepage      = 'https://github.com/mtortonesi/sisfc'
+  spec.description   = %q{KubeTwin, a Kubernetes Simulator}
+  spec.summary       = %q{A Kubernetes Simulator written in Ruby}
+  spec.homepage      = 'https://https://github.com/DSG-UniFE/KubeTwin'
   spec.license       = 'MIT'
 
   spec.files         = `git ls-files`.split($/).reject{|x| x == '.gitignore' }
