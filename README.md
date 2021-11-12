@@ -26,12 +26,17 @@ To install and work with KubeTwin we kindly suggest to use bundler:
 
 ## Usage
 
+We are currently developing the simulator...
+Please, be patient :)
+
 To run the simulator with bundler simply digit:
 
     bundle exec bin/kube_twin simulator.conf vm_allocation.conf
 
 where simulator.conf and vm\_allocation.conf are your simulation environment
 and vm allocation configuration files respectively.
+
+## Examples
 
 The examples directory contains a set of example configuration files, including
 an [R](http://www.r-project.org) script that models a stochastic request
