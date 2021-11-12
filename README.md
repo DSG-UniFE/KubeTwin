@@ -28,7 +28,7 @@ To install and work with KubeTwin we kindly suggest to use bundler:
 
 To run the simulator with bundler simply digit:
 
-    bundle exec bin/sisfc simulator.conf vm_allocation.conf
+    bundle exec bin/kube_twin simulator.conf vm_allocation.conf
 
 where simulator.conf and vm\_allocation.conf are your simulation environment
 and vm allocation configuration files respectively.
@@ -37,10 +37,6 @@ The examples directory contains a set of example configuration files, including
 an [R](http://www.r-project.org) script that models a stochastic request
 generation process. To use that script, you will need R with the VGAM and
 truncnorm packages installed.
-
-Note that the KubeTwin was not designed to be run directly by users, but instead
-to be integrated within higher level frameworks that implement continuous
-optimization (such as [BDMaaS+](https://github.com/DSG-UniFE/bdmaas-plus-core)).
 
 
 
