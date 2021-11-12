@@ -12,12 +12,12 @@ module SISFC
   # the simulation's code
 
   class ReplicaSet
-    attr_reader :name, :selector, :replicas, :node_id
+    attr_reader :name, :selector, :replicas, :cluster_id
 
     # name and selector have the same value here
-    def initialize(name, node_id, selector, replicas)
+    def initialize(name, cluster_id, selector, replicas)
       @name = name
-      @node_id = node_id
+      @cluster_id = cluster_id
       @selector = selector
       @replicas = replicas
     end
