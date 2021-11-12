@@ -5,7 +5,7 @@ require './services'
 # this class is just a skeleton
 # of kube-dns
 # when a service is created is registred in the DNS
-module SISFC
+module KUBETWIN
   class KubeDns
     # attr_reader :serviceName, :selector, :targetPort
     # keep it as simple as possible

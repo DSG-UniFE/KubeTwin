@@ -5,7 +5,7 @@ require 'minitest_helper'
 require_relative './reference_configuration'
 
 
-describe SISFC::Configuration do
+describe KUBETWIN::Configuration do
 
   describe 'simulation-related parameters' do
 

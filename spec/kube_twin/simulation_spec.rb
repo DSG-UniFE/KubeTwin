@@ -4,7 +4,7 @@ require 'minitest_helper'
 
 require_relative './reference_configuration'
 
-describe SISFC::Simulation do
+describe KUBETWIN::Simulation do
   # we define unfeasible allocations as allocations that do not have at least
   # one instance for each software component
   UNFEASIBLE_ALLOCATION = [
@@ -15,7 +15,7 @@ describe SISFC::Simulation do
 
   it 'should return for unfeasible allocations' do
     with_reference_config do |conf|
-      sim = SISFC::Simulation.new(configuration: conf, evaluator: Object.new)
+      sim = KUBETWIN::Simulation.new(configuration: conf, evaluator: Object.new)
       _(suppress_output { sim.evaluate_allocation(UNFEASIBLE_ALLOCATION) }).must_equal(SISFC::Simulation::UNFEASIBLE_ALLOCATION_EVALUATION)
     end
   end

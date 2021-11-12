@@ -3,12 +3,12 @@
 require 'minitest_helper'
 
 require 'tempfile'
-require 'sisfc/generator'
+require 'kube_twin/generator'
 
 require_relative './reference_configuration'
 
 
-describe SISFC::RequestGenerator do
+describe KUBETWIN::RequestGenerator do
 
   GENERATION_TIMES  = [ Time.now, Time.now + 1.second, Time.now + 2.seconds ].map(&:to_f)
   WORKFLOW_TYPE_IDS = GENERATION_TIMES.map { rand(10) }
@@ -28,7 +28,7 @@ describe SISFC::RequestGenerator do
       tf.close
 
       with_reference_config(request_generation: { filename: tf.path }) do |conf|
-        rg = SISFC::RequestGenerator.new(conf.request_generation)
+        rg = KUBETWIN::RequestGenerator.new(conf.request_generation)
         r = rg.generate
         _(r[:rid]).must_equal 1
         _(r[:generation_time]).must_equal GENERATION_TIMES[0]

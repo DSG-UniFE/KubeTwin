@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require 'sisfc/configuration'
+require 'kube_twin/configuration'
 
 START_TIME      = Time.utc(1978, 'Aug', 12, 14, 30, 0).to_f
 DURATION        = 1.minute.to_f
