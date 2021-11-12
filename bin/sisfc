@@ -1,12 +1,12 @@
 #!/usr/bin/env ruby
 
 begin
-  require 'sisfc'
-  require 'sisfc/evaluation'
+  require 'kube_twin'
+  require 'kube_twin/evaluation'
 rescue LoadError
   require 'rubygems'
-  require 'sisfc'
-  require 'sisfc/evaluation'
+  require 'kube_twin'
+  require 'kube_twin/evaluation'
 end
 
 
@@ -41,14 +41,14 @@ if File.expand_path(__FILE__) == File.expand_path($0)
   end
 
   # load simulation configuration
-  conf = SISFC::Configuration.load_from_file(ARGV[0])
+  conf = KUBETWIN::Configuration.load_from_file(ARGV[0])
 
   # load vm allocation
   vm_allocation = eval(File.read(ARGV[1]))
 
   # create a simulator and launch it
-  sim = SISFC::Simulation.new(configuration: conf,
-                              evaluator: SISFC::Evaluator.new(conf))
+  sim = KUBETWIN::Simulation.new(configuration: conf,
+                              evaluator: KUBETWIN::Evaluator.new(conf))
   res = sim.evaluate_allocation(vm_allocation)
 
   # Print results
