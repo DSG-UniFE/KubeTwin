@@ -147,7 +147,8 @@ module KUBETWIN
         rs.replicas.times do
           selector = rs.selector
           # the nil fields is a node related information
-          # get image info --> service component type
+          # get image info --> service component type (sct)
+          # sct has info regarding service execution time
           sct = @service_component_types[selector][:service_time_distribution]
           pod = Pod.new(pod_id, "#{selector}_#{pod_id}", nil, selector, sct)
           # get the service here and assign the pod to the service

@@ -22,8 +22,6 @@ module KUBETWIN
       pod_label = pod.label
       @pods[pod_label] ||= []
       raise 'Error! Pod is already present!' if @pods[pod_label].include? pod
-
-      # check
       @pods[pod.label] << pod if @selector == pod.label
     end
 

@@ -29,7 +29,9 @@ module KUBETWIN
     # we could change this during development
     def add_node(node)
       @nodes[component_name] ||= []
-      @vm_type_count[vm.size] ||= 0
+      
+      # here we should implement something similar
+      # @vm_type_count[vm.size] ||= 0
 
       # raise exception if assignement is wrong
       raise 'Error! Node is already present!' if @nodes.include? node.node_id
