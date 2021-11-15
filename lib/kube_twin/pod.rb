@@ -10,17 +10,17 @@ module KUBETWIN
     POD_SUCCEEDED       = 0     # All containers in the Pod have terminated in success, and will not be restarted.
     POD_FAILED          = 0     # All containers in the Pod have terminated, and at least one container has terminated in failure
 
-    attr_reader :podId, :podName, :podIp, :node
+    # commenting podIP info for now :podIp
+    attr_reader :podId, :podName, :node
 
     # here fix it
     # instead of nodeIP we could use a nodeID
     # pod name could not be important
-    def initialize(podId, podName, podIp, nodeIp, label)
+    def initialize(podId, podName, podIp, node, label)
       @podId = podId
       @podName = podName
-      @podIp = podIp
-      @node = nodeIp
-      @container = Container.new(0, 1, opts[:port]) # @containers = {}
+      @node = node
+      @container = Container.new(0, 1)#, opts[:port]) # @containers = {}
       @startTime = Time.now
       @status = Pod::POD_PENDING
       @label = label
@@ -46,9 +46,10 @@ module KUBETWIN
       end
     end
 
-    def describePod(_pod)
-      "Name: #{@podName} \nIP: #{@podIp} \nNode IP: #{@nodeIp} \nStart Time: #{@startTime} \nStatus: #{@status} \nContainers: \n\tContainer ID: #{@container.containerId} \n\tImage ID: #{@container.imageId} \n\tPort: #{@container.port} \n\tLimits: \n\t\tcpu: #{@container.limits.cpu} \n\t\tmemory: #{@container.limits.memory} \n\tRequests: \n\t\tcpu: #{@container.guaranteed.cpu} \n\t\tmemory: #{@container.guaranteed.memory}"
-    end
+    # TODO refactor this method
+    #def describePod(_pod)
+    #  "Name: #{@podName} \nIP: #{@podIp} \nNode IP: #{@nodeIp} \nStart Time: #{@startTime} \nStatus: #{@status} \nContainers: \n\tContainer ID: #{@container.containerId} \n\tImage ID: #{@container.imageId} \n\tPort: #{@container.port} \n\tLimits: \n\t\tcpu: #{@container.limits.cpu} \n\t\tmemory: #{@container.limits.memory} \n\tRequests: \n\t\tcpu: #{@container.guaranteed.cpu} \n\t\tmemory: #{@container.guaranteed.memory}"
+    #end
 
     # Pod running if at least one of its primary containers starts OK
     # def check_containers

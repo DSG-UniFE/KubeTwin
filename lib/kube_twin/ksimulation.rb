@@ -126,10 +126,19 @@ module KUBETWIN
 
       puts "List of available Services #{@services}"
 
-      @replica_sets.each do | _, rs|
-        puts rs
+      pod_id = 0
+      @replica_sets.each do |rn, rs|
+        # here we need to create pods and register them into a Service
+        rs[:replicas].times do
+          # the nil fields are ip related information
+          pod = Pod.new(pod_id, "#{rs[:selector]}_#{pod_id}", nil, nil, rs[:selector])
+          @services[:selector].assignPod(pod)
+          pod_id += 1
+        end
       end
 
+      # debug printing here 
+      @services.each {|_, v| puts v}
       # working here
       # aborting
       abort
