@@ -84,7 +84,8 @@ module KUBETWIN
 
 
 # commented stat initialization... it should work anayway
-=begin
+# here we would need different statistics
+
       # initialize statistics --- leave for later
       stats = Statistics.new
       per_workflow_and_customer_stats = Hash[
@@ -104,7 +105,6 @@ module KUBETWIN
           [ wft_id, Hash[customer_repository.keys.map {|c_id| [ c_id, 0 ]}] ]
         end
       ]
-=end
 
 
       # first create the replica_set
@@ -114,11 +114,12 @@ module KUBETWIN
         # nil is service here
         ReplicaSet.new(name, conf[:cluster_id], conf[:selector], conf[:replicas], nil)
       end
+      # Replica Sets created here, ... then create pod and services .. we can follow
+      # or different events to create pods
 
-      puts @replica_sets
+      @replica_sets.each |
 
-      abort
-
+=begin
       # create VMs
       @vms = []
       vmid = 0
@@ -147,6 +148,8 @@ module KUBETWIN
           vmid += 1
         end
       end
+
+=end
 
       # create event queue
       @event_queue = SortedArray.new

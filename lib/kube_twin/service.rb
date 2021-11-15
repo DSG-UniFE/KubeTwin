@@ -4,12 +4,15 @@ require './pod'
 
 module KUBETWIN
   class Service
-    attr_reader :serviceName, :selector, :targetPort
 
-    def initialize(serviceName, selector, targetPort)
+    # removing :targetPort for now
+    # we are not dealing with TCP/IP here...
+    # consider it for future work
+    attr_reader :serviceName, :selector #, :targetPort
+
+    def initialize(serviceName, selector)
       @serviceName = serviceName
       @selector = selector
-      @targetPort = targetPort
       @pods = {}
     end
 
