@@ -117,7 +117,15 @@ module KUBETWIN
       # Replica Sets created here, ... then create pod and services .. we can follow
       # or different events to create pods
 
-      @replica_sets.each |
+      # we could list the availble pods here or we can do something different
+      # @pods=[]
+
+      @services = @configuration.services.each |
+
+      @replica_sets.each do | _, rs|
+
+      end
+
 
 =begin
       # create VMs

@@ -52,6 +52,7 @@ module KUBETWIN
                  :clusters,
                  :node,
                  :replica_sets,
+                 :services,
                  :duration,
                  :evaluation,
                  :kpi_customization,
@@ -98,10 +99,12 @@ module KUBETWIN
       @seeds = {} unless defined? @seeds
 
       # freeze everything!
+      # TODO check if everything is freezed
       IceNine.deep_freeze(@constraints)
       IceNine.deep_freeze(@customers)
       IceNine.deep_freeze(@custom_stats)
       IceNine.deep_freeze(@data_centers)
+      IceNine.deep_freeze(@clusters)
       IceNine.deep_freeze(@duration)
       IceNine.deep_freeze(@evaluation)
       IceNine.deep_freeze(@kpi_customization)
