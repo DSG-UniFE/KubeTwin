@@ -160,43 +160,18 @@ module KUBETWIN
       end
 
       # debug printing here 
+      # select a random pod using a service
+      # pod lookup is done by a service
       @services.each {|_, v| puts v.get_random_pod(v.selector)}
+
+      # testing DNS functionalities
+
+      # puts "Testing DNS"
+      #puts "Looking up #{@kube_dns.lookup('Web Server')}"
+     
       # working here
       # aborting
       abort
-
-
-=begin
-      # create VMs
-      @vms = []
-      vmid = 0
-      vm_allocation.each do |opts|
-        # setup service_time_distribution
-        stdist = @configuration.service_component_types[opts[:component_type]][:service_time_distribution]
-
-        # allocate the VMs
-        opts[:vm_num].times do
-          # create VM ...
-          vm = service_time_seed ?
-            VM.new(vmid, opts[:dc_id], opts[:vm_size], stdist, seed: service_time_seed) :
-            VM.new(vmid, opts[:dc_id], opts[:vm_size], stdist)
-          # ... add it to the vm list ...
-          @vms << vm
-          # ... and register it in the corresponding data center
-          unless data_center_repository[opts[:dc_id]].add_vm(vm, opts[:component_type])
-            $stderr.puts "====== Unfeasible allocation at data center #{dc_id} ======"
-            $stderr.flush
-            # here we return Float::MAX instead of, e.g., Float::INFINITY,
-            # because the latter would break optimization tools. instead, we
-            # want to have a very high but comparable value.
-            return Float::MAX
-          end
-          # update vm id
-          vmid += 1
-        end
-      end
-
-=end
 
       # create event queue
       @event_queue = SortedArray.new
