@@ -150,6 +150,7 @@ module KUBETWIN
           # get image info --> service component type (sct)
           # sct has info regarding service execution time
           sct = @service_component_types[selector][:service_time_distribution]
+          # here we need to call the scheduler to get a node where to allocate this pod
           pod = Pod.new(pod_id, "#{selector}_#{pod_id}", nil, selector, sct)
           # get the service here and assign the pod to the service
           # convert string to sym

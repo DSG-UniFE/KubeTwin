@@ -11,7 +11,8 @@ module KUBETWIN
     POD_FAILED          = 0     # All containers in the Pod have terminated, and at least one container has terminated in failure
 
     # commenting podIP info for now :podIp
-    attr_reader :podId, :podName, :node, :label
+    attr_reader :podId, :podName, :node, :label,
+     :container, :requirements
 
     # here fix it
     # instead of nodeIP we could use a nodeID
@@ -24,7 +25,7 @@ module KUBETWIN
       @startTime = Time.now
       @status = Pod::POD_PENDING
       @label = label
-
+      @requirements = image_info[:resource_requirements]
       # @namespace      = "default"
       # priority       = 0
     end

@@ -6,7 +6,7 @@ module KUBETWIN
 
   class Node
 
-    attr_reader :resources, :requested_resources, :node_id
+    attr_reader :resources, :requested_resources, :node_id, :pod_id_list
     # here define the number of resources
     # we could use the CPU frequency or something else?
     # we defined the resources in containers using th mCPU
@@ -29,6 +29,10 @@ module KUBETWIN
       @requested_resources -= resources
       # remove pod from the list of associated pods 
       @pod_id_list.delete(pod.podId)
+    end
+
+    def available_resources
+      @resources - @requested_resources
     end
 
   end
