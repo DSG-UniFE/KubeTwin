@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require './pod'
+require_relative './pod'
 
 module KUBETWIN
   # just a simple class to model a ReplicaSet
