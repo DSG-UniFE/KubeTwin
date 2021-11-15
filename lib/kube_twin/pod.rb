@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require './container'
+require_relative './container'
 
 module KUBETWIN
   class Pod
