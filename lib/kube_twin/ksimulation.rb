@@ -214,7 +214,7 @@ module KUBETWIN
 
             # find closest data center
             customer_location_id = customer_repository.dig(req_attrs[:customer_id], :location_id)
-            dc_at_customer_location = data_center_repository.values.find {|dc| dc.location_id == customer_location_id }
+            dc_at_customer_location = cluster_repository.values.find {|dc| dc.location_id == customer_location_id }
 
             raise "No data center found at location id #{customer_location_id}!" unless dc_at_customer_location
 
@@ -225,7 +225,7 @@ module KUBETWIN
             closest_dc = if dc_at_customer_location.has_vms_of_type?(first_component_name)
               dc_at_customer_location
             else
-              data_center_repository.values.select{|dc| dc.has_vms_of_type?(first_component_name) }&.sample
+              cluster_repository.values.select{|dc| dc.has_vms_of_type?(first_component_name) }&.sample
             end
 
             raise "Invalid configuration! No VMs of type #{first_component_name} found!" unless closest_dc
@@ -246,7 +246,7 @@ module KUBETWIN
             req = e.data
 
             # find data center
-            data_center = data_center_repository[req.data_center_id]
+            cluster = cluster_repository[req.data_center_id]
 
             # update reqs_received_per_workflow_and_customer
             reqs_received_per_workflow_and_customer[req.workflow_type_id][req.customer_id] += 1
@@ -256,7 +256,7 @@ module KUBETWIN
             next_component_name = workflow[:component_sequence][req.next_step][:name]
 
             # get random vm providing next service component type
-            vm = data_center.get_random_vm(next_component_name, random: next_component_rng)
+            vm = cluster.get_random_vm(next_component_name, random: next_component_rng)
 
             # schedule request forwarding to vm
             new_event(Event::ET_REQUEST_FORWARDING, req, e.time, vm)
@@ -296,7 +296,7 @@ module KUBETWIN
             vm.request_finished(self, e.time)
 
             # find data center and workflow
-            data_center = data_center_repository[req.data_center_id]
+            cluster = cluster_repository[req.data_center_id]
             workflow    = workflow_type_repository[req.workflow_type_id]
 
             # check if there are other steps left to complete the workflow
@@ -305,7 +305,7 @@ module KUBETWIN
               next_component_name = workflow[:component_sequence][req.next_step][:name]
 
               # get random VM providing next service component type
-              new_vm = data_center.get_random_vm(next_component_name, random: next_component_rng)
+              new_vm = cluster.get_random_vm(next_component_name, random: next_component_rng)
 
               # this is the request's time of arrival at the new VM
               forwarding_time = e.time
@@ -314,8 +314,8 @@ module KUBETWIN
               # center, so look in the other data centers
               unless new_vm
                 # get list of other data centers, randomly picked
-                other_dcs = data_center_repository.values.
-                  select{|x| x != data_center && x.has_vms_of_type?(next_component_name) }&.
+                other_dcs = cluster_repository.values.
+                  select{|x| x != cluster && x.has_vms_of_type?(next_component_name) }&.
                   shuffle(random: next_component_rng)
                 other_dcs.each do |dc|
                   new_vm = dc.get_random_vm(next_component_name, random: next_component_rng)
@@ -325,7 +325,7 @@ module KUBETWIN
 
                     # keep track of transmission time
                     transmission_time =
-                      latency_manager.sample_latency_between(data_center.location_id,
+                      latency_manager.sample_latency_between(cluster.location_id,
                                                              dc.location_id)
 
                     unless transmission_time >= 0.0
@@ -359,7 +359,7 @@ module KUBETWIN
               transmission_time =
                 latency_manager.sample_latency_between(
                   # data center location
-                  data_center_repository[req.data_center_id].location_id,
+                  cluster_repository[req.data_center_id].location_id,
                   # customer location
                   customer_repository.dig(req.customer_id, :location_id)
                 )
