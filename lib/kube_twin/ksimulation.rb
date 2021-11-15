@@ -9,6 +9,7 @@ require_relative './sorted_array'
 require_relative './statistics'
 require_relative './pod'
 require_relative './latency_manager'
+require_relative './kube_dns'
 
 
 module KUBETWIN
@@ -107,6 +108,10 @@ module KUBETWIN
         end
       ]
 
+      # Initialize Kubernetes objects
+
+      @kube_dns = KubeDns.new
+
 
       @replica_sets = {}
       # first create the replica_set
@@ -122,17 +127,14 @@ module KUBETWIN
       # Replica Sets created here, ... then create pod and services .. we can follow
       # or different events to create pods
 
-      # we could list the availble pods here or we can do something different
-      # @pods=[]
-
       @services = {}
 
       # we could use a repository here
       # dry could be very useful in here...
-
       @configuration.services.each do |k, conf|
         @services[k] = Service.new(k, conf[:selector])
         # need to register this service into kube_dns
+        @kube_dns.registerService(@services[k])
       end
 
       # dup here?

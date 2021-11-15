@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require './services'
+require_relative './service'
 
 # this class is just a skeleton
 # of kube-dns
