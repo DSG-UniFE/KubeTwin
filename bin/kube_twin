@@ -1,0 +1,57 @@
+#!/usr/bin/env ruby
+
+begin
+  require 'kube_twin'
+  require 'kube_twin/evaluation'
+rescue LoadError
+  require 'rubygems'
+  require 'kube_twin'
+  require 'kube_twin/evaluation'
+end
+
+
+def do_abort(message)
+  abort <<-EOS.gsub(/^\s+\|/, '')
+    |#{message}
+    |
+    |Usage:
+    |    #{File.basename(__FILE__)} simulator_config_file vm_allocation_config_file
+    |
+  EOS
+end
+
+
+if File.expand_path(__FILE__) == File.expand_path($0)
+  # make sure both required arguments were given
+  case ARGV.size
+  when 1 then
+    do_abort("Missing VM allocation configuration file!")
+  when 0 then
+    do_abort("Missing simulator and VM allocation configuration files!")
+  end
+
+  # make sure simulator config file exists
+  unless File.exists? ARGV[0]
+    do_abort("Invalid simulator configuration file!")
+  end
+
+  # make sure vm allocation config file exists
+  unless File.exists? ARGV[1]
+    do_abort("Invalid VM allocation configuration file!")
+  end
+
+  # load simulation configuration
+  conf = KUBETWIN::Configuration.load_from_file(ARGV[0])
+
+  # load vm allocation
+  vm_allocation = eval(File.read(ARGV[1]))
+
+  # create a simulator and launch it
+  sim = KUBETWIN::KSimulation.new(configuration: conf,
+                              evaluator: KUBETWIN::Evaluator.new(conf))
+  res = sim.evaluate_allocation(vm_allocation)
+
+  # Print results
+  puts 'Result:'
+  puts res
+end

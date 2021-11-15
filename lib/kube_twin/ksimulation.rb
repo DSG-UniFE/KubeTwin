@@ -2,6 +2,7 @@
 
 require_relative './cluster'
 require_relative './replica_set'
+require_relative './service'
 require_relative './event'
 require_relative './generator'
 require_relative './sorted_array'
@@ -109,9 +110,8 @@ module KUBETWIN
 
       # first create the replica_set
       @replica_sets = @configuration.replica_sets.each do |name, conf|
-        puts name
-        puts conf
         # nil is service here
+        # do we need a reference to service in ReplicaSet?
         ReplicaSet.new(name, conf[:cluster_id], conf[:selector], conf[:replicas], nil)
       end
       # Replica Sets created here, ... then create pod and services .. we can follow
@@ -120,11 +120,19 @@ module KUBETWIN
       # we could list the availble pods here or we can do something different
       # @pods=[]
 
-      @services = @configuration.services.each |
+      @services = @configuration.services.each do |k, conf|
+        Service.new(k, conf[:selector])
+      end
+
+      puts "List of available Services #{@services}"
 
       @replica_sets.each do | _, rs|
-
+        puts rs
       end
+
+      # working here
+      # aborting
+      abort
 
 
 =begin
