@@ -72,14 +72,13 @@ module KUBETWIN
 # we do not have data center for now
 # configure cluster here? or something similar
 # need to check
-=begin
+
       # create data centers and store them in a repository
-      data_center_repository = Hash[
-        @configuration.data_centers.map do |k,v|
-          [ k, DataCenter.new(id: k, **v) ]
+      cluster_repository = Hash[
+        @configuration.clusters.map do |k,v|
+          [ k, Cluster.new(id: k, **v) ]
         end
       ]
-=end
 
       customer_repository = @configuration.customers
       workflow_type_repository = @configuration.workflow_types
