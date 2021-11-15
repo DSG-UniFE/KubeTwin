@@ -108,37 +108,57 @@ module KUBETWIN
       ]
 
 
+      @replica_sets = {}
       # first create the replica_set
-      @replica_sets = @configuration.replica_sets.each do |name, conf|
+      @configuration.replica_sets.each do |name, conf|
         # nil is service here
         # do we need a reference to service in ReplicaSet?
-        ReplicaSet.new(name, conf[:cluster_id], conf[:selector], conf[:replicas], nil)
+        @replica_sets[name] = ReplicaSet.new(name, conf[:cluster_id],
+                    conf[:selector], conf[:replicas], nil)
       end
+
+      puts @replica_sets
+
       # Replica Sets created here, ... then create pod and services .. we can follow
       # or different events to create pods
 
       # we could list the availble pods here or we can do something different
       # @pods=[]
 
-      @services = @configuration.services.each do |k, conf|
-        Service.new(k, conf[:selector])
+      @services = {}
+
+      # we could use a repository here
+      # dry could be very useful in here...
+
+      @configuration.services.each do |k, conf|
+        @services[k] = Service.new(k, conf[:selector])
+        # need to register this service into kube_dns
       end
 
-      puts "List of available Services #{@services}"
+      # dup here?
+      @service_component_types = @configuration.service_component_types
+
+      #puts "List of available Services #{@services}"
 
       pod_id = 0
-      @replica_sets.each do |rn, rs|
+      @replica_sets.each do |k, rs|
         # here we need to create pods and register them into a Service
-        rs[:replicas].times do
-          # the nil fields are ip related information
-          pod = Pod.new(pod_id, "#{rs[:selector]}_#{pod_id}", nil, nil, rs[:selector])
-          @services[:selector].assignPod(pod)
+        rs.replicas.times do
+          selector = rs.selector
+          # the nil fields is a node related information
+          # get image info --> service component type
+          sct = @service_component_types[selector][:service_time_distribution]
+          pod = Pod.new(pod_id, "#{selector}_#{pod_id}", nil, selector, sct)
+          # get the service here and assign the pod to the service
+          # convert string to sym
+          s = @services[selector]
+          s.assignPod(pod)
           pod_id += 1
         end
       end
 
       # debug printing here 
-      @services.each {|_, v| puts v}
+      @services.each {|_, v| puts v.get_random_pod(v.selector)}
       # working here
       # aborting
       abort

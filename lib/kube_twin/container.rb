@@ -21,28 +21,32 @@ module KUBETWIN
         CONTAINER_TERMINATED   = 2      #began execution and then either ran to completion or failed for some reason
 
 
-        attr_reader :containerId, :imageId, :port, :endCode #endCode = 0 if all operations successfull, 0 if there's any kind of error
+        # no need for :port now
+        attr_reader :containerId, :imageId, :endCode #endCode = 0 if all operations successfull, 0 if there's any kind of error
+
         Guaranteed = Struct.new(:cpu, :memory)
         Limits = Struct.new(:cpu, :memory)
         
-        def initialize(containerId, imageId, port, n_cycles, opts={})
+        def initialize(containerId, imageId, image_info, opts={})
             @containerId        = containerId
             @imageId            = imageId
-            @port               = port
             @state              = Container::CONTAINER_WAITING
             @limits             = Limits.new(500, 500)
             @guaranteed         = Guaranteed.new(500, 500)
             @startedTime        = Time.now
-            
-            @service_n_cycles = n_cycles
 
-            @service_noise_rv = if opts[:seed]
-              orig_std_conf = opts[:service_noise_distribution]
+            # retrieving image info here
+            # n_cycle and noise distribution
+            @service_n_cycles = image_info[:service_n_cycles]
+            snd = image_info[:service_noise_rv]
+
+            @service_noise_rv = if snd[:seed]
+              orig_std_conf = snd
               std_conf = orig_std_conf.dup
               std_conf[:args] = orig_std_conf[:args].merge(seed: opts[:seed])
               ERV::RandomVariable.new(std_conf)
             else 
-              ERV::RandomVariable.new(opts[:service_noise_distribution])
+              ERV::RandomVariable.new(snd)
             end
             
             @busy           = false
@@ -113,7 +117,7 @@ module KUBETWIN
             @guaranteed.cpu += moreCpu
             raise "CPU limits error, too much resources in request" if @guaranteed.cpu > @limits.cpu 
             @state = CONTAINER_WAITING
-            
+
             "Resources assigned, waiting for setup..."
             startupC
         end

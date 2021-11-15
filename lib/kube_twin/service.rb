@@ -19,8 +19,9 @@ module KUBETWIN
     # assign a pod to a service
     # label is part of the pod's description
     def assignPod(pod)
-      @pods[pod.label] ||= []
-      raise 'Error! Pod is already present!' if @pods[label].include? pod
+      pod_label = pod.label
+      @pods[pod_label] ||= []
+      raise 'Error! Pod is already present!' if @pods[pod_label].include? pod
 
       # check
       @pods[pod.label] << pod if @selector == pod.label
