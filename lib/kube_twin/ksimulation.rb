@@ -280,9 +280,9 @@ module KUBETWIN
             # get request
             req, pod = e.data
             # get the pod here, we do not need thr cluster
-            
+
+
             #cluster = cluster_repository[req.data_center_id]
-            
             # update reqs_received_per_workflow_and_customer
             reqs_received_per_workflow_and_customer[req.workflow_type_id][req.customer_id] += 1
 
@@ -292,7 +292,6 @@ module KUBETWIN
             #puts "next_component_name #{next_component_name}, pod.label #{pod.label}"
 
             # schedule request forwarding to vm
-            new_event(Event::ET_REQUEST_FORWARDING, req, e.time, pod)
             new_event(Event::ET_REQUEST_FORWARDING, req, e.time, pod)
 
             # update stats
@@ -324,6 +323,7 @@ module KUBETWIN
 
 
           when Event::ET_WORKFLOW_STEP_COMPLETED
+
             # retrieve request and vm
             req = e.data
             container  = e.destination
@@ -332,65 +332,52 @@ module KUBETWIN
             # tell the old vm that it can start processing another request
 
             container.request_finished(self, e.time)
-
-            # find data center and workflow
-            cluster = cluster_repository[req.data_center_id]
+            
+            clu = cluster_repository[req.data_center_id]
+            # find the next workflow
             workflow    = workflow_type_repository[req.workflow_type_id]
 
             # check if there are other steps left to complete the workflow
             if req.next_step < workflow[:component_sequence].size
+
               # find next component name
               next_component_name = workflow[:component_sequence][req.next_step][:name]
 
+              # resolve the next component name
+              service = @kube_dns.lookup(next_component_name)
+              # *******
               # get random VM providing next service component type
-              new_vm = cluster.get_random_vm(next_component_name, random: next_component_rng)
+              # new_vm = cluster.get_random_vm(next_component_name, random: next_component_rng)
 
-              # this is the request's time of arrival at the new VM
+              # this is the request's time of arrival at the new container
+              # fix the forwarding time here ----
+
               forwarding_time = e.time
 
-              # there might not be a VM of the type we need in the current data
-              # center, so look in the other data centers
-              unless new_vm
-                # get list of other data centers, randomly picked
-                other_dcs = cluster_repository.values.
-                  select{|x| x != cluster && x.has_vms_of_type?(next_component_name) }&.
-                  shuffle(random: next_component_rng)
-                other_dcs.each do |dc|
-                  new_vm = dc.get_random_vm(next_component_name, random: next_component_rng)
-                  if new_vm
-                    # need to update data_center_id of request
-                    req.data_center_id = dc.dcid
+              # get a pod from the one available
+              pod = service.get_random_pod(next_component_name) # same as selector
+              # we need to get a reference to the cluster where the pod is running
+              cluster_id = pod.node.cluster_id
+              cluster = cluster_repository[cluster_id]
 
-                    # keep track of transmission time
-                    transmission_time =
-                      latency_manager.sample_latency_between(cluster.location_id,
-                                                             dc.location_id)
+              # we need to keep a reference to current cluster
+              abort 
+              transmission_time =
+                latency_manager.sample_latency_between(clu.location_id,
+                                                     cluster.location_id)
 
-                    unless transmission_time >= 0.0
-                      raise "Negative transmission time (#{transmission_time})!"
-                    end
+              req.update_transfer_time(transmission_time)
+              forwarding_time += transmission_time
 
-                    req.update_transfer_time(transmission_time)
-                    forwarding_time += transmission_time
-
-                    # update request's current data_center_id
-                    req.data_center_id = dc.dcid
-
-                    # keep track of number of requests forwarded to other data centers
-                    requests_forwarded_to_other_dcs += 1
-
-                    # we're done here
-                    break
-                  end
-                end
-              end
+              # update request's current data_center_id
+              req.data_center_id = dc.dcid
 
               # make sure we actually found a VM
               raise "Cannot find VM running a component of type " +
                     "#{next_component_name} in any data center!" unless new_vm
 
               # schedule request forwarding to vm
-              new_event(Event::ET_REQUEST_FORWARDING, req, forwarding_time, new_vm)
+              new_event(Event::ET_REQUEST_FORWARDING, req, forwarding_time, pod)
 
             else # workflow is finished
               # calculate transmission time

@@ -75,6 +75,11 @@ module KUBETWIN
       try_servicing_new_request(sim, time) unless @busy
     end
 
+    def request_finished(sim, time)
+      @busy = false
+      try_servicing_new_request(sim, time)
+    end
+
     def try_servicing_new_request(sim, time)
 
       #if (@state != Container::CONTAINER_RUNNING) ||
