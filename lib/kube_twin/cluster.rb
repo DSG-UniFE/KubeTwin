@@ -9,7 +9,7 @@ module KUBETWIN
 
     def_delegator :@vms, :has_key?, :has_vms_of_type?
 
-    attr_reader :dcid, :location_id
+    attr_reader :cluster_id, :location_id, :node_number, :nodes
 
     # type is mec or cloud, something similar to what we implemented
     # in Phileas
@@ -28,16 +28,15 @@ module KUBETWIN
     # should be its id or something similar
     # we could change this during development
     def add_node(node)
-      @nodes[component_name] ||= []
-      
+      # @nodes[component_name] ||= []
       # here we should implement something similar
       # @vm_type_count[vm.size] ||= 0
 
       # raise exception if assignement is wrong
       raise 'Error! Node is already present!' if @nodes.include? node.node_id
-
-      # allocate register node into cluster
-      @nodes[node.node_id] << node
+      # do we need to use the following?
+      # register node into cluster
+      @nodes[node.node_id] = node
     end
 
     def remove_vm(node)

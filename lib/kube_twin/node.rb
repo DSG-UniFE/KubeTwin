@@ -10,15 +10,15 @@ module KUBETWIN
     # here define the number of resources
     # we could use the CPU frequency or something else?
     # we defined the resources in containers using th mCPU
-    def initialize(node_id, resource)
+    def initialize(node_id, resources)
       @node_id = node_id
-      @resources = resource
+      @resources = resources
       @requested_resources = 0.to_f
       @pod_id_list = []
     end
 
     def assign_resources(pod, resources)
-      raise 'Unfeasible resource assignement!'  if @requested_resources + resources > @resources
+      raise 'Unfeasible resource assignement!' if @requested_resources + resources > @resources
       @pod_id_list << pod.podId
       @requested_resources += resources
     end

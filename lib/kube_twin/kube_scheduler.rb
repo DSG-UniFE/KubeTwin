@@ -11,13 +11,12 @@ module KUBETWIN
     end
 
     # information regarding requirements are available usin the pod class
-    def get_node(pod)
+    def get_node(resource_requirements)
       # get the requirements (we should specify at least a requirement here,
       # CPU percentage)
-      reqs = pod.requirements
       # filter available nodes
       # this should return a candidate node
-      filter_and_score(reqs)
+      filter_and_score(resource_requirements)
     end
 
     private
@@ -38,14 +37,16 @@ module KUBETWIN
      # reset filtered nodes --- do we need to call delete here?
      @filtered_nodes = [] 
       # here we could implement different policies
-      @clusters.each do |k, c|
-        @c.nodes do |node|
+      #puts "Clusters: #{@clusters}"
+      @clusters.values.each do |c|
+        raise "Ranking nodes from a nil cluster" if c.nil?
+        c.nodes.values.each do |node|
           # debug node information here
           # filter only those nodes capable to execute the pods
           available_resources = node.available_resources
-          @filtered_nodes << {node_id: node.node_id, cluster_id: c.cluster_id, 
+          @filtered_nodes << {node: node, cluster_id: c.cluster_id, 
              available_resources: available_resources,
-             deployed_pods: node.pode_id_list.length} if available_resources >= requirements
+             deployed_pods: node.pod_id_list.length} if available_resources >= requirements
         end
       end
     end
@@ -55,7 +56,7 @@ module KUBETWIN
     def score
       # here we need to implement something complex using external or specific classes
       # sorting operations are computionally heavy
-      @filtered_nodes.sort_by {|n| n.available_resources}[0]
+      @filtered_nodes.sort_by { |n| n[:available_resources] }[0][:node]
     end
 
   end

@@ -10,6 +10,8 @@ require_relative './statistics'
 require_relative './pod'
 require_relative './latency_manager'
 require_relative './kube_dns'
+require_relative './kube_scheduler'
+require_relative './node'
 
 
 module KUBETWIN
@@ -69,23 +71,30 @@ module KUBETWIN
       # setup simulation start and current time
       @current_time = @start_time = @configuration.start_time
 
-# we do not have data center for now
-# configure cluster here? or something similar
-# need to check
 
-      # create data centers and store them in a repository
+      # create clusters and relative nodes and store them in a repository
       cluster_repository = Hash[
         @configuration.clusters.map do |k,v|
           [ k, Cluster.new(id: k, **v) ]
         end
       ]
 
+      node_id = 0
+      cluster_repository.values.each do |c|
+        node_number = c.node_number
+        node_number.times do |i|
+          # here node resources ... 
+          # suppose we have 100 for everything
+          n = Node.new(node_id, 100)
+          c.add_node(n)
+          node_id += 1
+        end
+      end
+
+
       customer_repository = @configuration.customers
       workflow_type_repository = @configuration.workflow_types
 
-
-# commented stat initialization... it should work anayway
-# here we would need different statistics
 
       # initialize statistics --- leave for later
       stats = Statistics.new
@@ -141,6 +150,10 @@ module KUBETWIN
 
       #puts "List of available Services #{@services}"
 
+      # creating a Kube-Scheduler
+      # right after having init the cluster repository?
+      @kube_scheduler = KubeScheduler.new(cluster_repository)
+
       pod_id = 0
       @replica_sets.each do |k, rs|
         # here we need to create pods and register them into a Service
@@ -151,7 +164,13 @@ module KUBETWIN
           # sct has info regarding service execution time
           sct = @service_component_types[selector][:service_time_distribution]
           # here we need to call the scheduler to get a node where to allocate this pod
-          pod = Pod.new(pod_id, "#{selector}_#{pod_id}", nil, selector, sct)
+          # retrieve a node where to allocate this pod
+          reqs = @service_component_types[selector][:resources_requirements]
+          node = @kube_scheduler.get_node(reqs)
+
+          pod = Pod.new(pod_id, "#{selector}_#{pod_id}", node, selector, sct)
+          # assign resources for the pod
+          node.assign_resources(pod, reqs)
           # get the service here and assign the pod to the service
           # convert string to sym
           s = @services[selector]
@@ -163,7 +182,7 @@ module KUBETWIN
       # debug printing here 
       # select a random pod using a service
       # pod lookup is done by a service
-      @services.each {|_, v| puts v.get_random_pod(v.selector)}
+      #@services.each {|_, v| puts v.get_random_pod(v.selector)}
 
       # testing DNS functionalities
 
