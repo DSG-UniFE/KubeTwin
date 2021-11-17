@@ -87,7 +87,7 @@ module KUBETWIN
           # suppose we have homogenous node capabilities within
           # a cluster...
           # set also the cluster_id here
-          n = Node.new(node_id, c.node_resources, c.cluster_id)
+          n = Node.new(node_id, c.node_resources, c.cluster_id, c.type)
           c.add_node(n)
           node_id += 1
         end
@@ -164,11 +164,15 @@ module KUBETWIN
           # the nil fields is a node related information
           # get image info --> service component type (sct)
           # sct has info regarding service execution time
-          sct = @service_component_types[selector][:service_time_distribution]
+          sct = @service_component_types[selector]
           # here we need to call the scheduler to get a node where to allocate this pod
           # retrieve a node where to allocate this pod
-          reqs = @service_component_types[selector][:resources_requirements]
+          reqs = sct[:resources_requirements]
           node = @kube_scheduler.get_node(reqs)
+
+          # once we know where the pod is going to be allocated
+          # we can retrieve also the service_time_distribution
+          # depending on its cluster type
 
           pod = Pod.new(pod_id, "#{selector}_#{pod_id}", node, selector, sct)
           pod.startUpPod
@@ -322,10 +326,12 @@ module KUBETWIN
           when Event::ET_WORKFLOW_STEP_COMPLETED
             # retrieve request and vm
             req = e.data
-            vm  = e.destination
+            container  = e.destination
 
+            # TODO check the following code here
             # tell the old vm that it can start processing another request
-            vm.request_finished(self, e.time)
+
+            container.request_finished(self, e.time)
 
             # find data center and workflow
             cluster = cluster_repository[req.data_center_id]

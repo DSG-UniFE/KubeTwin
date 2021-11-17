@@ -56,7 +56,8 @@ module KUBETWIN
     def score
       # here we need to implement something complex using external or specific classes
       # sorting operations are computionally heavy
-      @filtered_nodes.sort_by { |n| n[:available_resources] }[0][:node]
+      # implementing a sorting algorithm here
+      @filtered_nodes.sort_by { |n| -n[:available_resources] }[0][:node]
     end
 
   end

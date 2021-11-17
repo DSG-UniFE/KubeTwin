@@ -9,7 +9,7 @@ module KUBETWIN
 
     def_delegator :@vms, :has_key?, :has_vms_of_type?
 
-    attr_reader :cluster_id, :location_id, :node_number, :nodes, :node_resources
+    attr_reader :cluster_id, :location_id, :node_number, :nodes, :node_resources, :type
 
     # type is mec or cloud, something similar to what we implemented
     # in Phileas

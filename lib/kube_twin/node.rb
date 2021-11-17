@@ -6,7 +6,9 @@ module KUBETWIN
 
   class Node
 
-    attr_reader :resources, :requested_resources, :node_id, :pod_id_list, :cluster_id
+    # :type [:mec, cloud] depends on the cluster 
+    attr_reader :resources, :requested_resources, :node_id, 
+     :pod_id_list, :cluster_id, :type
     # cluster_id should not be here
     # this is a programming error that i introduce to speed-up
     # the development process
@@ -15,12 +17,13 @@ module KUBETWIN
     # here define the number of resources
     # we could use the CPU frequency or something else?
     # we defined the resources in containers using th mCPU
-    def initialize(node_id, resources, cluster_id)
+    def initialize(node_id, resources, cluster_id, type)
       @node_id = node_id
       @resources = resources
       @requested_resources = 0.to_f
       @cluster_id = cluster_id
       @pod_id_list = []
+      @type = type
     end
 
     def assign_resources(pod, resources)
