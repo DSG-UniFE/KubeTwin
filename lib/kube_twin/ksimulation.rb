@@ -84,8 +84,9 @@ module KUBETWIN
         node_number = c.node_number
         node_number.times do |i|
           # here node resources ... 
-          # suppose we have 100 for everything
-          n = Node.new(node_id, 100)
+          # suppose we have homogenous node capabilities within
+          # a cluster...
+          n = Node.new(node_id, c.node_resources)
           c.add_node(n)
           node_id += 1
         end
