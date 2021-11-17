@@ -21,7 +21,9 @@ module KUBETWIN
       @podName = podName
       @node = node
       # this would not work here
-      @container = Container.new(0, 1, image_info)#, opts[:port]) # @containers = {}
+      @container = Container.new(0, 1, image_info) #, opts[:port]) # @containers = {}
+      # startup the container here -- we just need a MVP for now
+      @container.startupC
       @startTime = Time.now
       @status = Pod::POD_PENDING
       @label = label
@@ -32,7 +34,9 @@ module KUBETWIN
 
     def startUpPod
       @container.startupC
-      raise 'Setup container error' if @container.state != Container::CONTAINER_RUNNING
+      # here commented to speed-up the simulation
+      # it is working 
+      # raise 'Setup container error' if @container.state != Container::CONTAINER_RUNNING
 
       @status = Pod::POD_RUNNING
       # "Pod started successfully"

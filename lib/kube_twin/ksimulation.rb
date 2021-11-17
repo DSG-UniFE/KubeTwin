@@ -86,7 +86,8 @@ module KUBETWIN
           # here node resources ... 
           # suppose we have homogenous node capabilities within
           # a cluster...
-          n = Node.new(node_id, c.node_resources)
+          # set also the cluster_id here
+          n = Node.new(node_id, c.node_resources, c.cluster_id)
           c.add_node(n)
           node_id += 1
         end
@@ -170,6 +171,8 @@ module KUBETWIN
           node = @kube_scheduler.get_node(reqs)
 
           pod = Pod.new(pod_id, "#{selector}_#{pod_id}", node, selector, sct)
+          pod.startUpPod
+
           # assign resources for the pod
           node.assign_resources(pod, reqs)
           # get the service here and assign the pod to the service
@@ -192,7 +195,7 @@ module KUBETWIN
      
       # working here
       # aborting
-      abort
+      # abort
 
       # create event queue
       @event_queue = SortedArray.new
@@ -236,28 +239,34 @@ module KUBETWIN
 
             # find closest data center
             customer_location_id = customer_repository.dig(req_attrs[:customer_id], :location_id)
-            dc_at_customer_location = cluster_repository.values.find {|dc| dc.location_id == customer_location_id }
-
-            raise "No data center found at location id #{customer_location_id}!" unless dc_at_customer_location
 
             # find first component name for requested workflow
             workflow = workflow_type_repository[req_attrs[:workflow_type_id]]
             first_component_name = workflow[:component_sequence][0][:name]
 
-            closest_dc = if dc_at_customer_location.has_vms_of_type?(first_component_name)
-              dc_at_customer_location
-            else
-              cluster_repository.values.select{|dc| dc.has_vms_of_type?(first_component_name) }&.sample
-            end
+            # here can start working on the kube_twin ....
+            # resolve the component name
+            service = @kube_dns.lookup(first_component_name)
+            # we need modeling the internal kubernetes time here
+            # feedback from bologna
 
-            raise "Invalid configuration! No VMs of type #{first_component_name} found!" unless closest_dc
+            # the closest_dc stuff should be implmented within a load balancer / service 
+            # (within the DNS here)
+            # pod
+            pod = service.get_random_pod(first_component_name) # same as selector
+            # we need to get a reference to the cluster where the pod is running
+            cluster_id = pod.node.cluster_id
+            cluster = cluster_repository[cluster_id]
+            
+            # we do not need this for now.... we have fancy kubernetes now!
 
-            arrival_time = @current_time + latency_manager.sample_latency_between(customer_location_id, closest_dc.location_id)
-            new_req = Request.new(req_attrs.merge!(initial_data_center_id: closest_dc.dcid,
+            arrival_time = @current_time + latency_manager.sample_latency_between(customer_location_id, cluster.location_id)
+
+            new_req = Request.new(req_attrs.merge!(initial_data_center_id: cluster_id,
                                                    arrival_time: arrival_time))
 
             # schedule arrival of current request
-            new_event(Event::ET_REQUEST_ARRIVAL, new_req, arrival_time, nil)
+            new_event(Event::ET_REQUEST_ARRIVAL, [new_req, pod], arrival_time, nil)
 
             # schedule generation of next request
             req_attrs = rg.generate
@@ -265,23 +274,22 @@ module KUBETWIN
 
           when Event::ET_REQUEST_ARRIVAL
             # get request
-            req = e.data
-
-            # find data center
-            cluster = cluster_repository[req.data_center_id]
-
+            req, pod = e.data
+            # get the pod here, we do not need thr cluster
+            
+            #cluster = cluster_repository[req.data_center_id]
+            
             # update reqs_received_per_workflow_and_customer
             reqs_received_per_workflow_and_customer[req.workflow_type_id][req.customer_id] += 1
 
             # find next component name
             workflow = workflow_type_repository[req.workflow_type_id]
             next_component_name = workflow[:component_sequence][req.next_step][:name]
-
-            # get random vm providing next service component type
-            vm = cluster.get_random_vm(next_component_name, random: next_component_rng)
+            #puts "next_component_name #{next_component_name}, pod.label #{pod.label}"
 
             # schedule request forwarding to vm
-            new_event(Event::ET_REQUEST_FORWARDING, req, e.time, vm)
+            new_event(Event::ET_REQUEST_FORWARDING, req, e.time, pod)
+            new_event(Event::ET_REQUEST_FORWARDING, req, e.time, pod)
 
             # update stats
             if req.arrival_time > warmup_threshold
@@ -295,18 +303,20 @@ module KUBETWIN
               per_workflow_and_customer_stats[req.workflow_type_id][req.customer_id].request_received
             end
 
-
           # Leave these events for when we add VM migration support
           # when Event::ET_VM_SUSPEND
           # when Event::ET_VM_RESUME
 
           when Event::ET_REQUEST_FORWARDING
             # get request
+            # do we need to handle this event? we could have 
+            # done everything in the previous one
             req  = e.data
             time = e.time
-            vm   = e.destination
+            pod   = e.destination
 
-            vm.new_request(self, req, time)
+            # here we should use the delegator
+            pod.container.new_request(self, req, time)
 
 
           when Event::ET_WORKFLOW_STEP_COMPLETED

@@ -6,14 +6,20 @@ module KUBETWIN
 
   class Node
 
-    attr_reader :resources, :requested_resources, :node_id, :pod_id_list
+    attr_reader :resources, :requested_resources, :node_id, :pod_id_list, :cluster_id
+    # cluster_id should not be here
+    # this is a programming error that i introduce to speed-up
+    # the development process
+
+
     # here define the number of resources
     # we could use the CPU frequency or something else?
     # we defined the resources in containers using th mCPU
-    def initialize(node_id, resources)
+    def initialize(node_id, resources, cluster_id)
       @node_id = node_id
       @resources = resources
       @requested_resources = 0.to_f
+      @cluster_id = cluster_id
       @pod_id_list = []
     end
 

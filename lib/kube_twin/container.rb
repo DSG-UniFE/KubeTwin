@@ -20,7 +20,7 @@ module KUBETWIN
     CONTAINER_TERMINATED   = 2      # began execution and then either ran to completion or failed for some reason
 
     # no need for :port now
-    attr_reader :containerId, :imageId, :endCode # endCode = 0 if all operations successfull, 0 if there's any kind of error
+    attr_reader :containerId, :imageId, :endCode, :state # endCode = 0 if all operations successfull, 0 if there's any kind of error
 
     Guaranteed = Struct.new(:cpu, :memory)
     Limits = Struct.new(:cpu, :memory)
@@ -32,6 +32,7 @@ module KUBETWIN
       @limits = Limits.new(500, 500)
       @guaranteed = Guaranteed.new(500, 500)
       @startedTime = Time.now
+      @state = CONTAINER_WAITING
 
       # retrieving image info here
       # n_cycle and noise distribution
@@ -55,7 +56,7 @@ module KUBETWIN
     end
 
     def startupC
-      sleep(0.002)
+      #sleep(0.002)
       @state = Container::CONTAINER_RUNNING
     end
 
