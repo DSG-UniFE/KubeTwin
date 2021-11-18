@@ -122,6 +122,9 @@ module KUBETWIN
 
       @kube_dns = KubeDns.new
 
+      @generated = 0
+      @arrived = 0
+      @processed = 0
 
       @replica_sets = {}
       # first create the replica_set
@@ -241,6 +244,7 @@ module KUBETWIN
           when Event::ET_REQUEST_GENERATION
             req_attrs = e.data
 
+            @generated += 1
             # find closest data center
             customer_location_id = customer_repository.dig(req_attrs[:customer_id], :location_id)
 
@@ -280,6 +284,7 @@ module KUBETWIN
             # get request
             req, pod = e.data
             # get the pod here, we do not need thr cluster
+            @arrived += 1
 
 
             #cluster = cluster_repository[req.data_center_id]
@@ -327,15 +332,16 @@ module KUBETWIN
             # retrieve request and vm
             req = e.data
             container  = e.destination
+            @processed += 1
 
             # TODO check the following code here
             # tell the old vm that it can start processing another request
 
             container.request_finished(self, e.time)
             
-            clu = cluster_repository[req.data_center_id]
+            current_cluster = cluster_repository[req.data_center_id]
             # find the next workflow
-            workflow    = workflow_type_repository[req.workflow_type_id]
+            workflow   = workflow_type_repository[req.workflow_type_id]
 
             # check if there are other steps left to complete the workflow
             if req.next_step < workflow[:component_sequence].size
@@ -360,21 +366,19 @@ module KUBETWIN
               cluster_id = pod.node.cluster_id
               cluster = cluster_repository[cluster_id]
 
-              # we need to keep a reference to current cluster
-              abort 
               transmission_time =
-                latency_manager.sample_latency_between(clu.location_id,
+                latency_manager.sample_latency_between(current_cluster.location_id,
                                                      cluster.location_id)
 
               req.update_transfer_time(transmission_time)
               forwarding_time += transmission_time
 
-              # update request's current data_center_id
-              req.data_center_id = dc.dcid
+              # update request's current data_center_id / cluster_id
+              req.data_center_id = cluster.cluster_id
 
               # make sure we actually found a VM
-              raise "Cannot find VM running a component of type " +
-                    "#{next_component_name} in any data center!" unless new_vm
+              raise "Cannot find a Pod running a component of type " +
+                    "#{next_component_name} in any cluster!" unless pod
 
               # schedule request forwarding to vm
               new_event(Event::ET_REQUEST_FORWARDING, req, forwarding_time, pod)
@@ -430,18 +434,23 @@ module KUBETWIN
 
       # puts "========== Simulation Finished =========="
 
-      costs = @evaluator.evaluate_business_impact(stats, per_workflow_and_customer_stats,
-                                                  vm_allocation)
+      # here the evaluation will fail
+      # we don't have an allocation array
+      # costs = @evaluator.evaluate_business_impact(stats, per_workflow_and_customer_stats,
+      #                                            vm_allocation)
       puts "====== Evaluating new allocation ======\n" +
-           "costs: #{costs}\n" +
-           "vm_allocation: #{vm_allocation.inspect}\n" +
+          # "costs: #{costs}\n" +
+          # "vm_allocation: #{vm_allocation.inspect}\n" +
            "stats: #{stats.to_s}\n" +
            "per_workflow_and_customer_stats: #{per_workflow_and_customer_stats.to_s}\n" +
            "=======================================\n"
 
+      puts "generated: #{@generated} arrived: #{@arrived}, processed: #{@processed}"
+
       # we want to minimize the cost, so we define fitness as the opposite of
       # the sum of all costs incurred
-      -costs.values.inject(0.0){|s,x| s += x }
+      #-costs.values.inject(0.0){|s,x| s += x }
+      0
     end
 
   end

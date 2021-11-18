@@ -98,7 +98,6 @@ module KUBETWIN
 
         service_time_request = @service_time.sample
 
-
         if @trace
           logger.info "Container #{@containerId} fulfilling a new request at time #{time} for #{service_time_request} seconds"
         end
