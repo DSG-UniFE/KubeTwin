@@ -83,9 +83,8 @@ module KUBETWIN
       cluster_repository.values.each do |c|
         node_number = c.node_number
         node_number.times do |i|
-          # here node resources ... 
-          # suppose we have homogenous node capabilities within
-          # a cluster...
+          # we suppose to have nodes with homogenous capabilities in a 
+          # cluster
           # set also the cluster_id here
           n = Node.new(node_id, c.node_resources, c.cluster_id, c.type)
           c.add_node(n)
@@ -93,7 +92,7 @@ module KUBETWIN
         end
       end
 
-
+      # information regarding customers
       customer_repository = @configuration.customers
       workflow_type_repository = @configuration.workflow_types
 
@@ -118,10 +117,11 @@ module KUBETWIN
         end
       ]
 
-      # Initialize Kubernetes objects
-
+      # Initialize Kubernetes internal objects/services
+  
       @kube_dns = KubeDns.new
 
+      # debug variables
       @generated = 0
       @arrived = 0
       @processed = 0
@@ -138,8 +138,8 @@ module KUBETWIN
 
       puts @replica_sets
 
-      # Replica Sets created here, ... then create pod and services .. we can follow
-      # or different events to create pods
+      # Then create services and pods at startup
+      # not simulating starup events in the MVP
 
       @services = {}
 
@@ -151,13 +151,12 @@ module KUBETWIN
         @kube_dns.registerService(@services[k])
       end
 
-      # dup here?
+      # do we want to use dup here?
       @service_component_types = @configuration.service_component_types
 
-      #puts "List of available Services #{@services}"
-
-      # creating a Kube-Scheduler
-      # right after having init the cluster repository?
+      # creating a KubeScheduler
+      # the KubeScheduler decides on which nodes schedule
+      # the pods
       @kube_scheduler = KubeScheduler.new(cluster_repository)
 
       pod_id = 0
@@ -191,21 +190,8 @@ module KUBETWIN
         end
       end
 
-      # debug printing here 
-      # select a random pod using a service
-      # pod lookup is done by a service
-      #@services.each {|_, v| puts v.get_random_pod(v.selector)}
-
-      # testing DNS functionalities
-
-      # puts "Testing DNS"
-      #puts "Looking up #{@kube_dns.lookup('Web Server')}"
-     
-      # working here
-      # aborting
-      # abort
-
       # create event queue
+      # this stores all simulation events
       @event_queue = SortedArray.new
 
       # puts "========== Simulation Start =========="
@@ -225,7 +211,6 @@ module KUBETWIN
       warmup_threshold = @configuration.start_time + @configuration.warmup_duration.to_i
 
       requests_being_worked_on = 0
-      requests_forwarded_to_other_dcs = 0
       current_event = 0
 
       # launch simulation
@@ -247,31 +232,33 @@ module KUBETWIN
 
             @generated += 1
             # find closest data center
-            customer_location_id = customer_repository.dig(req_attrs[:customer_id], :location_id)
+            customer_location_id = 
+                                    customer_repository.
+                                    dig(req_attrs[:customer_id], :location_id)
 
             # find first component name for requested workflow
             workflow = workflow_type_repository[req_attrs[:workflow_type_id]]
             first_component_name = workflow[:component_sequence][0][:name]
 
-            # here can start working on the kube_twin ....
-            # resolve the component name
+            # first we need to resolve the component name using
+            # the kubernetes DNS
+
+            # TODO -- modeling internal service time
+            # this code can be split into two when
+
             service = @kube_dns.lookup(first_component_name)
-            # we need modeling the internal kubernetes time here
-            # feedback from bologna
 
             # the closest_dc stuff should be implmented within a load balancer / service 
-            # (within the DNS here)
-            # pod
+            # here we cloud implement different policies rather than random policy
             pod = service.get_random_pod(first_component_name) # same as selector
+
             # we need to get a reference to the cluster where the pod is running
-            #puts "pod: #{pod.podId} container: #{pod.container}"
             cluster_id = pod.node.cluster_id
             cluster = cluster_repository[cluster_id]
             
-            # we do not need this for now.... we have fancy kubernetes now!
-
             arrival_time = @current_time + latency_manager.sample_latency_between(customer_location_id, cluster.location_id)
 
+            # generate the request here
             new_req = Request.new(req_attrs.merge!(initial_data_center_id: cluster_id,
                                                    arrival_time: arrival_time))
 
@@ -340,26 +327,19 @@ module KUBETWIN
             # TODO check the following code here
             # tell the old container that it can start processing another request
             container.request_finished(self, e.time)
-            
+
             current_cluster = cluster_repository[req.data_center_id]
             # find the next workflow
-            workflow   = workflow_type_repository[req.workflow_type_id]
+            workflow = workflow_type_repository[req.workflow_type_id]
 
             # check if there are other steps left to complete the workflow
             if req.next_step < workflow[:component_sequence].size
-              #puts "there is another step"
 
               # find next component name
               next_component_name = workflow[:component_sequence][req.next_step][:name]
 
               # resolve the next component name
               service = @kube_dns.lookup(next_component_name)
-              # *******
-              # get random VM providing next service component type
-              # new_vm = cluster.get_random_vm(next_component_name, random: next_component_rng)
-
-              # this is the request's time of arrival at the new container
-              # fix the forwarding time here ----
 
               forwarding_time = e.time
 
