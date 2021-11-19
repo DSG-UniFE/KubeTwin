@@ -15,7 +15,7 @@ module KUBETWIN
 
     # type is mec or cloud, something similar to what we implemented
     # in Phileas
-    def initialize(id:, location_id:, name:, type:,
+    def initialize(id:, hourly_cost:, location_id:, name:, type:,
                    node_number:, node_resources:, **opts)
       @cluster_id    = id
       @location_id   = location_id
@@ -24,7 +24,7 @@ module KUBETWIN
       @type          = type
       @node_number   = node_number
       @node_resources = node_resources
-      @hourly_cost   = type == :mec ? 0.30 : 0.20
+      @hourly_cost   = hourly_cost
       raise ArgumentError, "Unsupported cluster's type!" unless [ :mec, :cloud ].include?(@type)
     end
 

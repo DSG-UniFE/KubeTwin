@@ -71,14 +71,20 @@ module KUBETWIN
       # setup simulation start and current time
       @current_time = @start_time = @configuration.start_time
 
+      # here need to retrieve configuration cost also
+      evaluation_cost = Hash.new
+
+      @configuration.evaluation[:vm_hourly_cost].each do |c| 
+        evaluation_cost[c[:cluster]] = c[:cost]
+      end
 
       # create clusters and relative nodes and store them in a repository
       cluster_repository = Hash[
         @configuration.clusters.map do |k,v|
-          [ k, Cluster.new(id: k, **v) ]
+          [ k, Cluster.new(id: k, hourly_cost: evaluation_cost[k], **v) ]
         end
       ]
-
+      
       node_id = 0
       cluster_repository.values.each do |c|
         node_number = c.node_number
