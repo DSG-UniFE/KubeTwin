@@ -45,7 +45,7 @@ module KUBETWIN
           # filter only those nodes capable to execute the pods
           available_resources = node.available_resources
           @filtered_nodes << {node: node, cluster_id: c.cluster_id, 
-             available_resources: available_resources,
+             available_resources: available_resources, requested_resources: node.requested_resources,
              deployed_pods: node.pod_id_list.length} if available_resources >= requirements
         end
       end
@@ -57,6 +57,7 @@ module KUBETWIN
       # here we need to implement something complex using external or specific classes
       # sorting operations are computionally heavy
       # implementing a sorting algorithm here
+      # {|n| (n[requested_resources] + n[:deployed_pods])}
       @filtered_nodes.sort_by { |n| -n[:available_resources] }[0][:node]
     end
 
