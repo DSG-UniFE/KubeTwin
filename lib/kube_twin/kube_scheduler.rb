@@ -44,9 +44,10 @@ module KUBETWIN
           # debug node information here
           # filter only those nodes capable to execute the pods
           available_resources = node.available_resources
-          @filtered_nodes << {node: node, cluster_id: c.cluster_id, 
-             available_resources: available_resources, requested_resources: node.requested_resources,
-             deployed_pods: node.pod_id_list.length} if available_resources >= requirements
+          @filtered_nodes << {node: node, cluster_id: c.cluster_id,
+                             price: c.hourly_cost, available_resources: available_resources,
+                             requested_resources: node.requested_resources,
+                             deployed_pods: node.pod_id_list.length} if available_resources >= requirements
         end
       end
     end

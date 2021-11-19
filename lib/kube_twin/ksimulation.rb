@@ -430,7 +430,12 @@ module KUBETWIN
            "=======================================\n"
 
       puts "generated: #{@generated} arrived: #{@arrived}, processed: #{@processed}, forwarded: #{@forwarded}"
-
+      cluster_repository.each do |_,c|
+        puts "#{c.name} -- Allocation:"
+        c.nodes.values.each do |n|
+          puts "node_id: #{n.node_id}: pods: #{n.pod_id_list.length}"
+        end
+      end
       # we want to minimize the cost, so we define fitness as the opposite of
       # the sum of all costs incurred
       #-costs.values.inject(0.0){|s,x| s += x }

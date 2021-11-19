@@ -9,11 +9,14 @@ module KUBETWIN
 
     def_delegator :@vms, :has_key?, :has_vms_of_type?
 
-    attr_reader :cluster_id, :location_id, :node_number, :nodes, :node_resources, :type
+    attr_reader :cluster_id, :location_id, :node_number, 
+                :nodes, :name, :node_resources, :type,
+                :hourly_cost
 
     # type is mec or cloud, something similar to what we implemented
     # in Phileas
-    def initialize(id:, location_id:, name:, type:, node_number:, node_resources:, **opts)
+    def initialize(id:, location_id:, name:, type:,
+                   node_number:, node_resources:, **opts)
       @cluster_id    = id
       @location_id   = location_id
       @nodes           = {}
@@ -21,6 +24,7 @@ module KUBETWIN
       @type          = type
       @node_number   = node_number
       @node_resources = node_resources
+      @hourly_cost   = type == :mec ? 0.30 : 0.20
       raise ArgumentError, "Unsupported cluster's type!" unless [ :mec, :cloud ].include?(@type)
     end
 
