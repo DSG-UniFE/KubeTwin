@@ -125,6 +125,7 @@ module KUBETWIN
       @generated = 0
       @arrived = 0
       @processed = 0
+      @forwarded = 0
 
       @replica_sets = {}
       # first create the replica_set
@@ -263,6 +264,7 @@ module KUBETWIN
             # pod
             pod = service.get_random_pod(first_component_name) # same as selector
             # we need to get a reference to the cluster where the pod is running
+            #puts "pod: #{pod.podId} container: #{pod.container}"
             cluster_id = pod.node.cluster_id
             cluster = cluster_repository[cluster_id]
             
@@ -296,7 +298,8 @@ module KUBETWIN
             next_component_name = workflow[:component_sequence][req.next_step][:name]
             #puts "next_component_name #{next_component_name}, pod.label #{pod.label}"
 
-            # schedule request forwarding to vm
+            # schedule request forwarding to pod
+            @forwarded += 1
             new_event(Event::ET_REQUEST_FORWARDING, req, e.time, pod)
 
             # update stats
@@ -335,8 +338,7 @@ module KUBETWIN
             @processed += 1
 
             # TODO check the following code here
-            # tell the old vm that it can start processing another request
-
+            # tell the old container that it can start processing another request
             container.request_finished(self, e.time)
             
             current_cluster = cluster_repository[req.data_center_id]
@@ -345,6 +347,7 @@ module KUBETWIN
 
             # check if there are other steps left to complete the workflow
             if req.next_step < workflow[:component_sequence].size
+              #puts "there is another step"
 
               # find next component name
               next_component_name = workflow[:component_sequence][req.next_step][:name]
@@ -381,6 +384,7 @@ module KUBETWIN
                     "#{next_component_name} in any cluster!" unless pod
 
               # schedule request forwarding to vm
+              @forwarded += 1
               new_event(Event::ET_REQUEST_FORWARDING, req, forwarding_time, pod)
 
             else # workflow is finished
@@ -445,7 +449,7 @@ module KUBETWIN
            "per_workflow_and_customer_stats: #{per_workflow_and_customer_stats.to_s}\n" +
            "=======================================\n"
 
-      puts "generated: #{@generated} arrived: #{@arrived}, processed: #{@processed}"
+      puts "generated: #{@generated} arrived: #{@arrived}, processed: #{@processed}, forwarded: #{@forwarded}"
 
       # we want to minimize the cost, so we define fitness as the opposite of
       # the sum of all costs incurred

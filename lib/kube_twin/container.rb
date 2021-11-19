@@ -87,8 +87,9 @@ module KUBETWIN
         raise "Container not available (id: #{@containerId})"
         end
 
-      unless @request_queue.empty? || (@state == Container::CONTAINER_TERMINATED)
-        r = @request_queue.shift
+      unless @request_queue.empty? # || (@state == Container::CONTAINER_TERMINATED)
+
+        ri = @request_queue.shift
 
         # nc = r.service_time
 
@@ -96,29 +97,20 @@ module KUBETWIN
         # service_time_request = (nc / @guaranteed.cpu) + @service_noise_rv.sample
         # just implement service_time for now
 
-        service_time_request = @service_time.sample
-
         if @trace
           logger.info "Container #{@containerId} fulfilling a new request at time #{time} for #{service_time_request} seconds"
         end
-
-        r.service_time = service_time_request
         
-        req = r.request
+        req = ri.request
         # update the request's working information
 
         req.update_queuing_time(time - req.arrival_time)
 
-        req.step_completed(service_time_request)
+        req.step_completed(ri.service_time)
 
         # schedule completion of workflow step
-        sim.new_event(Event::ET_WORKFLOW_STEP_COMPLETED, req, time + service_time_request, self)
-
+        sim.new_event(Event::ET_WORKFLOW_STEP_COMPLETED, req, time + ri.service_time, self)
       end
-
-      @endCode = 0
-      @state   = Container::CONTAINER_TERMINATED
-      @busy    = false
     end
 
     def request_resources(moreCpu)
@@ -136,5 +128,7 @@ module KUBETWIN
       'Resources assigned, waiting for setup...'
       startupC
     end
+
+  # ending module
   end
 end

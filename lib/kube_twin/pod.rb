@@ -18,6 +18,7 @@ module KUBETWIN
     # instead of nodeIP we could use a nodeID
     # pod name could not be important
     def initialize(podId, podName, node, label, image_info)
+      @podId = podId
       @podName = podName
       @node = node
       # this would not work here
