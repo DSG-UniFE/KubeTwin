@@ -15,6 +15,7 @@ module KUBETWIN
                 :generation_time,
                 :next_step,
                 # :status,
+                :queuing_time,
                 :workflow_type_id
 
     # the data_center_id attribute is updated as requests move from a Cloud

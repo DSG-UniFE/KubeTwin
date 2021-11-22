@@ -56,6 +56,15 @@ module KUBETWIN
 
       @trace = opts[:trace] ? true : false
       @working_time = 0.0
+      # metric info -- first implementation
+
+      @served_request = 0
+      @total_queue_processing_time = 0
+      @current_processing_metric = 0
+      # just a random implementation here
+      # we can select the tolerance 0.5 from the configuration file
+      @desired_processing_metric = @service_time.next + 0.5 * (@service_time.next)
+      @processing_time = 0
     end
 
     def startupC
@@ -77,6 +86,13 @@ module KUBETWIN
 
     def request_finished(sim, time)
       @busy = false
+      # update also the metrics
+      @served_request += 1
+      @current_processing_metric = @total_queue_processing_time / @served_request
+      
+      # this is just to debug the current metric
+      #puts "current: #{@current_processing_metric} desired: #{@desired_processing_metric}"
+      
       try_servicing_new_request(sim, time)
     end
 
@@ -107,6 +123,9 @@ module KUBETWIN
         req.update_queuing_time(time - req.arrival_time)
 
         req.step_completed(ri.service_time)
+
+        # update container-based metric here
+        @total_queue_processing_time += ri.service_time + req.queuing_time
 
         # schedule completion of workflow step
         sim.new_event(Event::ET_WORKFLOW_STEP_COMPLETED, req, time + ri.service_time, self)

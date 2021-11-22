@@ -84,7 +84,7 @@ module KUBETWIN
           [ k, Cluster.new(id: k, hourly_cost: evaluation_cost[k], **v) ]
         end
       ]
-      
+
       node_id = 0
       cluster_repository.values.each do |c|
         node_number = c.node_number
@@ -435,13 +435,16 @@ module KUBETWIN
            "per_workflow_and_customer_stats: #{per_workflow_and_customer_stats.to_s}\n" +
            "=======================================\n"
 
-      puts "generated: #{@generated} arrived: #{@arrived}, processed: #{@processed}, forwarded: #{@forwarded}"
-      cluster_repository.each do |_,c|
-        puts "#{c.name} -- Allocation:"
-        c.nodes.values.each do |n|
-          puts "node_id: #{n.node_id}: pods: #{n.pod_id_list.length}"
-        end
-      end
+      # debug info here
+      
+      # puts "generated: #{@generated} arrived: #{@arrived}, processed: #{@processed}, forwarded: #{@forwarded}"
+      # cluster_repository.each do |_,c|
+      #  puts "#{c.name} -- Allocation:"
+      #  c.nodes.values.each do |n|
+      #    puts "node_id: #{n.node_id}: pods: #{n.pod_id_list.length}"
+      #  end
+      # end
+
       # we want to minimize the cost, so we define fitness as the opposite of
       # the sum of all costs incurred
       #-costs.values.inject(0.0){|s,x| s += x }
