@@ -28,16 +28,16 @@ module KUBETWIN
 
     def assign_resources(pod, resources)
       raise 'Unfeasible resource assignement!' if @requested_resources + resources > @resources
-      @pod_id_list << pod.podId
+      @pod_id_list << pod.pod_id
       @requested_resources += resources
     end
 
     def remove_resources(pod, resources)
-      raise "Pod not assigned to this node" unless @pod_id_list.include? pod.podId
+      raise "Pod not assigned to this node" unless @pod_id_list.include? pod.pod_id
       # free resources
       @requested_resources -= resources
       # remove pod from the list of associated pods 
-      @pod_id_list.delete(pod.podId)
+      @pod_id_list.delete(pod.pod_id)
     end
 
     def available_resources

@@ -12,7 +12,11 @@ module KUBETWIN
   # the simulation's code
 
   class ReplicaSet
-    attr_reader :name, :selector, :replicas, :cluster_id
+    attr_reader :name,
+                :selector,
+                :replicas,
+                :cluster_id, 
+                :service
 
     # name and selector have the same value here
     # the replica set creates the pods, which are 
@@ -32,7 +36,7 @@ module KUBETWIN
     # change the number of replicas
     # this method could generate a
     # new event that will activate or deactivate pod
-    def setReplicas(replicas)
+    def set_replicas(replicas)
       @replicas = replicas
     end
     

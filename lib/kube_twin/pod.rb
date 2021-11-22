@@ -11,14 +11,14 @@ module KUBETWIN
     POD_FAILED          = 0     # All containers in the Pod have terminated, and at least one container has terminated in failure
 
     # commenting podIP info for now :podIp
-    attr_reader :podId, :podName, :node, :label,
+    attr_reader :pod_id, :podName, :node, :label,
      :container, :requirements
 
     # here fix it
     # instead of nodeIP we could use a nodeID
     # pod name could not be important
-    def initialize(podId, podName, node, label, image_info)
-      @podId = podId
+    def initialize(pod_id, podName, node, label, image_info)
+      @pod_id = pod_id
       @podName = podName
       @node = node
       # this would not work here
@@ -54,7 +54,7 @@ module KUBETWIN
 
     # TODO refactor this method to remove unused fields
     #def describePod(_pod)
-    #  "Name: #{@podName} \nIP: #{@podIp} \nNode IP: #{@nodeIp} \nStart Time: #{@startTime} \nStatus: #{@status} \nContainers: \n\tContainer ID: #{@container.containerId} \n\tImage ID: #{@container.imageId} \n\tPort: #{@container.port} \n\tLimits: \n\t\tcpu: #{@container.limits.cpu} \n\t\tmemory: #{@container.limits.memory} \n\tRequests: \n\t\tcpu: #{@container.guaranteed.cpu} \n\t\tmemory: #{@container.guaranteed.memory}"
+    #  "Name: #{@podName} \nIP: #{@pod_id} \nNode IP: #{@nodeIp} \nStart Time: #{@startTime} \nStatus: #{@status} \nContainers: \n\tContainer ID: #{@container.containerId} \n\tImage ID: #{@container.imageId} \n\tPort: #{@container.port} \n\tLimits: \n\t\tcpu: #{@container.limits.cpu} \n\t\tmemory: #{@container.limits.memory} \n\tRequests: \n\t\tcpu: #{@container.guaranteed.cpu} \n\t\tmemory: #{@container.guaranteed.memory}"
     #end
 
     # Pod running if at least one of its primary containers starts OK

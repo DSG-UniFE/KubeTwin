@@ -52,6 +52,7 @@ module KUBETWIN
                  :clusters,
                  :node,
                  :replica_sets,
+                 :horizontal_pod_autoscalers,
                  :services,
                  :duration,
                  :evaluation,

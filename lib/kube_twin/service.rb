@@ -8,12 +8,17 @@ module KUBETWIN
     # removing :targetPort for now
     # we are not dealing with TCP/IP here...
     # consider it for future work
-    attr_reader :serviceName, :selector #, :targetPort
+    attr_reader :serviceName,
+                :selector,
+                :pods 
+                #, :targetPort
 
     def initialize(serviceName, selector)
       @serviceName = serviceName
       @selector = selector
       @pods = {}
+      # round robin pod selector
+      @rri = 0
     end
 
     # assign a pod to a service
@@ -35,5 +40,15 @@ module KUBETWIN
         end
       end
     end
+
+    def get_pod_rr(label)
+      if @pods.key? label
+        index = @rri
+        # update rri
+        @rri = (@rri + 1) % @pods[label].length
+        @pods[label][index]
+      end
+    end
+
   end
 end

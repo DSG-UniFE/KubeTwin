@@ -9,6 +9,7 @@ module KUBETWIN
     ET_REQUEST_FORWARDING      = 2
     ET_WORKFLOW_STEP_COMPLETED = 3
     ET_REQUEST_CLOSURE         = 4
+    ET_HPA_CONTROL             = 5
     # ET_VM_SUSPEND              = 5
     # ET_VM_RESUME               = 6
     ET_END_OF_SIMULATION       = 100

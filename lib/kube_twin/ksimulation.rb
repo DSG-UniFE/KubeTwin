@@ -2,6 +2,7 @@
 
 require_relative './cluster'
 require_relative './replica_set'
+require_relative './horizontal_pod_autoscaler'
 require_relative './service'
 require_relative './event'
 require_relative './generator'
@@ -142,7 +143,21 @@ module KUBETWIN
                     conf[:selector], conf[:replicas], nil)
       end
 
-      puts @replica_sets
+      # puts @replica_sets
+
+      @horizontal_pod_autoscaler_repo = {}
+      unless @configuration.horizontal_pod_autoscalers.nil?
+        @configuration.horizontal_pod_autoscalers.each do |name, conf|
+          # implement the horizontal_pod_autoscaler
+          @horizontal_pod_autoscaler_repo[name] = 
+              HorizontalPodAutoscaler.new(conf[:name],
+                  conf[:minReplicas], conf[:maxReplicas],
+                    conf[:targetProcessingPercentage],
+                    conf[:periodSeconds])
+        end
+      end
+
+      puts @horizontal_pod_autoscaler_repo
 
       # Then create services and pods at startup
       # not simulating starup events in the MVP
@@ -190,6 +205,7 @@ module KUBETWIN
           node.assign_resources(pod, reqs)
           # get the service here and assign the pod to the service
           # convert string to sym
+          # we could also assing the service to the replica set
           s = @services[selector]
           s.assignPod(pod)
           pod_id += 1
@@ -206,6 +222,11 @@ module KUBETWIN
       rg = RequestGenerator.new(@configuration.request_generation)
       req_attrs = rg.generate
       new_event(Event::ET_REQUEST_GENERATION, req_attrs, req_attrs[:generation_time], nil)
+
+      # generate first HPA check
+      @horizontal_pod_autoscaler_repo.each do | name, hpa|
+        new_event(Event::ET_HPA_CONTROL, [name, hpa], @current_time + hpa.period_seconds, nil)
+      end
 
       # schedule end of simulation
       unless @configuration.end_time.nil?
@@ -256,7 +277,7 @@ module KUBETWIN
 
             # the closest_dc stuff should be implmented within a load balancer / service 
             # here we cloud implement different policies rather than random policy
-            pod = service.get_random_pod(first_component_name) # same as selector
+            pod = service.get_pod_rr(first_component_name) # same as selector
 
             # we need to get a reference to the cluster where the pod is running
             cluster_id = pod.node.cluster_id
@@ -350,7 +371,8 @@ module KUBETWIN
               forwarding_time = e.time
 
               # get a pod from the one available
-              pod = service.get_random_pod(next_component_name) # same as selector
+              pod = service.get_pod_rr(next_component_name) # same as selector
+              
               # we need to get a reference to the cluster where the pod is running
               cluster_id = pod.node.cluster_id
               cluster = cluster_repository[cluster_id]
@@ -414,6 +436,80 @@ module KUBETWIN
               per_workflow_and_customer_stats[req.workflow_type_id][req.customer_id].record_request(req)
             end
 
+          when Event::ET_HPA_CONTROL
+            hname, hpa = e.data
+            # is computed by taking the average of the given metric across
+            # all Pods in the HorizontalPodAutoscaler's scale target
+            # retrieve desired replica_set ...
+            # puts hname
+
+            s = @services[hpa.name]
+
+            raise "Impossible to retrieve s" if s.nil?
+
+            # improve this initialization
+            # right now it is terrible (okay for MVP)
+            service_time_rv = s.pods.values.sample[1].container.service_time
+
+            # here need this hack to avoid taking value from tail
+            sva = 0.upto(100).collect { service_time_rv.sample }
+            service_time = sva.sum / sva.length.to_f
+            # puts service_time
+          
+            desired_metric = service_time +
+                           hpa.target_processing_percentage * service_time
+
+            current_metric = 0
+            pods = 0
+            d_replicas = 0
+
+            s.pods[hpa.name].each do |pod|
+              current_metric += pod.container.current_processing_metric
+              # puts "pod: #{pod.pod_id} current_metric #{pod.container.current_processing_metric}"
+              pods += 1
+            end
+            current_metric /= pods.to_f
+
+            puts "#{hname} pods: #{pods} average metric: #{current_metric} desired_metric: #{desired_metric}"
+
+            # if close to 1 do not scale -- use a tolerance range
+            scaling_ratio = current_metric / desired_metric
+            # tolerance range # should be configurable
+            tolerance_range = 0.90..1.10
+
+            unless tolerance_range === scaling_ratio
+              # then here implement the check to scale up or down the associated pods
+              d_replicas = (pods * scaling_ratio).ceil
+              puts "desired_replicas: #{d_replicas} current_replicas #{pods}"
+
+              if d_replicas > pods
+
+                # get the replica set
+                rs = @replica_sets[hname]
+                to_scale = d_replicas <= hpa.max_replicas ? (d_replicas - pods) : (hpa.max_replicas - pods)
+
+                rs.set_replicas(d_replicas) 
+
+                # then create the replicas
+                to_scale.times do 
+                  selector = rs.selector
+                  sct = @service_component_types[selector]
+                  reqs = sct[:resources_requirements]
+                  node = @kube_scheduler.get_node(reqs)
+                  pod = Pod.new(pod_id, "#{selector}_#{pod_id}", node, selector, sct)
+                  pod.startUpPod
+                  # assign resources for the pod
+                  node.assign_resources(pod, reqs)
+                  s.assignPod(pod)
+                  pod_id += 1
+                end
+              end
+
+            end
+
+
+            # schedule next control
+            new_event(Event::ET_HPA_CONTROL, [hname, hpa], @current_time + hpa.period_seconds, nil)
 
           when Event::ET_END_OF_SIMULATION
             # puts "#{e.time}: end simulation"
@@ -436,7 +532,7 @@ module KUBETWIN
            "=======================================\n"
 
       # debug info here
-      
+
       # puts "generated: #{@generated} arrived: #{@arrived}, processed: #{@processed}, forwarded: #{@forwarded}"
       # cluster_repository.each do |_,c|
       #  puts "#{c.name} -- Allocation:"

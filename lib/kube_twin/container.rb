@@ -21,7 +21,12 @@ module KUBETWIN
     CONTAINER_TERMINATED   = 2      # began execution and then either ran to completion or failed for some reason
 
     # no need for :port now
-    attr_reader :containerId, :imageId, :endCode, :state # endCode = 0 if all operations successfull, 0 if there's any kind of error
+    attr_reader :containerId,
+                :imageId,
+                :endCode, 
+                :current_processing_metric,
+                :state,
+                :service_time # endCode = 0 if all operations successfull, 0 if there's any kind of error
 
     Guaranteed = Struct.new(:cpu, :memory)
     Limits = Struct.new(:cpu, :memory)
@@ -61,9 +66,6 @@ module KUBETWIN
       @served_request = 0
       @total_queue_processing_time = 0
       @current_processing_metric = 0
-      # just a random implementation here
-      # we can select the tolerance 0.5 from the configuration file
-      @desired_processing_metric = @service_time.next + 0.5 * (@service_time.next)
       @processing_time = 0
     end
 
@@ -89,10 +91,6 @@ module KUBETWIN
       # update also the metrics
       @served_request += 1
       @current_processing_metric = @total_queue_processing_time / @served_request
-      
-      # this is just to debug the current metric
-      #puts "current: #{@current_processing_metric} desired: #{@desired_processing_metric}"
-      
       try_servicing_new_request(sim, time)
     end
 
