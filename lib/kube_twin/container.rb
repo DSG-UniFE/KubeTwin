@@ -82,7 +82,8 @@ module KUBETWIN
     end
 
     def new_request(sim, r, time)
-      @request_queue << RequestInfo.new(r, @service_time.next, time)
+      ri = RequestInfo.new(r, @service_time.next, time)
+      @request_queue << ri
 
       if @trace
         @request_queue.each_cons(2) do |x, y|
@@ -90,26 +91,18 @@ module KUBETWIN
         end
       end
 
-      unless @busy 
-        try_servicing_new_request(sim, time) 
-      else
-        sim.new_event(Event::ET_REQUEST_FORWARDING, req, time, self)
-      end
+      try_servicing_new_request(sim, time) unless @busy
     end
 
     def request_finished(sim, time)
       @busy = false
       # update also the metrics
       @served_request += 1
-      unless @busy 
-        try_servicing_new_request(sim, time) 
-      else
-        sim.new_event(Event::ET_REQUEST_FORWARDING, req, time + ri.service_time, self)
-      end
+      try_servicing_new_request(sim, time) unless @busy
     end
 
     def try_servicing_new_request(sim, time) 
-
+      
       if @busy
         raise "Container is currently processing another request (id: #{@containerId})"
       end

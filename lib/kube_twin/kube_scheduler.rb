@@ -59,6 +59,10 @@ module KUBETWIN
       # sorting operations are computionally heavy
       # implementing a sorting algorithm here
       # {|n| (n[requested_resources] + n[:deployed_pods])}
+      if @filtered_nodes.empty?
+        puts "Resource saturation"
+        return nil
+      end
       @filtered_nodes.sort_by { |n| -n[:available_resources] }[0][:node]
     end
 

@@ -469,19 +469,18 @@ module KUBETWIN
             s.pods[hpa.name].each do |pod|
               current_metric += pod.container.total_queue_processing_time / pod.container.served_request
               queue_time += pod.container.total_queue_time / pod.container.served_request
-              # tempo in coda debugging
               # puts "total queue time: #{pod.container.total_queue_time}"
               # puts "served request: #{pod.container.served_request}"
               # reset container metric
               # calculate them each time period
-              pod.container.reset_metrics
+              # pod.container.reset_metrics
               # puts "#{pod.container.current_processing_metric}"
               pods += 1
             end
             current_metric /= pods.to_f
             queue_time /= pods.to_f
 
-            puts "#{hpa.name} pods: #{pods} current metric: #{current_metric} desired_metric: #{desired_metric}"
+            puts "#{hpa.name} pods: #{pods} average processing_time: #{current_metric} desired_metric: #{desired_metric}"
             # puts "queue_time #{queue_time}"
 
             # if close to 1 do not scale -- use a tolerance range
@@ -508,6 +507,7 @@ module KUBETWIN
                   sct = @service_component_types[selector]
                   reqs = sct[:resources_requirements]
                   node = @kube_scheduler.get_node(reqs)
+                  break if node.nil?
                   pod = Pod.new(pod_id, "#{selector}_#{pod_id}", node, selector, sct)
                   pod.startUpPod
                   # assign resources for the pod
@@ -518,6 +518,7 @@ module KUBETWIN
               else
                 # we need to select some pods to terminate
                 # deal with requests currently being processed
+                #puts "min #{hpa.min_replicas}"
                 to_scale = d_replicas > hpa.min_replicas ? (pods - d_replicas) : 0
                 # puts "deactivating pods"
                 ppl = s.pods[hpa.name].sample(to_scale)
