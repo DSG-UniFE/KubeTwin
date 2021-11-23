@@ -45,9 +45,14 @@ module KUBETWIN
       if @pods.key? label
         index = @rri
         # update rri
-        @rri = (@rri + 1) % @pods[label].length
+        @rri = @pods.length > 0 ? (@rri + 1) % @pods[label].length : 0
         @pods[label][index]
       end
+    end
+
+    def delete_pod(label, pod)
+      @rri = 0
+      @pods[label].delete pod
     end
 
   end

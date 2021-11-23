@@ -24,9 +24,11 @@ module KUBETWIN
     attr_reader :containerId,
                 :imageId,
                 :endCode, 
-                :current_processing_metric,
                 :state,
-                :service_time # endCode = 0 if all operations successfull, 0 if there's any kind of error
+                :service_time,
+                :served_request,
+                :total_queue_time,
+                :total_queue_processing_time # endCode = 0 if all operations successfull, 0 if there's any kind of error
 
     Guaranteed = Struct.new(:cpu, :memory)
     Limits = Struct.new(:cpu, :memory)
@@ -65,8 +67,13 @@ module KUBETWIN
 
       @served_request = 0
       @total_queue_processing_time = 0
-      @current_processing_metric = 0
-      @processing_time = 0
+      @total_queue_time = 0
+    end
+
+    def reset_metrics
+      @served_request = 0
+      @total_queue_processing_time = 0
+      @total_queue_time = 0
     end
 
     def startupC
@@ -83,26 +90,32 @@ module KUBETWIN
         end
       end
 
-      try_servicing_new_request(sim, time) unless @busy
+      unless @busy 
+        try_servicing_new_request(sim, time) 
+      else
+        sim.new_event(Event::ET_REQUEST_FORWARDING, req, time, self)
+      end
     end
 
     def request_finished(sim, time)
       @busy = false
       # update also the metrics
       @served_request += 1
-      @current_processing_metric = @total_queue_processing_time / @served_request
-      try_servicing_new_request(sim, time)
+      unless @busy 
+        try_servicing_new_request(sim, time) 
+      else
+        sim.new_event(Event::ET_REQUEST_FORWARDING, req, time + ri.service_time, self)
+      end
     end
 
-    def try_servicing_new_request(sim, time)
+    def try_servicing_new_request(sim, time) 
 
-      #if (@state != Container::CONTAINER_RUNNING) ||
-        if @busy
-        raise "Container not available (id: #{@containerId})"
-        end
+      if @busy
+        raise "Container is currently processing another request (id: #{@containerId})"
+      end
 
       unless @request_queue.empty? # || (@state == Container::CONTAINER_TERMINATED)
-
+        @busy =true
         ri = @request_queue.shift
 
         # nc = r.service_time
@@ -118,11 +131,13 @@ module KUBETWIN
         req = ri.request
         # update the request's working information
 
-        req.update_queuing_time(time - req.arrival_time)
+        # this is somehow wrong --- need to fix it
+        req.update_queuing_time(time - ri.arrival_time)
 
         req.step_completed(ri.service_time)
 
         # update container-based metric here
+        @total_queue_time += time - ri.arrival_time
         @total_queue_processing_time += ri.service_time + req.queuing_time
 
         # schedule completion of workflow step

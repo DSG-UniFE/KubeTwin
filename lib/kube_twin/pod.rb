@@ -28,7 +28,7 @@ module KUBETWIN
       @startTime = Time.now
       @status = Pod::POD_PENDING
       @label = label
-      @requirements = image_info[:resource_requirements]
+      @requirements = image_info[:resources_requirements]
       # @namespace      = "default"
       # priority       = 0
     end
@@ -41,6 +41,12 @@ module KUBETWIN
 
       @status = Pod::POD_RUNNING
       # "Pod started successfully"
+    end
+
+    def deactivate_pod
+      @status = Pod::POD_PENDING
+      # then container will continue processing queued requests
+      @node.remove_resources(self, @requirements)
     end
 
     def endPod

@@ -266,6 +266,7 @@ module KUBETWIN
             # find first component name for requested workflow
             workflow = workflow_type_repository[req_attrs[:workflow_type_id]]
             first_component_name = workflow[:component_sequence][0][:name]
+            # puts first_component_name
 
             # first we need to resolve the component name using
             # the kubernetes DNS
@@ -284,7 +285,6 @@ module KUBETWIN
             cluster = cluster_repository[cluster_id]
             
             arrival_time = @current_time + latency_manager.sample_latency_between(customer_location_id, cluster.location_id)
-
             # generate the request here
             new_req = Request.new(req_attrs.merge!(initial_data_center_id: cluster_id,
                                                    arrival_time: arrival_time))
@@ -310,7 +310,7 @@ module KUBETWIN
             # find next component name
             workflow = workflow_type_repository[req.workflow_type_id]
             next_component_name = workflow[:component_sequence][req.next_step][:name]
-            #puts "next_component_name #{next_component_name}, pod.label #{pod.label}"
+            # puts "next_component_name #{next_component_name}, pod.label #{pod.label}"
 
             # schedule request forwarding to pod
             @forwarded += 1
@@ -368,6 +368,7 @@ module KUBETWIN
               # resolve the next component name
               service = @kube_dns.lookup(next_component_name)
 
+              # e.time should be equivalent to @current_time
               forwarding_time = e.time
 
               # get a pod from the one available
@@ -380,7 +381,7 @@ module KUBETWIN
               transmission_time =
                 latency_manager.sample_latency_between(current_cluster.location_id,
                                                      cluster.location_id)
-
+              
               req.update_transfer_time(transmission_time)
               forwarding_time += transmission_time
 
@@ -449,10 +450,10 @@ module KUBETWIN
 
             # improve this initialization
             # right now it is terrible (okay for MVP)
-            service_time_rv = s.pods.values.sample[1].container.service_time
+            service_time_rv = s.pods[s.selector].sample.container.service_time
 
             # here need this hack to avoid taking value from tail
-            sva = 0.upto(100).collect { service_time_rv.sample }
+            sva = 0.upto(10).collect { service_time_rv.sample }
             service_time = sva.sum / sva.length.to_f
             # puts service_time
           
@@ -463,14 +464,25 @@ module KUBETWIN
             pods = 0
             d_replicas = 0
 
+            queue_time = 0
+
             s.pods[hpa.name].each do |pod|
-              current_metric += pod.container.current_processing_metric
-              # puts "pod: #{pod.pod_id} current_metric #{pod.container.current_processing_metric}"
+              current_metric += pod.container.total_queue_processing_time / pod.container.served_request
+              queue_time += pod.container.total_queue_time / pod.container.served_request
+              # tempo in coda debugging
+              # puts "total queue time: #{pod.container.total_queue_time}"
+              # puts "served request: #{pod.container.served_request}"
+              # reset container metric
+              # calculate them each time period
+              pod.container.reset_metrics
+              # puts "#{pod.container.current_processing_metric}"
               pods += 1
             end
             current_metric /= pods.to_f
+            queue_time /= pods.to_f
 
-            puts "#{hname} pods: #{pods} average metric: #{current_metric} desired_metric: #{desired_metric}"
+            puts "#{hpa.name} pods: #{pods} current metric: #{current_metric} desired_metric: #{desired_metric}"
+            # puts "queue_time #{queue_time}"
 
             # if close to 1 do not scale -- use a tolerance range
             scaling_ratio = current_metric / desired_metric
@@ -503,6 +515,16 @@ module KUBETWIN
                   s.assignPod(pod)
                   pod_id += 1
                 end
+              else
+                # we need to select some pods to terminate
+                # deal with requests currently being processed
+                to_scale = d_replicas > hpa.min_replicas ? (pods - d_replicas) : 0
+                # puts "deactivating pods"
+                ppl = s.pods[hpa.name].sample(to_scale)
+                ppl.each do |p| 
+                  p.deactivate_pod
+                  s.delete_pod(s.selector, p)
+                end
               end
 
             end
@@ -533,12 +555,12 @@ module KUBETWIN
 
       # debug info here
 
-      # puts "generated: #{@generated} arrived: #{@arrived}, processed: #{@processed}, forwarded: #{@forwarded}"
+      puts "generated: #{@generated} arrived: #{@arrived}, processed: #{@processed}, forwarded: #{@forwarded}"
       # cluster_repository.each do |_,c|
-      #  puts "#{c.name} -- Allocation:"
-      #  c.nodes.values.each do |n|
-      #    puts "node_id: #{n.node_id}: pods: #{n.pod_id_list.length}"
-      #  end
+      #   puts "#{c.name} -- Allocation:"
+      #   c.nodes.values.each do |n|
+      #     puts "node_id: #{n.node_id}: pods: #{n.pod_id_list.length}"
+      #   end
       # end
 
       # we want to minimize the cost, so we define fitness as the opposite of
