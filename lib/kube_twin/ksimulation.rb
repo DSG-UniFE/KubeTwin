@@ -157,7 +157,7 @@ module KUBETWIN
         end
       end
 
-      puts @horizontal_pod_autoscaler_repo
+      # puts @horizontal_pod_autoscaler_repo
 
       # Then create services and pods at startup
       # not simulating starup events in the MVP
@@ -464,11 +464,9 @@ module KUBETWIN
             pods = 0
             d_replicas = 0
 
-            queue_time = 0
 
             s.pods[hpa.name].each do |pod|
               current_metric += pod.container.total_queue_processing_time / pod.container.served_request
-              queue_time += pod.container.total_queue_time / pod.container.served_request
               # puts "total queue time: #{pod.container.total_queue_time}"
               # puts "served request: #{pod.container.served_request}"
               # reset container metric
@@ -478,11 +476,11 @@ module KUBETWIN
               pods += 1
             end
             current_metric /= pods.to_f
-            queue_time /= pods.to_f
 
+            puts "**** Horizontal Pod Autoscaling****"
             puts "#{hpa.name} pods: #{pods} average processing_time: #{current_metric} desired_metric: #{desired_metric}"
-            # puts "queue_time #{queue_time}"
-
+            # see here
+            # https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/
             # if close to 1 do not scale -- use a tolerance range
             scaling_ratio = current_metric / desired_metric
             # tolerance range # should be configurable

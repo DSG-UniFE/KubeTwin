@@ -33,6 +33,7 @@ module KUBETWIN
       score
     end
 
+    # filtering here is an expensive operation
     def filter(requirements)
      # reset filtered nodes --- do we need to call delete here?
      @filtered_nodes = [] 
