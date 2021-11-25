@@ -108,7 +108,7 @@ module KUBETWIN
       end
 
       unless @request_queue.empty? # || (@state == Container::CONTAINER_TERMINATED)
-        @busy =true
+        @busy = true
         ri = @request_queue.shift
 
         # nc = r.service_time
@@ -131,7 +131,11 @@ module KUBETWIN
 
         # update container-based metric here
         @total_queue_time += time - ri.arrival_time
-        @total_queue_processing_time += ri.service_time + req.queuing_time
+        # raise "We are looking at two different times" if req.queuing_time != (time - ri.arrival_time)
+        @total_queue_processing_time += ri.service_time + (time - ri.arrival_time) 
+        # + req.queuing_time # does the queueing time also contain 
+        # the queue time for the previous request? yes 
+        # fixed
 
         # schedule completion of workflow step
         sim.new_event(Event::ET_WORKFLOW_STEP_COMPLETED, req, time + ri.service_time, self)

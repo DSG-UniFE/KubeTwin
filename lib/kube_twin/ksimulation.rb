@@ -477,8 +477,10 @@ module KUBETWIN
             end
             current_metric /= pods.to_f
 
-            puts "**** Horizontal Pod Autoscaling****"
+            puts "**** Horizontal Pod Autoscaling ****"
             puts "#{hpa.name} pods: #{pods} average processing_time: #{current_metric} desired_metric: #{desired_metric}"
+            puts "************************************"
+
             # see here
             # https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/
             # if close to 1 do not scale -- use a tolerance range
@@ -489,7 +491,7 @@ module KUBETWIN
             unless tolerance_range === scaling_ratio
               # then here implement the check to scale up or down the associated pods
               d_replicas = (pods * scaling_ratio).ceil
-              puts "desired_replicas: #{d_replicas} current_replicas #{pods}"
+              # puts "desired_replicas: #{d_replicas} current_replicas #{pods}"
 
               if d_replicas > pods
 
@@ -497,7 +499,7 @@ module KUBETWIN
                 rs = @replica_sets[hname]
                 to_scale = d_replicas <= hpa.max_replicas ? (d_replicas - pods) : (hpa.max_replicas - pods)
 
-                rs.set_replicas(d_replicas) 
+                rs.set_replicas(d_replicas)
 
                 # then create the replicas
                 to_scale.times do 
