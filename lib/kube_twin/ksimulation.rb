@@ -556,7 +556,9 @@ module KUBETWIN
 
       # debug info here
 
-      puts "generated: #{@generated} arrived: #{@arrived}, processed: #{@processed}, forwarded: #{@forwarded}"
+      # decomment this one more info required
+      # think about what need to show
+      # puts "generated: #{@generated} arrived: #{@arrived}, processed: #{@processed}, forwarded: #{@forwarded}"
       # cluster_repository.each do |_,c|
       #   puts "#{c.name} -- Allocation:"
       #   c.nodes.values.each do |n|
