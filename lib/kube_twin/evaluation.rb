@@ -46,9 +46,6 @@ module KUBETWIN
           s += hc[:fixed_cpu_hourly_cost]
       end
       
-      @fixed_hourly_cost.values.each do |fixed_cost|
-        cost_cpu += fixed_cost
-      end
 
      # calculate daily cost
      #cost_cpu *= 24.0
@@ -60,10 +57,7 @@ module KUBETWIN
           raise "Cannot find memory hourly cost for cluster #{x[:cluster_id]}!" unless hc
           s += hc[:fixed_memory_hourly_cost]
       end
-      
-      @fixed_hourly_cost.values.each do |fixed_cost|
-        cost_memory += fixed_cost
-      end
+  
 
      # calculate daily cost
      #cost_memory *= 24.0
