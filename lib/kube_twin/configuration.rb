@@ -59,7 +59,7 @@ module KUBETWIN
                  :kpi_customization,
                  :latency_models,
                  :request_generation,
-                 :service_component_types,
+                 :microservice_types,
                  :seeds,
                  :start_time,
                  :warmup_duration,
@@ -112,7 +112,7 @@ module KUBETWIN
       IceNine.deep_freeze(@latency_models)
       IceNine.deep_freeze(@request_generation)
       IceNine.deep_freeze(@seeds)
-      IceNine.deep_freeze(@service_component_types)
+      IceNine.deep_freeze(@microservice_types)
       IceNine.deep_freeze(@start_time)
       IceNine.deep_freeze(@warmup_duration)
       IceNine.deep_freeze(@workflow_types)

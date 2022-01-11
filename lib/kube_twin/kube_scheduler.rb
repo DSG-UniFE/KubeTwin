@@ -44,11 +44,11 @@ module KUBETWIN
         c.nodes.values.each do |node|
           # debug node information here
           # filter only those nodes capable to execute the pods
-          available_resources = node.available_resources
+          available_resources_cpu = node.available_resources_cpu
           @filtered_nodes << {node: node, cluster_id: c.cluster_id,
-                             price: c.hourly_cost, available_resources: available_resources,
-                             requested_resources: node.requested_resources,
-                             deployed_pods: node.pod_id_list.length} if available_resources >= requirements
+                             price: c.fixed_hourly_cost_cpu, available_resources_cpu: available_resources_cpu,
+                             requested_resources: node.requested_resources[:cpu],
+                             deployed_pods: node.pod_id_list.length} if available_resources_cpu >= requirements
         end
       end
     end
@@ -64,7 +64,7 @@ module KUBETWIN
         puts "Resource saturation"
         return nil
       end
-      @filtered_nodes.sort_by { |n| -n[:available_resources] }[0][:node]
+      @filtered_nodes.sort_by { |n| -n[:available_resources_cpu] }[0][:node]
     end
 
   end

@@ -42,11 +42,15 @@ module KUBETWIN
 
 
     def evaluate_allocation(vm_allocation)
+
+      #@estimated_costs_cpu = 0.0
+      #@estimated_costs_memory = 0.0
+
       # TODO: allow to define which feasibility controls to run in simulation
       # configuration. Here we hardcode a simple feasibility check: fail unless
       # there is at least one vm for each software component.
-      @configuration.service_component_types.each do |sc_id,_|
-        unless vm_allocation.find{|x| x[:component_type] == sc_id }
+      @configuration.microservice_types.each do |sc_id,_|
+        unless vm_allocation.find{|x| (x[:component_type] == sc_id)}
           puts "====== Unfeasible allocation ======\n" +
                "costs: #{UNFEASIBLE_ALLOCATION_EVALUATION}\n" +
                "vm_allocation: #{vm_allocation.inspect}\n" +
@@ -75,14 +79,15 @@ module KUBETWIN
       # here need to retrieve configuration cost also
       evaluation_cost = Hash.new
 
-      @configuration.evaluation[:vm_hourly_cost].each do |c| 
-        evaluation_cost[c[:cluster]] = c[:cost]
+      @configuration.evaluation[:cluster_hourly_cost].each do |c| 
+        evaluation_cost[c[:cluster_cpu]] = c[:fixed_cpu_hourly_cost]
+        evaluation_cost[c[:cluster_memory]] = c[:fixed_memory_hourly_cost]
       end
 
       # create clusters and relative nodes and store them in a repository
       cluster_repository = Hash[
         @configuration.clusters.map do |k,v|
-          [ k, Cluster.new(id: k, hourly_cost: evaluation_cost[k], **v) ]
+          [ k, Cluster.new(id: k, fixed_hourly_cost_cpu: evaluation_cost[k], fixed_hourly_cost_memory: evaluation_cost[k], **v) ]
         end
       ]
 
@@ -93,7 +98,7 @@ module KUBETWIN
           # we suppose to have nodes with homogenous capabilities in a 
           # cluster
           # set also the cluster_id here
-          n = Node.new(node_id, c.node_resources, c.cluster_id, c.type)
+          n = Node.new(node_id, c.node_resources_cpu, c.node_resources_memory, c.cluster_id, c.type)
           c.add_node(n)
           node_id += 1
         end
@@ -157,7 +162,7 @@ module KUBETWIN
         end
       end
 
-      # puts @horizontal_pod_autoscaler_repo
+      #puts @horizontal_pod_autoscaler_repo
 
       # Then create services and pods at startup
       # not simulating starup events in the MVP
@@ -173,7 +178,7 @@ module KUBETWIN
       end
 
       # do we want to use dup here?
-      @service_component_types = @configuration.service_component_types
+      @microservice_types = @configuration.microservice_types
 
       # creating a KubeScheduler
       # the KubeScheduler decides on which nodes schedule
@@ -188,11 +193,15 @@ module KUBETWIN
           # the nil fields is a node related information
           # get image info --> service component type (sct)
           # sct has info regarding service execution time
-          sct = @service_component_types[selector]
+          sct = @microservice_types[selector]
           # here we need to call the scheduler to get a node where to allocate this pod
           # retrieve a node where to allocate this pod
-          reqs = sct[:resources_requirements]
-          node = @kube_scheduler.get_node(reqs)
+          reqs_c = sct[:resources_requirements_cpu]
+          reqs_m = sct[:resources_requirements_memory]
+          costs_c = sct[:cpu_hourly_cost]
+          costs_m = sct[:memory_hourly_cost]
+
+          node = @kube_scheduler.get_node(reqs_c)
 
           # once we know where the pod is going to be allocated
           # we can retrieve also the service_time_distribution
@@ -202,13 +211,17 @@ module KUBETWIN
           pod.startUpPod
 
           # assign resources for the pod
-          node.assign_resources(pod, reqs)
+          node.assign_resources(pod, reqs_c, reqs_m)
           # get the service here and assign the pod to the service
           # convert string to sym
           # we could also assing the service to the replica set
           s = @services[selector]
           s.assignPod(pod)
           pod_id += 1
+
+          #@estimated_costs_cpu += reqs_c * costs_c
+          #@estimated_costs_memory += reqs_m * costs_m
+
         end
       end
 
@@ -504,16 +517,23 @@ module KUBETWIN
                 # then create the replicas
                 to_scale.times do 
                   selector = rs.selector
-                  sct = @service_component_types[selector]
-                  reqs = sct[:resources_requirements]
-                  node = @kube_scheduler.get_node(reqs)
+                  sct = @microservice_types[selector]
+                  reqs_c = sct[:resources_requirements_cpu]
+                  reqs_m = sct[:resources_requirements_memory]
+                  costs_c = sct[:cpu_hourly_cost]
+                  costs_m = sct[:memory_hourly_cost]
+                  node = @kube_scheduler.get_node(reqs_c)
                   break if node.nil?
                   pod = Pod.new(pod_id, "#{selector}_#{pod_id}", node, selector, sct)
                   pod.startUpPod
                   # assign resources for the pod
-                  node.assign_resources(pod, reqs)
+                  node.assign_resources(pod, reqs_c, reqs_m)
                   s.assignPod(pod)
                   pod_id += 1
+
+                  #@estimated_costs_cpu += reqs_c * costs_c
+                  #@estimated_costs_memory += reqs_m * costs_m
+                  
                 end
               else
                 # we need to select some pods to terminate
@@ -546,19 +566,27 @@ module KUBETWIN
       # here the evaluation will fail
       # we don't have an allocation array
       # costs = @evaluator.evaluate_business_impact(stats, per_workflow_and_customer_stats,
-      #                                            vm_allocation)
-      puts "====== Evaluating new allocation ======\n" +
+      #                                           vm_allocation)
+
+      #@estimated_costs_cpu += @evaluator.evaluate_fixed_costs_cpu(vm_allocation)
+      #@estimated_costs_memory += @evaluator.evaluate_fixed_costs_memory(vm_allocation)
+
+      #puts "Estimated CPU costs : #{@estimated_costs_cpu} \n"
+      #puts "Estimated memory costs: #{@estimated_costs_memory} \n"
+      #puts "\n\n"
+
+     # puts "====== Evaluating new allocation ======\n" +
           # "costs: #{costs}\n" +
           # "vm_allocation: #{vm_allocation.inspect}\n" +
-           "stats: #{stats.to_s}\n" +
-           "per_workflow_and_customer_stats: #{per_workflow_and_customer_stats.to_s}\n" +
-           "=======================================\n"
+      #     "stats: #{stats.to_s}\n" +
+      #     "per_workflow_and_customer_stats: #{per_workflow_and_customer_stats.to_s}\n" +
+      #     "=======================================\n"
 
       # debug info here
 
       # decomment this one more info required
       # think about what need to show
-      # puts "generated: #{@generated} arrived: #{@arrived}, processed: #{@processed}, forwarded: #{@forwarded}"
+      puts "generated: #{@generated} arrived: #{@arrived}, processed: #{@processed}, forwarded: #{@forwarded}"
       # cluster_repository.each do |_,c|
       #   puts "#{c.name} -- Allocation:"
       #   c.nodes.values.each do |n|
