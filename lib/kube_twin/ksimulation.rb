@@ -575,18 +575,17 @@ module KUBETWIN
       puts "Estimated memory costs: #{@estimated_costs_memory} \n"
       #puts "\n\n"
 
-     # puts "====== Evaluating new allocation ======\n" +
+     puts "====== Evaluating new allocation ======\n" +
           # "costs: #{costs}\n" +
           # "vm_allocation: #{vm_allocation.inspect}\n" +
-      #     "stats: #{stats.to_s}\n" +
-      #     "per_workflow_and_customer_stats: #{per_workflow_and_customer_stats.to_s}\n" +
+           "stats: #{stats.to_s}\n" +
+           "per_workflow_and_customer_stats: #{per_workflow_and_customer_stats.to_s}\n"
       #     "=======================================\n"
 
       # debug info here
 
       # decomment this one more info required
       # think about what need to show
-      puts "generated: #{@generated} arrived: #{@arrived}, processed: #{@processed}, forwarded: #{@forwarded}"
       # cluster_repository.each do |_,c|
       #   puts "#{c.name} -- Allocation:"
       #   c.nodes.values.each do |n|
