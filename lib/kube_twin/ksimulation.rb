@@ -579,8 +579,8 @@ module KUBETWIN
           # "costs: #{costs}\n" +
           # "vm_allocation: #{vm_allocation.inspect}\n" +
            "stats: #{stats.to_s}\n" +
-           "per_workflow_and_customer_stats: #{per_workflow_and_customer_stats.to_s}\n"
-      #     "=======================================\n"
+           "per_workflow_and_customer_stats: #{per_workflow_and_customer_stats.to_s}\n" +
+           "=======================================\n"
 
       # debug info here
 
