@@ -144,8 +144,8 @@ module KUBETWIN
       @configuration.replica_sets.each do |name, conf|
         # nil is service here
         # do we need a reference to service in ReplicaSet?
-        @replica_sets[name] = ReplicaSet.new(name, conf[:cluster_id],
-                    conf[:selector], conf[:replicas], nil)
+        @replica_sets[name] = ReplicaSet.new(name, conf[:selector],
+           conf[:replicas], nil)
       end
 
       # puts @replica_sets

@@ -15,16 +15,14 @@ module KUBETWIN
     attr_reader :name,
                 :selector,
                 :replicas,
-                :cluster_id, 
                 :service
 
     # name and selector have the same value here
     # the replica set creates the pods, which are 
     # associate to a service that provides naming,
     # discovery, and lookup capabilities
-    def initialize(name, cluster_id, selector, replicas, service)
+    def initialize(name, selector, replicas, service)
       @name = name
-      @cluster_id = cluster_id
       @selector = selector
       @replicas = replicas
       # do we need to keep a reference to the service
