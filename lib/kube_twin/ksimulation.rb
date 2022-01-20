@@ -43,8 +43,6 @@ module KUBETWIN
 
     def evaluate_allocation(vm_allocation)
 
-      @estimated_costs_cpu = 0
-      @estimated_costs_memory = 0
 
       # TODO: allow to define which feasibility controls to run in simulation
       # configuration. Here we hardcode a simple feasibility check: fail unless
@@ -198,8 +196,7 @@ module KUBETWIN
           # retrieve a node where to allocate this pod
           reqs_c = sct[:resources_requirements_cpu]
           reqs_m = sct[:resources_requirements_memory]
-          costs_c = sct[:cpu_hourly_cost]
-          costs_m = sct[:memory_hourly_cost]
+
 
           node = @kube_scheduler.get_node(reqs_c)
 
@@ -219,8 +216,6 @@ module KUBETWIN
           s.assignPod(pod)
           pod_id += 1
 
-          @estimated_costs_cpu += reqs_c * costs_c
-          @estimated_costs_memory += reqs_m * costs_m
 
         end
       end
@@ -520,8 +515,6 @@ module KUBETWIN
                   sct = @microservice_types[selector]
                   reqs_c = sct[:resources_requirements_cpu]
                   reqs_m = sct[:resources_requirements_memory]
-                  costs_c = sct[:cpu_hourly_cost]
-                  costs_m = sct[:memory_hourly_cost]
                   node = @kube_scheduler.get_node(reqs_c)
                   break if node.nil?
                   pod = Pod.new(pod_id, "#{selector}_#{pod_id}", node, selector, sct)
@@ -531,8 +524,6 @@ module KUBETWIN
                   s.assignPod(pod)
                   pod_id += 1
 
-                  @estimated_costs_cpu += reqs_c * costs_c
-                  @estimated_costs_memory += reqs_m * costs_m
                   
                 end
               else
@@ -568,11 +559,7 @@ module KUBETWIN
       # costs = @evaluator.evaluate_business_impact(stats, per_workflow_and_customer_stats,
       #                                           vm_allocation)
 
-      @estimated_costs_cpu += @evaluator.evaluate_fixed_costs_cpu(vm_allocation)
-      @estimated_costs_memory += @evaluator.evaluate_fixed_costs_memory(vm_allocation)
-
-      puts "Estimated CPU costs : #{@estimated_costs_cpu} \n"
-      puts "Estimated memory costs: #{@estimated_costs_memory} \n"
+     
       #puts "\n\n"
 
      puts "====== Evaluating new allocation ======\n" +

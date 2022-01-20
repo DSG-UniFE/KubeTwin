@@ -8,7 +8,7 @@ module KUBETWIN
 
     # :type [:mec, cloud] depends on the cluster 
     attr_reader :resources_cpu, :resources_memory, :requested_resources, :node_id, 
-     :pod_id_list, :cluster_id, :cpu_hourly_cost, :memory_hourly_cost, :type
+     :pod_id_list, :cluster_id, :type
     # cluster_id should not be here
     # this is a programming error that i introduce to speed-up
     # the development process
@@ -25,8 +25,6 @@ module KUBETWIN
       @cluster_id = cluster_id
       @pod_id_list = []
       @type = type
-      @cpu_total_cost = 0.0
-      @memory_total_cost = 0.0
     end
 
     def assign_resources(pod, resources_cpu, resources_memory)
