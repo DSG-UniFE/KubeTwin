@@ -31,10 +31,9 @@ Please, be patient :)
 
 To run the simulator with bundler simply digit:
 
-    bundle exec bin/kube_twin simulator.conf vm_allocation.conf
+    bundle exec bin/kube_twin simulator.conf 
 
-where simulator.conf and vm\_allocation.conf are your simulation environment
-and vm allocation configuration files respectively.
+where simulator.conf is your simulation environment.
 
 ## Examples
 
