@@ -41,21 +41,8 @@ module KUBETWIN
     end
 
 
-    def evaluate_allocation(vm_allocation)
+    def evaluate_allocation()
 
-
-      # TODO: allow to define which feasibility controls to run in simulation
-      # configuration. Here we hardcode a simple feasibility check: fail unless
-      # there is at least one vm for each software component.
-      @configuration.microservice_types.each do |sc_id,_|
-        unless vm_allocation.find{|x| (x[:component_type] == sc_id)}
-          puts "====== Unfeasible allocation ======\n" +
-               "costs: #{UNFEASIBLE_ALLOCATION_EVALUATION}\n" +
-               "vm_allocation: #{vm_allocation.inspect}\n" +
-               "=======================================\n"
-          return UNFEASIBLE_ALLOCATION_EVALUATION
-        end
-      end
 
       # seeds
       latency_seed = @configuration.seeds[:communication_latencies]
@@ -554,17 +541,14 @@ module KUBETWIN
 
       # puts "========== Simulation Finished =========="
 
-      # here the evaluation will fail
-      # we don't have an allocation array
-      # costs = @evaluator.evaluate_business_impact(stats, per_workflow_and_customer_stats,
-      #                                           vm_allocation)
+      # TODO -- IMPLEMENT COST EVALUATION HERE
+      #costs = @evaluator.evaluate_fixed_costs_cpu(vm_allocation)
 
      
       #puts "\n\n"
 
      puts "====== Evaluating new allocation ======\n" +
           # "costs: #{costs}\n" +
-          # "vm_allocation: #{vm_allocation.inspect}\n" +
            "stats: #{stats.to_s}\n" +
            "per_workflow_and_customer_stats: #{per_workflow_and_customer_stats.to_s}\n" +
            "=======================================\n"
