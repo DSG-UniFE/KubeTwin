@@ -27,10 +27,10 @@ workflow.type.ids <- sample.int(num.workflow.types, length(generation.times), re
                                 prob=c(0.65,0.35))
 
 # number of customers
-num.customers <- 3
+num.customers <- 1
 # random customer id sequence
-customer.ids  <- sample.int(num.customers, length(generation.times), replace=T,
-                            prob=c(0.4,0.2,0.4))
+customer.ids  <- sample.int(num.customers, length(generation.times), replace=T)#,
+                            #prob=c(0.4,0.2,0.4))
 
 # prepare data frame and output it on the console
 df <- data.frame(Generation.Time  = generation.times,
