@@ -448,8 +448,10 @@ module KUBETWIN
             service_time_rv = s.pods[s.selector].sample.container.service_time
 
             # here need this hack to avoid taking value from tail
-            sva = 0.upto(10).collect { service_time_rv.sample }
-            service_time = sva.sum / sva.length.to_f
+            # rejection sampling to implement (crudely) PDF truncation
+            #sva = 0.upto(10).collect { service_time_rv.sample }
+            #service_time = sva.sum / sva.length.to_f
+            while (service_time = service_time_rv.next) < 2E-3; end
             # puts service_time
           
             desired_metric = service_time +
