@@ -35,19 +35,22 @@ module KUBETWIN
     end
 
     def sample_latency_between(loc1, loc2)
-      if loc1 == loc2
-        # rejection sampling to implement (crudely) PDF truncation
-        while (lat = @same_location_latency.next) < 2E-3; end
-        lat
-      else
+      # clean this code... commented, we also define intra dc latency here
+      #if loc1 == loc2
+      #  # rejection sampling to implement (crudely) PDF truncation
+      #  while (lat = @same_location_latency.next) < 2E-3; end
+      #  lat
+      #else
         l1, l2 = loc1 < loc2 ? [ loc1, loc2 ] : [ loc2, loc1 ]
 
         # since we use a compact representation for @latency_models_matrix, the
         # indexes become l1 and (l2-l1-1)
         # rejection sampling to implement (crudely) PDF truncation to positive numbers
-        while (lat = @latency_models_matrix[l1][l2-l1-1].next) <= 0.0; end
-        lat / 1000.0 # conversion from milliseconds to seconds
-      end
+        # NOTE for kubetwin we consider also intra latency model so
+        # indexes become l1 and (l2-l1)
+        while (lat = @latency_models_matrix[l1][l2-l1].next) <= 0.0; end
+        lat #/ 1000.0 # conversion from milliseconds to seconds
+      #end
     end
 
     def average_latency_between(loc1, loc2)
@@ -62,8 +65,8 @@ module KUBETWIN
 
         # since we use a compact representation for @average_latency_between, the
         # indexes become l1 and (l2-l1-1)
-        mean = @average_latency_between[l1][l2-l1-1]
-        mean / 1000.0 # conversion from milliseconds to seconds
+        mean = @average_latency_between[l1][l2-l1]
+        mean #/ 1000.0 # conversion from milliseconds to seconds
       end
     end
   end
