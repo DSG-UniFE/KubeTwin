@@ -48,6 +48,7 @@ module KUBETWIN
     dsl_accessor :constraints,
                  :customers,
                  :custom_stats,
+                 :stats_print_interval,
                  :data_centers,
                  :clusters,
                  :node,

@@ -14,6 +14,8 @@ module KUBETWIN
       @n    = 0 # number of requests
       @mean = 0.0
       @m_2  = 0.0
+      @q_mean = 0.0
+      @q_m_2 = 0.0
       @longer_than = init_counters_for_longer_than_stats(opts)
       @received = 0
     end
@@ -27,6 +29,8 @@ module KUBETWIN
       x = req.ttr
       raise "TTR #{x} for request #{req.rid} invalid!" unless x > 0.0
 
+      qx = req.queuing_time
+
       @longer_than.each_key do |k|
         @longer_than[k] += 1 if x > k
       end
@@ -36,15 +40,24 @@ module KUBETWIN
       delta = x - @mean
       @mean += delta / @n
       @m_2  += delta * (x - @mean)
+      # update qtime values
+      delta_q = qx - @q_mean
+      @q_mean += delta_q / @n
+      @q_m_2 += delta * (qx - @q_mean)
     end
 
     def variance
       @m_2 / (@n - 1)
     end
 
+    def q_variance
+      @q_m_2 / (@n -1)
+    end
+
     def to_s
-      "received: #{@received}, closed: #{@n}, " +
-      "(mean: #{@mean}, variance: #{variance}, longer_than: #{@longer_than.to_s})"
+      "received: #{@received}, closed: #{@n}\n" +
+      "TTR: (mean: #{@mean}, variance: #{variance}, longer_than: #{@longer_than.to_s})\n" +
+      "QTIME: (mean: #{@q_mean}, variance: #{q_variance})"
     end
 
     private

@@ -207,6 +207,10 @@ module KUBETWIN
         end
       end
 
+
+      # here null check before sending event
+      @stats_print_interval = @configuration.stats_print_interval 
+
       # create event queue
       # this stores all simulation events
       @event_queue = SortedArray.new
@@ -231,6 +235,9 @@ module KUBETWIN
 
       # calculate warmup threshold
       warmup_threshold = @configuration.start_time + @configuration.warmup_duration.to_i
+
+      # get stats print
+      new_event(Event::ET_STATS_PRINT, nil, warmup_threshold + @stats_print_interval, nil) unless @stats_print_interval.nil?
 
       requests_being_worked_on = 0
       current_event = 0
@@ -537,6 +544,11 @@ module KUBETWIN
           when Event::ET_END_OF_SIMULATION
             # puts "#{e.time}: end simulation"
             break
+          
+          # print some stats (useful to track simulation data)
+          when Event::ET_STATS_PRINT
+            puts "stats: #{stats.to_s}\n"
+            new_event(Event::ET_STATS_PRINT, nil, @current_time + @stats_print_interval, nil) unless @stats_print_interval.nil?
 
         end
       end
