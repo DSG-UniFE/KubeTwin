@@ -5,7 +5,7 @@ suppressMessages(library(VGAM))
 # request generation is modeled with a Pareto distribution
 # these values were chosen to generate roughly 6666.667 requests per second
 # location 3.7E-4 --> 2162 rps
-location            <- 1.2E-4
+location            <- 3.7E-4 #1.2E-4
 shape               <- 5
 requests.per.second <- (shape - 1) / (shape * location)
 
