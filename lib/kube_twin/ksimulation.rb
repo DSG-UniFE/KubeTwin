@@ -248,6 +248,8 @@ module KUBETWIN
       # calculate warmup threshold
       warmup_threshold = @configuration.start_time + @configuration.warmup_duration.to_i
 
+      cooldown_treshold = @configuration.end_time - @configuration.cooldown_duration.to_i
+
       # get stats print
       new_event(Event::ET_STATS_PRINT, nil, warmup_threshold + @stats_print_interval, nil) unless @stats_print_interval.nil?
 
@@ -307,15 +309,17 @@ module KUBETWIN
             new_event(Event::ET_REQUEST_ARRIVAL, [new_req, pod], arrival_time, nil)
 
             # schedule generation of next request
-            req_attrs = rg.generate
-            new_event(Event::ET_REQUEST_GENERATION, req_attrs, req_attrs[:generation_time], nil)
+            if @current_time < cooldown_treshold
+              req_attrs = rg.generate   
+              new_event(Event::ET_REQUEST_GENERATION, req_attrs, req_attrs[:generation_time], nil)
+            end
 
           when Event::ET_REQUEST_ARRIVAL
             # get request
             req, pod = e.data
             
             # do not consider warmup here
-            if req.arrival_time > warmup_threshold
+            if req.arrival_time > warmup_threshold && req.arrival_time < cooldown_treshold
 
             # get the pod here, we do not need thr cluster
             @arrived += 1
@@ -570,8 +574,9 @@ module KUBETWIN
             new_event(Event::ET_HPA_CONTROL, [hname, hpa], @current_time + hpa.period_seconds, nil)
 
           when Event::ET_END_OF_SIMULATION
+            # FOR NOW KEEP PROCESSING REQUEST
             # puts "#{e.time}: end simulation"
-            break
+            # break
           
           # print some stats (useful to track simulation data)
           when Event::ET_STATS_PRINT

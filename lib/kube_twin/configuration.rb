@@ -64,6 +64,7 @@ module KUBETWIN
                  :seeds,
                  :start_time,
                  :warmup_duration,
+                 :cooldown_duration,
                  :workflow_types
   end
 
@@ -87,6 +88,7 @@ module KUBETWIN
       @start_time      = @start_time.to_f
       @duration        = @duration.to_f
       @warmup_duration = @warmup_duration.to_f
+      @cooldown_duration = @cooldown_duration.to_f
 
       # initialize kpi_customization to empty hash if needed
       @kpi_customization ||= {}
