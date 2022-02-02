@@ -14,11 +14,12 @@ module KUBETWIN
                 :customer_id,
                 :generation_time,
                 :next_step,
-                :arrival_at_container,
                 # :status,
                 :queuing_time,
                 :workflow_type_id,
                 :worked_step
+
+    attr_accessor :arrival_at_container
 
     # the data_center_id attribute is updated as requests move from a Cloud
     # data center to another
@@ -75,7 +76,7 @@ module KUBETWIN
 
     def ttr(time)
       # if incident isn't closed yet, just return nil without raising an exception.
-      @closure_time.nil? ? (time - @arrival_time) : (@closure_time - @arrival_time)
+      @closure_time.nil? ? (time - @arrival_at_container) : (@closure_time - @arrival_time)
     end
 
     def to_s

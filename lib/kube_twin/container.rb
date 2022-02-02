@@ -82,6 +82,9 @@ module KUBETWIN
     end
 
     def new_request(sim, r, time)
+      
+      # improve this code in the future
+      r.arrival_at_container = time
       ri = RequestInfo.new(r, @service_time.next, time)
       @request_queue << ri
 
