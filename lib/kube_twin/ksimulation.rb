@@ -101,14 +101,14 @@ module KUBETWIN
       stats = Statistics.new
 
       # statistics for service
-      per_component_stats = Hash[
-        @microservice_types.keys.map do |m_id|
-          [
-            m_id,
-            Statistics.new()
-          ]
-        end
-      ]
+      #per_component_stats = Hash[
+      #  @microservice_types.keys.map do |m_id|
+      #    [
+      #      m_id,
+      #      Statistics.new()
+      #    ]
+      #  end
+      #]
 
       per_workflow_and_customer_stats = Hash[
         workflow_type_repository.keys.map do |wft_id|
@@ -360,9 +360,9 @@ module KUBETWIN
             pod   = e.destination
             
             # increase count of received requests in per_component_stats
-            workflow = workflow_type_repository[req.workflow_type_id]
-            component_name = workflow[:component_sequence][req.worked_step][:name]
-            per_component_stats[component_name].request_received
+            # workflow = workflow_type_repository[req.workflow_type_id]
+            # component_name = workflow[:component_sequence][req.worked_step][:name]
+            # per_component_stats[component_name].request_received
 
             # here we should use the delegator
             pod.container.new_request(self, req, time)
@@ -382,12 +382,12 @@ module KUBETWIN
             # find the next workflow
             workflow = workflow_type_repository[req.workflow_type_id]
 
+            # register step completion
+            # component_name = workflow[:component_sequence][req.worked_step][:name]
+            # per_component_stats[component_name].record_request(req, @current_time)
+
             # check if there are other steps left to complete the workflow
             if req.next_step < workflow[:component_sequence].size
-
-              # register step completion
-              component_name = workflow[:component_sequence][req.worked_step][:name]
-              per_component_stats[component_name].record_request(req, @current_time)
 
               # find next component name
               next_component_name = workflow[:component_sequence][req.next_step][:name]
@@ -466,9 +466,6 @@ module KUBETWIN
               # collect request statistics in per_workflow_and_customer_stats
               # retrieve component name
               workflow = workflow_type_repository[req.workflow_type_id]
-              # get the last element here
-              next_component_name = workflow[:component_sequence].last[:name]
-              per_component_stats[next_component_name].record_request(req, @current_time)
             end
 
           when Event::ET_HPA_CONTROL
@@ -598,7 +595,7 @@ module KUBETWIN
           # "costs: #{costs}\n" +
            "stats: #{stats.to_s}\n" +
            "per_workflow_and_customer_stats: #{per_workflow_and_customer_stats.to_s}\n" +
-           "per_component_stats: #{per_component_stats.to_s}\n" +
+           #"per_component_stats: #{per_component_stats.to_s}\n" +
            "=======================================\n"
 
       # debug info here
