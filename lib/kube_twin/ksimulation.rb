@@ -8,6 +8,7 @@ require_relative './event'
 require_relative './generator'
 require_relative './sorted_array'
 require_relative './statistics'
+require_relative './component_statistics'
 require_relative './pod'
 require_relative './latency_manager'
 require_relative './kube_dns'
@@ -101,14 +102,14 @@ module KUBETWIN
       stats = Statistics.new
 
       # statistics for service
-      #per_component_stats = Hash[
-      #  @microservice_types.keys.map do |m_id|
-      #    [
-      #      m_id,
-      #      Statistics.new()
-      #    ]
-      #  end
-      #]
+      per_component_stats = Hash[
+        @microservice_types.keys.map do |m_id|
+          [
+            m_id,
+            ComponentStatistics.new()
+          ]
+        end
+      ]
 
       per_workflow_and_customer_stats = Hash[
         workflow_type_repository.keys.map do |wft_id|
@@ -360,9 +361,9 @@ module KUBETWIN
             pod   = e.destination
             
             # increase count of received requests in per_component_stats
-            # workflow = workflow_type_repository[req.workflow_type_id]
-            # component_name = workflow[:component_sequence][req.worked_step][:name]
-            # per_component_stats[component_name].request_received
+            workflow = workflow_type_repository[req.workflow_type_id]
+            component_name = workflow[:component_sequence][req.worked_step][:name]
+            per_component_stats[component_name].request_received
 
             # here we should use the delegator
             pod.container.new_request(self, req, time)
@@ -383,8 +384,8 @@ module KUBETWIN
             workflow = workflow_type_repository[req.workflow_type_id]
 
             # register step completion
-            # component_name = workflow[:component_sequence][req.worked_step][:name]
-            # per_component_stats[component_name].record_request(req, @current_time)
+            component_name = workflow[:component_sequence][req.worked_step][:name]
+            per_component_stats[component_name].record_request(req, now)
 
             # check if there are other steps left to complete the workflow
             if req.next_step < workflow[:component_sequence].size
@@ -463,9 +464,6 @@ module KUBETWIN
 
               # collect request statistics in per_workflow_and_customer_stats
               per_workflow_and_customer_stats[req.workflow_type_id][req.customer_id].record_request(req, @current_time)
-              # collect request statistics in per_workflow_and_customer_stats
-              # retrieve component name
-              workflow = workflow_type_repository[req.workflow_type_id]
             end
 
           when Event::ET_HPA_CONTROL
@@ -499,6 +497,7 @@ module KUBETWIN
 
 
             s.pods[hpa.name].each do |pod|
+              next if pod.container.served_request.zero?
               current_metric += pod.container.total_queue_processing_time / pod.container.served_request
               # puts "total queue time: #{pod.container.total_queue_time}"
               # puts "served request: #{pod.container.served_request}"
@@ -510,9 +509,9 @@ module KUBETWIN
             end
             current_metric /= pods.to_f
 
-            puts "**** Horizontal Pod Autoscaling ****"
-            puts "#{hpa.name} pods: #{pods} average processing_time: #{current_metric} desired_metric: #{desired_metric}"
-            puts "************************************"
+            # puts "**** Horizontal Pod Autoscaling ****"
+            # puts "#{hpa.name} pods: #{pods} average processing_time: #{current_metric} desired_metric: #{desired_metric}"
+            # puts "************************************"
 
             # see here
             # https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/
@@ -568,7 +567,9 @@ module KUBETWIN
 
 
             # schedule next control
-            new_event(Event::ET_HPA_CONTROL, [hname, hpa], @current_time + hpa.period_seconds, nil)
+            if @current_time + hpa.period_seconds < cooldown_treshold
+              new_event(Event::ET_HPA_CONTROL, [hname, hpa], @current_time + hpa.period_seconds, nil)
+            end
 
           when Event::ET_END_OF_SIMULATION
             # FOR NOW KEEP PROCESSING REQUEST
@@ -577,8 +578,24 @@ module KUBETWIN
           
           # print some stats (useful to track simulation data)
           when Event::ET_STATS_PRINT
-            puts "stats: #{stats.to_s}\n"
-            new_event(Event::ET_STATS_PRINT, nil, @current_time + @stats_print_interval, nil) unless @stats_print_interval.nil?
+            
+            # calculate the number of pods
+            pods_n = ""
+            @services.each do |k, s|
+              pods_n += "#{k}: #{s.pods[s.selector].length} "
+            end
+
+            puts "++++++++++++++++\n"+
+            "#{now}\n" +
+            "workflow_stats: #{per_workflow_and_customer_stats.to_s}\n"+
+            "component_stats: #{per_component_stats.to_s}\n"+
+            "#{pods_n}"
+
+            next_event_time = @current_time + @stats_print_interval
+
+            if next_event_time < cooldown_treshold
+              new_event(Event::ET_STATS_PRINT, nil, @current_time + @stats_print_interval, nil) unless @stats_print_interval.nil?
+            end
 
         end
       end
@@ -589,8 +606,8 @@ module KUBETWIN
       #costs = @evaluator.evaluate_fixed_costs_cpu(vm_allocation)
 
      
-      #puts "\n\n"
-
+     #puts "\n\n"
+     puts "Finished after #{now - @configuration.end_time}"
      puts "====== Evaluating new allocation ======\n" +
           # "costs: #{costs}\n" +
            "stats: #{stats.to_s}\n" +

@@ -82,10 +82,11 @@ module KUBETWIN
     end
 
     def new_request(sim, r, time)
-      
+
       # improve this code in the future
       r.arrival_at_container = time
-      ri = RequestInfo.new(r, @service_time.next, time)
+      while (st = @service_time.next) <= 1E-6; end
+      ri = RequestInfo.new(r, st, time)
       @request_queue << ri
 
       if @trace
@@ -139,7 +140,6 @@ module KUBETWIN
         # + req.queuing_time # does the queueing time also contain 
         # the queue time for the previous request? yes 
         # fixed
-
         # schedule completion of workflow step
         sim.new_event(Event::ET_WORKFLOW_STEP_COMPLETED, req, time + ri.service_time, self)
       end

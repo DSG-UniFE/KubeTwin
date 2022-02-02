@@ -89,6 +89,7 @@ module KUBETWIN
       @duration        = @duration.to_f
       @warmup_duration = @warmup_duration.to_f
       @cooldown_duration = @cooldown_duration.to_f
+      @cooldown_duration = 10 if @cooldown_duration.nil?
 
       # initialize kpi_customization to empty hash if needed
       @kpi_customization ||= {}

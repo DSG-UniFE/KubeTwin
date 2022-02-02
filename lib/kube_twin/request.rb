@@ -17,7 +17,8 @@ module KUBETWIN
                 # :status,
                 :queuing_time,
                 :workflow_type_id,
-                :worked_step
+                :worked_step,
+                :step_queue_time
 
     attr_accessor :arrival_at_container
 
@@ -49,10 +50,12 @@ module KUBETWIN
       @arrival_at_container = arrival_time
       @queuing_time = 0.0
       @working_time = 0.0
+      @step_queue_time = 0.0
     end
 
     def update_queuing_time(duration)
       @queuing_time += duration
+      @step_queue_time = duration
     end
 
     def update_transfer_time(duration)
