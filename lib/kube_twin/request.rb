@@ -14,9 +14,11 @@ module KUBETWIN
                 :customer_id,
                 :generation_time,
                 :next_step,
+                :arrival_at_container,
                 # :status,
                 :queuing_time,
-                :workflow_type_id
+                :workflow_type_id,
+                :worked_step
 
     # the data_center_id attribute is updated as requests move from a Cloud
     # data center to another
@@ -36,11 +38,14 @@ module KUBETWIN
       @customer_id      = customer_id
 
       # steps start counting from zero
+      @worked_step = 0
       @next_step = 0
 
       # calculate communication latency
       @communication_latency = @arrival_time - @generation_time
 
+      # set this to arrival time, then change it
+      @arrival_at_container = arrival_time
       @queuing_time = 0.0
       @working_time = 0.0
     end
@@ -55,6 +60,7 @@ module KUBETWIN
 
     def step_completed(duration)
       @working_time += duration
+      @worked_step = @next_step
       @next_step += 1
     end
 
@@ -67,9 +73,9 @@ module KUBETWIN
       !@closure_time.nil?
     end
 
-    def ttr
+    def ttr(time)
       # if incident isn't closed yet, just return nil without raising an exception.
-      @closure_time.nil? ? nil : (@closure_time - @arrival_time)
+      @closure_time.nil? ? (time - @arrival_time) : (@closure_time - @arrival_time)
     end
 
     def to_s

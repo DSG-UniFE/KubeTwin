@@ -89,6 +89,9 @@ module KUBETWIN
         end
       end
 
+      # information regarding microservices
+      @microservice_types = @configuration.microservice_types
+
       # information regarding customers
       customer_repository = @configuration.customers
       workflow_type_repository = @configuration.workflow_types
@@ -96,6 +99,17 @@ module KUBETWIN
 
       # initialize statistics --- leave for later
       stats = Statistics.new
+
+      # statistics for service
+      per_component_stats = Hash[
+        @microservice_types.keys.map do |m_id|
+          [
+            m_id,
+            Statistics.new()
+          ]
+        end
+      ]
+
       per_workflow_and_customer_stats = Hash[
         workflow_type_repository.keys.map do |wft_id|
           [
@@ -162,8 +176,6 @@ module KUBETWIN
         @kube_dns.registerService(@services[k])
       end
 
-      # do we want to use dup here?
-      @microservice_types = @configuration.microservice_types
 
       # creating a KubeScheduler
       # the KubeScheduler decides on which nodes schedule
@@ -301,9 +313,12 @@ module KUBETWIN
           when Event::ET_REQUEST_ARRIVAL
             # get request
             req, pod = e.data
+            
+            # do not consider warmup here
+            if req.arrival_time > warmup_threshold
+
             # get the pod here, we do not need thr cluster
             @arrived += 1
-
 
             #cluster = cluster_repository[req.data_center_id]
             # update reqs_received_per_workflow_and_customer
@@ -311,15 +326,13 @@ module KUBETWIN
 
             # find next component name
             workflow = workflow_type_repository[req.workflow_type_id]
-            next_component_name = workflow[:component_sequence][req.next_step][:name]
             # puts "next_component_name #{next_component_name}, pod.label #{pod.label}"
 
             # schedule request forwarding to pod
             @forwarded += 1
             new_event(Event::ET_REQUEST_FORWARDING, req, e.time, pod)
 
-            # update stats
-            if req.arrival_time > warmup_threshold
+              # update stats
               # increase the number of requests being worked on
               requests_being_worked_on += 1
 
@@ -341,6 +354,11 @@ module KUBETWIN
             req  = e.data
             time = e.time
             pod   = e.destination
+            
+            # increase count of received requests in per_component_stats
+            workflow = workflow_type_repository[req.workflow_type_id]
+            component_name = workflow[:component_sequence][req.worked_step][:name]
+            per_component_stats[component_name].request_received
 
             # here we should use the delegator
             pod.container.new_request(self, req, time)
@@ -353,7 +371,6 @@ module KUBETWIN
             container  = e.destination
             @processed += 1
 
-            # TODO check the following code here
             # tell the old container that it can start processing another request
             container.request_finished(self, e.time)
 
@@ -363,6 +380,10 @@ module KUBETWIN
 
             # check if there are other steps left to complete the workflow
             if req.next_step < workflow[:component_sequence].size
+
+              # register step completion
+              component_name = workflow[:component_sequence][req.worked_step][:name]
+              per_component_stats[component_name].record_request(req, @current_time)
 
               # find next component name
               next_component_name = workflow[:component_sequence][req.next_step][:name]
@@ -396,6 +417,7 @@ module KUBETWIN
 
               # schedule request forwarding to vm
               @forwarded += 1
+
               new_event(Event::ET_REQUEST_FORWARDING, req, forwarding_time, pod)
 
             else # workflow is finished
@@ -433,10 +455,16 @@ module KUBETWIN
               requests_being_worked_on -= 1
 
               # collect request statistics
-              stats.record_request(req)
+              stats.record_request(req, @current_time)
 
               # collect request statistics in per_workflow_and_customer_stats
-              per_workflow_and_customer_stats[req.workflow_type_id][req.customer_id].record_request(req)
+              per_workflow_and_customer_stats[req.workflow_type_id][req.customer_id].record_request(req, @current_time)
+              # collect request statistics in per_workflow_and_customer_stats
+              # retrieve component name
+              workflow = workflow_type_repository[req.workflow_type_id]
+              # get the last element here
+              next_component_name = workflow[:component_sequence].last[:name]
+              per_component_stats[next_component_name].record_request(req, @current_time)
             end
 
           when Event::ET_HPA_CONTROL
@@ -565,6 +593,7 @@ module KUBETWIN
           # "costs: #{costs}\n" +
            "stats: #{stats.to_s}\n" +
            "per_workflow_and_customer_stats: #{per_workflow_and_customer_stats.to_s}\n" +
+           "per_component_stats: #{per_component_stats.to_s}\n" +
            "=======================================\n"
 
       # debug info here

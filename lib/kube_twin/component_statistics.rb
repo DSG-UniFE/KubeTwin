@@ -4,7 +4,7 @@ require_relative './request'
 
 
 module KUBETWIN
-  class Statistics
+  class ComponentStatistics
     attr_reader :mean, :n, :received, :longer_than
     alias_method :closed, :n
 
@@ -16,7 +16,6 @@ module KUBETWIN
       @m_2  = 0.0
       @q_mean = 0.0
       @q_m_2 = 0.0
-      @longer_than = init_counters_for_longer_than_stats(opts)
       @received = 0
     end
 
@@ -30,10 +29,6 @@ module KUBETWIN
       raise "TTR #{x} for request #{req.rid} invalid!" unless x > 0.0
 
       qx = req.queuing_time
-
-      @longer_than.each_key do |k|
-        @longer_than[k] += 1 if x > k
-      end
 
       # update counters
       @n += 1
@@ -59,18 +54,6 @@ module KUBETWIN
       "TTR: (mean: #{@mean}, variance: #{variance}, longer_than: #{@longer_than.to_s})\n" +
       "QTIME: (mean: #{@q_mean}, variance: #{q_variance})"
     end
-
-    private
-      def init_counters_for_longer_than_stats(custom_kpis_config)
-        # prepare an infinite length enumerator that always returns zero
-        zeros = Enumerator.new(){|x| loop do x << 0 end }
-
-        Hash[
-          # wrap the values in custom_kpis_config[:longer_than] in an array
-          Array(custom_kpis_config[:longer_than]).
-            # and interval the numbers contained in that array with zeroes
-            zip(zeros) ]
-      end
 
   end
 end

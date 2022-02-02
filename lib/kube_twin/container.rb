@@ -132,7 +132,7 @@ module KUBETWIN
         # update container-based metric here
         @total_queue_time += time - ri.arrival_time
         # raise "We are looking at two different times" if req.queuing_time != (time - ri.arrival_time)
-        @total_queue_processing_time += ri.service_time + (time - ri.arrival_time) 
+        @total_queue_processing_time += ri.service_time + (time - ri.arrival_time)
         # + req.queuing_time # does the queueing time also contain 
         # the queue time for the previous request? yes 
         # fixed
