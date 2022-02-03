@@ -589,6 +589,7 @@ module KUBETWIN
 
             puts "++++++++++++++++\n"+
             "#{now}\n" +
+            "#{stats.to_s}\n" +
             "workflow_stats: #{per_workflow_and_customer_stats.to_s}\n"+
             "component_stats: #{per_component_stats.to_s}\n"+
             "#{pods_n}"
@@ -614,7 +615,7 @@ module KUBETWIN
           # "costs: #{costs}\n" +
            "stats: #{stats.to_s}\n" +
            "per_workflow_and_customer_stats: #{per_workflow_and_customer_stats.to_s}\n" +
-           #"per_component_stats: #{per_component_stats.to_s}\n" +
+           "component_stats: #{per_component_stats.to_s}\n" +
            "=======================================\n"
 
       # debug info here
