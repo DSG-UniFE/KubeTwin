@@ -453,9 +453,11 @@ module KUBETWIN
 
             # request is closed
             req.finished_processing(e.time)
+            #puts "#{req.arrival_time} #{now}"
+            raise "Processing request after the simulation time current:#{now} end:#{@configuration.end_time}" if now >= @configuration.end_time
 
             # update stats
-            if req.arrival_time > warmup_threshold
+            if req.arrival_time > warmup_threshold && now < @configuration.end_time
               # decrease the number of requests being worked on
               requests_being_worked_on -= 1
 
@@ -573,8 +575,8 @@ module KUBETWIN
 
           when Event::ET_END_OF_SIMULATION
             # FOR NOW KEEP PROCESSING REQUEST
-            # puts "#{e.time}: end simulation"
-            # break
+            puts "#{e.time}: end simulation"
+            break
           
           # print some stats (useful to track simulation data)
           when Event::ET_STATS_PRINT
