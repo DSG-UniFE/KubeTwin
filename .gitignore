@@ -3,6 +3,7 @@ sim*.csv
 *.gem
 *.rbc
 *.swp
+*.pdf
 .bundle
 .config
 .env
