@@ -257,6 +257,12 @@ module KUBETWIN
       requests_being_worked_on = 0
       current_event = 0
 
+      # benchmark file
+      time = Time.now.strftime('%Y%m%d%H%M%S')
+      @sim_bench = File.open("sim_bench_#{time}.csv", 'w')
+
+      @sim_bench << "Time,Component,Request,TTP,Pods\n"
+
       # launch simulation
       until @event_queue.empty?
         e = @event_queue.shift
@@ -575,7 +581,7 @@ module KUBETWIN
 
           when Event::ET_END_OF_SIMULATION
             # FOR NOW KEEP PROCESSING REQUEST
-            puts "#{e.time}: end simulation"
+            #puts "#{e.time}: end simulation"
             break
           
           # print some stats (useful to track simulation data)
@@ -584,15 +590,17 @@ module KUBETWIN
             # calculate the number of pods
             pods_n = ""
             @services.each do |k, s|
-              pods_n += "#{k}: #{s.pods[s.selector].length} "
+              pods_number = s.pods[s.selector].length
+              pods_n += "#{k}: #{pods_number} "
+              @sim_bench << "#{now},#{k},#{per_component_stats[k].received},#{per_component_stats[k].mean},#{pods_number}\n"
             end
 
-            puts "++++++++++++++++\n"+
-            "#{now}\n" +
-            "#{stats.to_s}\n" +
-            "workflow_stats: #{per_workflow_and_customer_stats.to_s}\n"+
-            "component_stats: #{per_component_stats.to_s}\n"+
-            "#{pods_n}"
+            #puts "++++++++++++++++\n"+
+            #"#{now}\n" +
+            #"#{stats.to_s}\n" +
+            #"workflow_stats: #{per_workflow_and_customer_stats.to_s}\n"+
+            #"component_stats: #{per_component_stats.to_s}\n"+
+            #ls"#{pods_n}"
 
             next_event_time = @current_time + @stats_print_interval
 
@@ -610,7 +618,8 @@ module KUBETWIN
 
      
      #puts "\n\n"
-     puts "Finished after #{now - @configuration.end_time}"
+     @sim_bench.close
+     #puts "Finished after #{now - @configuration.end_time}"
      puts "====== Evaluating new allocation ======\n" +
           # "costs: #{costs}\n" +
            "stats: #{stats.to_s}\n" +
