@@ -602,6 +602,17 @@ module KUBETWIN
             #"component_stats: #{per_component_stats.to_s}\n"+
             #ls"#{pods_n}"
 
+            # reset also comoponent statistics
+
+            per_component_stats = Hash[
+              @microservice_types.keys.map do |m_id|
+                [
+                  m_id,
+                  ComponentStatistics.new()
+                ]
+              end
+            ]
+           
             next_event_time = @current_time + @stats_print_interval
 
             if next_event_time < cooldown_treshold
