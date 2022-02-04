@@ -62,10 +62,8 @@ num.customers <- 1
 customer.ids.2  <- rep(num.customers, length(generation.times.2))
 
 ####### !!!!!!!!!!! COOLDOWN SPIKE ##############
-
 first.request.time    <- tail(generation.times.2, n=1)
-# this is a consistent spike from 2200 to 6666 rps
-location <- 3.E-4
+location <- 3.7E-4
 requests.per.second <- (shape - 1) / (shape * location)
 
 
