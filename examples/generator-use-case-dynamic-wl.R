@@ -66,6 +66,8 @@ customer.ids.2  <- rep(num.customers, length(generation.times.2))
 first.request.time    <- tail(generation.times.2, n=1)
 # this is a consistent spike from 2200 to 6666 rps
 location <- 3.E-4
+requests.per.second <- (shape - 1) / (shape * location)
+
 
 # 0.3 + 0.5 = 0.9 # then a cooldown of 0.3
 num.requests <- 0.4 * simulation.time * requests.per.second
