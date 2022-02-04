@@ -526,7 +526,7 @@ module KUBETWIN
             # if close to 1 do not scale -- use a tolerance range
             scaling_ratio = current_metric / desired_metric
             # tolerance range # should be configurable
-            tolerance_range = 0.90..1.10
+            tolerance_range = 0.80..1.10
 
             unless tolerance_range === scaling_ratio
               # then here implement the check to scale up or down the associated pods

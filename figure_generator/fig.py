@@ -12,7 +12,7 @@ df = pd.read_csv(sys.argv[1])
 fig, ax = plt.subplots(figsize=(10,4))
 for key, grp in df.groupby(['Component']):
     # calculate SMA for TTP
-    grp['TTP_SMA'] = grp['TTP'].rolling(window=1).mean()
+    grp['TTP_SMA'] = grp['TTP'].rolling(window=5).mean()
     ax.plot(grp['Time'], grp['TTP_SMA'], label=key)
 
 ax.legend()
