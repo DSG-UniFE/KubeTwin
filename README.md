@@ -3,7 +3,7 @@
 KubeTwin is a SISFC fork, a simulator to reenact the behaviour of IT services in Federated Clouds. 
 KubeTwin aims to extends the SISFC project to provide a Kubernetes simulator.
 
-We are on development stage. 
+We are still on development stage.
 
 
 ## Installation
@@ -26,14 +26,11 @@ To install and work with KubeTwin we kindly suggest to use bundler:
 
 ## Usage
 
-We are currently developing the simulator...
-Please, be patient :)
-
 To run the simulator with bundler simply digit:
 
-    bundle exec bin/kube_twin simulator.conf 
+    bundle exec bin/kube_twin examples/use_case.conf 
 
-where simulator.conf is your simulation environment.
+where example/use_case.conf is an example of a simulation environment configuration.
 
 ## Examples
 
@@ -42,5 +39,8 @@ an [R](http://www.r-project.org) script that models a stochastic request
 generation process. To use that script, you will need R with the VGAM and
 truncnorm packages installed.
 
+## License
+
+This software is available as open source under the terms of the [MIT License](https://opensource.org/licenses/MIT).
 
 
