@@ -309,7 +309,7 @@ module KUBETWIN
             
             arrival_time = @current_time + latency_manager.sample_latency_between(customer_location_id, cluster.location_id)
             # generate the request here
-            new_req = Request.new(req_attrs.merge!(initial_data_center_id: cluster_id,
+            new_req = Request.new(**req_attrs.merge!(initial_data_center_id: cluster_id,
                                                    arrival_time: arrival_time))
 
             # schedule arrival of current request
