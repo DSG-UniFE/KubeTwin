@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
-# require 'dry-validation'
-# require 'dry-auto_inject'
+
 require_relative './logger'
 require_relative './event'
 
