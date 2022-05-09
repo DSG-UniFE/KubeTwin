@@ -19,7 +19,7 @@ module KUBETWIN
                    node_number:, node_resources_cpu:, node_resources_memory:, **opts)
       @cluster_id    = id
       @location_id   = location_id
-      @nodes           = {}
+      @nodes         = {}
       @name          = name
       @type          = type
       @node_number   = node_number
@@ -46,10 +46,9 @@ module KUBETWIN
       @nodes[node.node_id] = node
     end
 
-    def remove_vm(node)
+    def remove_node(node)
         raise 'Error! Node not allocated in this cluster' unless @nodes.include? node.node_id
-        @vm_type_count[vm.size] += 1
-        @vms.delete(vm)
+        @nodes.delete(node.node_id)
     end
 
     def edge?

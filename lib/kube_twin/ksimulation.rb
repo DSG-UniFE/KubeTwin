@@ -618,7 +618,20 @@ module KUBETWIN
             if next_event_time < cooldown_treshold
               new_event(Event::ET_STATS_PRINT, nil, @current_time + @stats_print_interval, nil) unless @stats_print_interval.nil?
             end
+            
+          when Event::ET_ALLOCATE_NODE
+            new_node, target_cluster = e.data
+            #target_cluster.node_number += 1
+            target_cluster.add_node(new_node)
+            puts "New Node Allocated: node_id: #{new_node.node_id} in cluster #{target_cluster.cluster_id} at time #{e.time}"
+            
 
+          when Event::ET_DEALLOCATE_NODE
+            new_node, target_cluster = e.data
+            #target_cluster.node_number += 1
+            target_cluster.remove_node(new_node)
+            puts "Node Deallocated: node_id: #{new_node.node_id} in cluster #{target_cluster.cluster_id} at time #{e.time}"
+           
         end
       end
 

@@ -11,6 +11,8 @@ module KUBETWIN
     ET_REQUEST_CLOSURE         = 4
     ET_HPA_CONTROL             = 5
     ET_STATS_PRINT             = 6
+    ET_ALLOCATE_NODE           = 7
+    ET_DEALLOCATE_NODE         = 8 
     # ET_VM_SUSPEND              = 5
     # ET_VM_RESUME               = 6
     ET_END_OF_SIMULATION       = 100
