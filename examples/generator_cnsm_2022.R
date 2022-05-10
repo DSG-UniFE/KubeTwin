@@ -8,7 +8,7 @@ library(truncnorm) # for truncated normal distribution
 # location            <- 1.2E-4
 # shape               <- 5
 
-requests.per.second <- 10 # (shape - 1) / (shape * location)
+requests.per.second <- 5 # (shape - 1) / (shape * location)
 # generate 2 minutes of requests
 simulation.time <- 2 * 60
 # number of requests
@@ -24,7 +24,7 @@ min.latency <-   5E-3 # minimum latency is 5ms
 
 # request generation times
 first.request.time         <- as.POSIXct(as.Date("28/5/2020", "%d/%m/%Y"))
-request.interarrival.times <- rexp(num.requests, 1 / 0.100) # a request each 50 ms
+request.interarrival.times <- rexp(num.requests, 1 / 0.250) # a request each 250 ms
 generation.times           <- diffinv(request.interarrival.times, xi=first.request.time)
 
 # number of workflow types
