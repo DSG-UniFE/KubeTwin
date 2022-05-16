@@ -41,6 +41,13 @@ module KUBETWIN
       @startedTime = Time.now
       @state = CONTAINER_WAITING
 
+      if opts[:blocking]
+        @blocking = opts[:blocking]
+      else
+        @blocking = true
+      end
+
+
       # retrieving image info here
       # @service_n_cycles = image_info[:service_n_cycles]
 
@@ -111,9 +118,15 @@ module KUBETWIN
       end
 
       unless @request_queue.empty? # || (@state == Container::CONTAINER_TERMINATED)
-        @busy = true
-        ri = @request_queue.shift
+        
+        # monkey patch for MQTT service
+        if @blocking == true
+          @busy = true
+        else
+          @busy = false
+        end
 
+        ri = @request_queue.shift
         # nc = r.service_time
 
         # here simulate service time based on cpu and on a random noise

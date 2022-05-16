@@ -21,8 +21,11 @@ module KUBETWIN
       @pod_id = pod_id
       @podName = podName
       @node = node
-      # this would not work here
-      @container = Container.new(0, 1, image_info[:service_time_distribution][node.type]) #, opts[:port]) # @containers = {}
+
+      @container = Container.new(0, 1, image_info[:service_time_distribution][node.type],
+                        {blocking: image_info[:blocking]})
+                        
+       # image_info[:blocking]) #, opts[:port]) # @containers = {}
       # startup the container here -- we just need a MVP for now
       @container.startupC
       @startTime = Time.now
