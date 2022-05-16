@@ -1,0 +1,113 @@
+#!/usr/bin/env ruby
+
+begin
+  require 'kube_twin'
+  require 'mhl'
+  require 'logger'
+rescue LoadError
+  require 'rubygems'
+  require 'kube_twin'
+  require 'mhl'
+end
+
+def do_abort(message)
+    abort <<-EOS.gsub(/^\s+\|/, '')
+      |#{message}
+      |
+      |Usage:
+      |    #{File.basename(__FILE__)} simulator_config_file 
+      |
+    EOS
+  end
+  
+  
+if File.expand_path(__FILE__) == File.expand_path($0)
+    # make sure both required arguments were given
+    case ARGV.size
+    when 0 then
+      do_abort("Missing simulator configuration files!")
+    end
+  
+    # make sure simulator config file exists
+    unless File.exists? ARGV[0]
+      do_abort("Invalid simulator configuration file!")
+    end
+end
+
+# here run the optimizer on the oracle
+# load simulation configuration
+$logger = Logger.new(STDOUT)
+$logger.level = Logger::INFO
+time = Time.now.strftime('%Y%m%d%H%M%S')
+GA_LOG = "ga_log_oracle_#{time}.log"
+File.delete(GA_LOG) if File.exist?(GA_LOG)
+ga_logger = Logger.new(GA_LOG)
+ga_logger.level = Logger::INFO
+
+sim_conf = KUBETWIN::Configuration.load_from_file(ARGV[0])
+
+n_ms = sim_conf.microservice_types.length
+rss = sim_conf.replica_sets
+
+$start_time = sim_conf.start_time
+
+def encode_replicas_set(x, n_ms, rss)
+  ra = rss.keys.to_a
+  (0..(n_ms - 1)).each do |rsj|
+    rss[ra[rsj]][:replicas] = x[rsj]
+  end
+  puts rss
+  $logger.debug "Replica Sets: #{rss}"
+  rss
+end
+
+
+to_optimize = lambda do |component_allocation|
+    # load simulation configuration
+    conf = KUBETWIN::Configuration.load_from_file(ARGV[0])
+    rss = sim_conf.replica_sets
+
+    rss = encode_replicas_set(component_allocation, n_ms, rss)
+
+    # create a simulator and launch it
+    $logger.debug component_allocation
+    sim = KUBETWIN::KSimulation.new(configuration: conf,
+                                evaluator: KUBETWIN::Evaluator.new(conf))
+    res = sim.evaluate_allocation(rss)
+    res
+end
+
+
+solver_conf = {
+  population_size: 16,
+  genotype_space_type: :integer,
+  mutation_probability: 0.5,
+  recombination_probability: 0.5,
+  logger: ga_logger,
+  log_level: "INFO",
+  recombination_threshold: 0.40,
+  genotype_space_conf: {
+      dimensions: n_ms,
+      recombination_type: :intermediate,
+      random_func: lambda { Array.new(n_ms) { rand(1..10) } },
+      constraints: [
+        {from: 1, to: (10)},
+        {from: 1, to: (10)},
+        {from: 1, to: (10)},
+      ]
+  },
+  exit_condition: lambda { |iteration, _| iteration > 2 }
+}
+
+solver = MHL::GeneticAlgorithmSolver.new(solver_conf)
+
+# run the solver
+best = solver.solve(to_optimize, {concurrent: false})
+
+puts best
+#ap 'Best result:'
+#ap(best, :indent => 2)
+
+puts "exiting"
+exit 0
+

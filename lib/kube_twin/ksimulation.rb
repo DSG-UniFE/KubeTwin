@@ -42,7 +42,7 @@ module KUBETWIN
     end
 
 
-    def evaluate_allocation()
+    def evaluate_allocation(rss=nil)
 
 
       # seeds
@@ -140,8 +140,16 @@ module KUBETWIN
       @forwarded = 0
 
       @replica_sets = {}
+      
+      # init from simulation or optimizator
+      if rss.nil? 
+        crs = @configuration.replica_sets 
+      else
+        crs = rss
+      end
+
       # first create the replica_set
-      @configuration.replica_sets.each do |name, conf|
+      crs.each do |name, conf|
         # nil is service here
         # do we need a reference to service in ReplicaSet?
         @replica_sets[name] = ReplicaSet.new(name, conf[:selector],
@@ -665,7 +673,7 @@ module KUBETWIN
       # we want to minimize the cost, so we define fitness as the opposite of
       # the sum of all costs incurred
       #-costs.values.inject(0.0){|s,x| s += x }
-      0
+      -stats.mean
     end
 
   end
