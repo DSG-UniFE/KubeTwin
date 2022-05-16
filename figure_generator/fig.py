@@ -2,7 +2,6 @@ import pandas as pd
 import numpy as np
 import seaborn as sns; sns.set()
 import matplotlib.pyplot as plt
-from openpyxl import load_workbook
 import sys
 
 if len(sys.argv) < 2:
@@ -11,30 +10,10 @@ if len(sys.argv) < 2:
 
 df = pd.read_csv(sys.argv[1])
 grouped = df.groupby('Component')['TTP']
-groupedTime = df.groupby('Component')['Time']
 
 
 
-wb = load_workbook(filename='service_time.xlsx', 
-                   read_only=True)
-ws = wb.active
-rangeServices = ws['A2':'A100']
-rangeIotDG = ws['B2':'B100']
-
-servicesValues = []
-iotDGValues = []
-
-for cell in rangeServices:
-    for x in cell:
-        servicesValues.append(x.value)
-
-for cell in rangeIotDG:
-    for x in cell:
-        iotDGValues.append(x.value)
-
-
-
-fig, ax = plt.subplots(3, 1, figsize=(18,10), sharey=True, squeeze= False)
+fig, ax = plt.subplots(3, 1, figsize=(18,10), squeeze= False)
 plt.subplots_adjust(left=0.125, bottom=0.1, right=0.9, top=0.9, wspace=0.2, hspace=0.4)
 
 i = 0 #index used in subplots generation
@@ -54,8 +33,8 @@ ax[0,0].set_title('IoT Client')
 ax[1,0].set_title('IoT data Generator')
 ax[2,0].set_title('Service List')
 
-ax[1,0].plot(groupedTime.get_group('IoT data Generator'), iotDGValues, color='green', label='Real TTP')
-ax[2,0].plot(groupedTime.get_group('Service List'), servicesValues, color='green', label='Real TTP')
+ax[1,0].axhline(y=1.832270083, color='green', label='Mean Real TTP')
+ax[2,0].axhline(y=0.00251934, color='green', label='Mean Real TTP')
 
 
 
