@@ -41,7 +41,7 @@ module KUBETWIN
       @startedTime = Time.now
       @state = CONTAINER_WAITING
 
-      if opts[:blocking]
+      unless opts[:blocking].nil?
         @blocking = opts[:blocking]
       else
         @blocking = true
