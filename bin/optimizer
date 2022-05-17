@@ -56,7 +56,7 @@ def encode_replicas_set(x, n_ms, rss)
   (0..(n_ms - 1)).each do |rsj|
     rss[ra[rsj]][:replicas] = x[rsj]
   end
-  puts rss
+  #puts rss
   $logger.debug "Replica Sets: #{rss}"
   rss
 end
@@ -79,7 +79,7 @@ end
 
 
 solver_conf = {
-  population_size: 16,
+  population_size: 64,
   genotype_space_type: :integer,
   mutation_probability: 0.5,
   recombination_probability: 0.5,
@@ -102,7 +102,7 @@ solver_conf = {
 solver = MHL::GeneticAlgorithmSolver.new(solver_conf)
 
 # run the solver
-best = solver.solve(to_optimize, {concurrent: false})
+best = solver.solve(to_optimize, {concurrent: true})
 
 puts best
 #ap 'Best result:'
