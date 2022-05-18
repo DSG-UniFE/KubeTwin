@@ -1,6 +1,7 @@
 *~
 sim*.csv
 *.gem
+*.png
 *.rbc
 *.swp
 *.pdf
