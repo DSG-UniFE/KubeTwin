@@ -8,17 +8,20 @@ module KUBETWIN
     # removing :targetPort for now
     # we are not dealing with TCP/IP here...
     # consider it for future work
+    attr_accessor :load_balancing
+
     attr_reader :serviceName,
                 :selector,
                 :pods 
                 #, :targetPort
 
-    def initialize(serviceName, selector)
+    def initialize(serviceName, selector, load_balancing=:round_robin)
       @serviceName = serviceName
       @selector = selector
       @pods = {}
       # round robin pod selector
       @rri = 0
+      @load_balancing = load_balancing
     end
 
     # assign a pod to a service
@@ -30,6 +33,16 @@ module KUBETWIN
       @pods[pod.label] << pod if @selector == pod.label
     end
 
+    def get_pod(label)
+     if @load_balancing == :random
+       pod = get_random_pod(label)
+     elsif 
+       # this is for round robin
+       pod = get_pod_rr(label)
+     end
+     return pod
+    end
+    
     # who calls this method?
     def get_random_pod(label, random: nil)
       if @pods.key? label

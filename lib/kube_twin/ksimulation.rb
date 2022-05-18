@@ -309,7 +309,7 @@ module KUBETWIN
 
             # the closest_dc stuff should be implmented within a load balancer / service 
             # here we cloud implement different policies rather than random policy
-            pod = service.get_pod_rr(first_component_name) # same as selector
+            pod = service.get_pod(first_component_name) # same as selector
 
             # we need to get a reference to the cluster where the pod is running
             cluster_id = pod.node.cluster_id
@@ -414,7 +414,7 @@ module KUBETWIN
               forwarding_time = e.time
 
               # get a pod from the one available
-              pod = service.get_pod_rr(next_component_name) # same as selector
+              pod = service.get_pod(next_component_name) # same as selector
               
               # we need to get a reference to the cluster where the pod is running
               cluster_id = pod.node.cluster_id
