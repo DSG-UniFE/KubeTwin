@@ -516,9 +516,9 @@ module KUBETWIN
             end
             current_metric /= pods.to_f
 
-            puts "**** Horizontal Pod Autoscaling ****"
-            puts "#{hpa.name} pods: #{pods} average processing_time: #{current_metric} desired_metric: #{desired_metric}"
-            puts "************************************"
+            #puts "**** Horizontal Pod Autoscaling ****"
+            #puts "#{hpa.name} pods: #{pods} average processing_time: #{current_metric} desired_metric: #{desired_metric}"
+            #puts "************************************"
 
             # see here
             # https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/

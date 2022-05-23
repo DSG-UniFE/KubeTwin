@@ -16,7 +16,6 @@ data = pd.read_csv(sys.argv[1])
 data_by_component = {k: g.drop('Component', axis=1) for k, g in  data.groupby('Component')}
 time = data_by_component['Video Transcoding']['Time']
 
-'''
 fig1, ax1 = plt.subplots(figsize=(10,4))
 
 ax1.plot(time, data_by_component['Video Transcoding']['Pods'], color='#F91907', alpha = 0.8, label='Video Transcoding')
@@ -29,7 +28,7 @@ ax1.legend()
 
 fig1.savefig('fig_6.png')
 plt.show()
-'''
+
 
 # separate plot -- with multiple axis
 
