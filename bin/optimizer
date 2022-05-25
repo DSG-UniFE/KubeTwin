@@ -60,18 +60,17 @@ def encode_replicas_set(x, n_ms, rss, slb)
   
   # 0 would be round robin 1 is random
   ss = slb.keys.to_a
-  (n_ms..(2 * n_ms - 1)).each do |sj|
-
-    if x[sj].zero? 0
+  (0..(n_ms - 1)).each do |sj|
+    # shift to right we are considering what's next
+    xj = sj + n_ms
+    if x[xj].zero?
       policy = :round_robin
     else
       policy = :random
     end
     slb[ss[sj]][:load_balancing] = policy
   end
-  
-  #puts rss
-  $logger.debug "Replica Sets: #{rss}"
+  #$logger.debug "Replica Sets: #{rss}"
   return rss, slb
 end
 
