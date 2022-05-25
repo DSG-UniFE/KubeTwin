@@ -65,7 +65,8 @@ module KUBETWIN
                  :start_time,
                  :warmup_duration,
                  :cooldown_duration,
-                 :workflow_types
+                 :workflow_types,
+                 :seed
   end
 
   class Configuration

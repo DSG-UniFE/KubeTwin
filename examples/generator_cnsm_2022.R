@@ -1,7 +1,6 @@
 #!/usr/bin/env Rscript
 
 suppressMessages(library(VGAM))
-library(truncnorm) # for truncated normal distribution
 
 # request generation is modeled with a Pareto distribution
 # these values were chosen to generate roughly 6666.667 requests per second

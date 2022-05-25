@@ -41,10 +41,9 @@ module KUBETWIN
       @current_time
     end
 
-
-    def evaluate_allocation(rss=nil)
-
-
+    # rss is replica set
+    # css is service configuration
+    def evaluate_allocation(rss=nil, css=nil)
       # seeds
       latency_seed = @configuration.seeds[:communication_latencies]
       service_time_seed = @configuration.seeds[:service_times]
@@ -175,11 +174,16 @@ module KUBETWIN
       # Then create services and pods at startup
       # not simulating starup events in the MVP
 
+      # init from simulation or optimizator
+      if css.nil? 
+        css = @configuration.services 
+      end
+
       @services = {}
 
       # we could use a repository here
       # dry could be very useful in here...
-      @configuration.services.each do |k, conf|
+      css.each do |k, conf|
         @services[k] = Service.new(k, conf[:selector])
         # need to register this service into kube_dns
         @kube_dns.registerService(@services[k])

@@ -51,35 +51,51 @@ rss = sim_conf.replica_sets
 
 $start_time = sim_conf.start_time
 
-def encode_replicas_set(x, n_ms, rss)
+def encode_replicas_set(x, n_ms, rss, slb)
   ra = rss.keys.to_a
-  (0..(n_ms - 1)).each do |rsj|
-    rss[ra[rsj]][:replicas] = x[rsj]
+  (0..(n_ms - 1)).each do |sj|
+    rss[ra[sj]][:replicas] = x[sj]
   end
+  # here decide the load balancing configuration
+  
+  # 0 would be round robin 1 is random
+  ss = slb.keys.to_a
+  (n_ms..(2 * n_ms - 1)).each do |sj|
+
+    if x[sj].zero? 0
+      policy = :round_robin
+    else
+      policy = :random
+    end
+    slb[ss[sj]][:load_balancing] = policy
+  end
+  
   #puts rss
   $logger.debug "Replica Sets: #{rss}"
-  rss
+  return rss, slb
 end
 
 
 to_optimize = lambda do |component_allocation|
     # load simulation configuration
     conf = KUBETWIN::Configuration.load_from_file(ARGV[0])
-    rss = sim_conf.replica_sets
 
-    rss = encode_replicas_set(component_allocation, n_ms, rss)
+    rss = sim_conf.replica_sets
+    slb = sim_conf.services
+
+    rss, slb = encode_replicas_set(component_allocation, n_ms, rss, slb)
 
     # create a simulator and launch it
     $logger.debug component_allocation
     sim = KUBETWIN::KSimulation.new(configuration: conf,
                                 evaluator: KUBETWIN::Evaluator.new(conf))
-    res = sim.evaluate_allocation(rss)
+    res = sim.evaluate_allocation(rss, slb)
     res
 end
 
 
 solver_conf = {
-  population_size: 64,
+  population_size: 128,
   genotype_space_type: :integer,
   mutation_probability: 0.5,
   recombination_probability: 0.5,
@@ -87,13 +103,18 @@ solver_conf = {
   log_level: "INFO",
   recombination_threshold: 0.40,
   genotype_space_conf: {
-      dimensions: n_ms,
+      dimensions: n_ms * 2,
       recombination_type: :intermediate,
-      random_func: lambda { Array.new(n_ms) { rand(1..10) } },
+      random_func: lambda { Array.new(n_ms) { rand(1..10) } + Array.new(n_ms) {rand(0..1)} },
       constraints: [
-        {from: 1, to: (10)},
-        {from: 1, to: (10)},
-        {from: 1, to: (10)},
+        # for rss configuration
+        {from: 1, to: 20},
+        {from: 1, to: 20},
+        {from: 1, to: 20},
+        # for load balancing configuration
+        {from: 0, to: 1},
+        {from: 0, to: 1},
+        {from: 0, to: 1},
       ]
   },
   exit_condition: lambda { |iteration, _| iteration > 2 }
