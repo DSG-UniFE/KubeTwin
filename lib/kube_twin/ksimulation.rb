@@ -499,13 +499,12 @@ module KUBETWIN
 
             # here need this hack to avoid taking value from tail
             # rejection sampling to implement (crudely) PDF truncation
-            #sva = 0.upto(10).collect { service_time_rv.sample }
-            #service_time = sva.sum / sva.length.to_f
-            while (service_time = service_time_rv.next) < 2E-3; end
+            sva = 0.upto(100).collect { service_time_rv.sample }
+            service_time = sva.sum / sva.length.to_f
+            # while (service_time = service_time_rv.next) < 2E-3; end
             # puts service_time
           
-            desired_metric = service_time +
-                           hpa.target_processing_percentage * service_time
+            desired_metric = hpa.target_processing_percentage * service_time
 
             current_metric = 0
             pods = 0
@@ -519,7 +518,7 @@ module KUBETWIN
               # puts "served request: #{pod.container.served_request}"
               # reset container metric
               # calculate them each time period
-              # pod.container.reset_metrics
+              pod.container.reset_metrics
               # puts "#{pod.container.current_processing_metric}"
               pods += 1
             end
@@ -534,7 +533,7 @@ module KUBETWIN
             # if close to 1 do not scale -- use a tolerance range
             scaling_ratio = current_metric / desired_metric
             # tolerance range # should be configurable
-            tolerance_range = 0.80..1.10
+            tolerance_range = 0.90..1.10
 
             unless tolerance_range === scaling_ratio
               # then here implement the check to scale up or down the associated pods
@@ -571,11 +570,13 @@ module KUBETWIN
                 # deal with requests currently being processed
                 #puts "min #{hpa.min_replicas}"
                 to_scale = d_replicas > hpa.min_replicas ? (pods - d_replicas) : 0
-                # puts "deactivating pods"
-                ppl = s.pods[hpa.name].sample(to_scale)
-                ppl.each do |p| 
-                  p.deactivate_pod
-                  s.delete_pod(s.selector, p)
+                unless to_scale.zero?
+                  # puts "deactivating pods"
+                  ppl = s.pods[hpa.name].sample(to_scale)
+                  ppl.each do |p| 
+                    p.deactivate_pod
+                    s.delete_pod(s.selector, p)
+                  end
                 end
               end
 
