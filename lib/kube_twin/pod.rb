@@ -21,8 +21,8 @@ module KUBETWIN
       @pod_id = pod_id
       @podName = podName
       @node = node
-      if @image_info[:node_affinity]
-        @node_affinity = @image_info[:node_affinity]
+      if image_info[:node_affinity]
+        @node_affinity = image_info[:node_affinity]
       else
         @node_affinity = nil
       end

@@ -28,9 +28,9 @@ module KUBETWIN
     
     # do we need to call filter every time we need to assign a pod?
     # maybe we do
-    def filter_and_score(requirements)
+    def filter_and_score(requirements, node_affinity)
       filter(requirements)
-      score
+      score(node_affinity)
     end
 
     # filtering here is an expensive operation
@@ -57,7 +57,7 @@ module KUBETWIN
 
     # the following is a simple implementation that returns 
     # just the node
-    def score
+    def score(node_affinity)
       # here we need to implement something complex using external or specific classes
       # sorting operations are computionally heavy
       # implementing a sorting algorithm here
