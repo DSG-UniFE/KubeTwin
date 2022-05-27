@@ -80,7 +80,6 @@ def encode_replicas_set(x, n_ms, rss, slb, msc)
   (0..(n_ms - 1)).each do |sj|
     # shift to right
     xj = sj + 2 * n_ms
-
     if x[xj] == 0
       affinity = "local"
     elsif x[xj] == 1
@@ -90,9 +89,9 @@ def encode_replicas_set(x, n_ms, rss, slb, msc)
     else
       affinity = "rdc"
     end
-
-    msc[sj][:node_affinity] = affinity
+    msc[msck[sj]][:node_affinity] = affinity
   end
+  # puts msc
   # plus the node affinty for pods
   
   #$logger.debug "Replica Sets: #{rss}"
@@ -106,7 +105,7 @@ to_optimize = lambda do |component_allocation|
 
     rss = sim_conf.replica_sets
     slb = sim_conf.services
-    msc = sim_con.microservice_types
+    msc = sim_conf.microservice_types
 
     rss, slb, msc = encode_replicas_set(component_allocation, n_ms, rss, slb, msc)
 
@@ -120,7 +119,7 @@ end
 
 
 solver_conf = {
-  population_size: 128,
+  population_size: 64,
   genotype_space_type: :integer,
   mutation_probability: 0.5,
   recombination_probability: 0.5,
@@ -128,9 +127,9 @@ solver_conf = {
   log_level: "INFO",
   recombination_threshold: 0.40,
   genotype_space_conf: {
-      dimensions: n_ms * 2,
+      dimensions: n_ms * 3,
       recombination_type: :intermediate,
-      random_func: lambda { Array.new(n_ms) { rand(1..10) } + Array.new(n_ms) {rand(0..1)} },
+      random_func: lambda { Array.new(n_ms) { rand(1..10) } + Array.new(n_ms) {rand(0..1)} + Array.new(n_ms) {rand(0..2)}},
       constraints: [
         # for rss configuration
         {from: 1, to: 20},
@@ -146,7 +145,7 @@ solver_conf = {
         {from: 0, to: 2},
       ]
   },
-  exit_condition: lambda { |iteration, _| iteration > 2 }
+  exit_condition: lambda { |iteration, _| iteration > 5 }
 }
 
 solver = MHL::GeneticAlgorithmSolver.new(solver_conf)

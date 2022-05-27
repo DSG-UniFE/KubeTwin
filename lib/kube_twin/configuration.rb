@@ -117,7 +117,7 @@ module KUBETWIN
       IceNine.deep_freeze(@latency_models)
       IceNine.deep_freeze(@request_generation)
       IceNine.deep_freeze(@seeds)
-      IceNine.deep_freeze(@microservice_types)
+      #IceNine.deep_freeze(@microservice_types)
       IceNine.deep_freeze(@start_time)
       IceNine.deep_freeze(@warmup_duration)
       IceNine.deep_freeze(@workflow_types)
