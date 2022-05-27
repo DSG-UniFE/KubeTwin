@@ -25,7 +25,6 @@ min.latency <-   5E-3 # minimum latency is 5ms
 first.request.time         <- as.POSIXct(as.Date("28/5/2020", "%d/%m/%Y"))
 # setting a seed here
 set.seed(123)
-
 request.interarrival.times <- rexp(num.requests, 1 / 0.250) # a request each 250 ms
 generation.times           <- diffinv(request.interarrival.times, xi=first.request.time)
 
