@@ -208,9 +208,9 @@ module KUBETWIN
           # retrieve a node where to allocate this pod
           reqs_c = sct[:resources_requirements_cpu]
           reqs_m = sct[:resources_requirements_memory]
+          node_affinity = sct[:node_affinity]
 
-
-          node = @kube_scheduler.get_node(reqs_c)
+          node = @kube_scheduler.get_node(reqs_c, node_affinity)
 
           # once we know where the pod is going to be allocated
           # we can retrieve also the service_time_distribution
@@ -558,16 +558,17 @@ module KUBETWIN
                   sct = @microservice_types[selector]
                   reqs_c = sct[:resources_requirements_cpu]
                   reqs_m = sct[:resources_requirements_memory]
-                  node = @kube_scheduler.get_node(reqs_c)
-                  break if node.nil?
+
+                  node_affinity = sct[:node_affinity]
+                  node = @kube_scheduler.get_node(reqs_c, node_affinity)
+
+                  break if node.nil? # check here --- what happens if no nodes are available
                   pod = Pod.new(pod_id, "#{selector}_#{pod_id}", node, selector, sct)
                   pod.startUpPod
                   # assign resources for the pod
                   node.assign_resources(pod, reqs_c, reqs_m)
                   s.assignPod(pod)
                   pod_id += 1
-
-                  
                 end
               else
                 # we need to select some pods to terminate

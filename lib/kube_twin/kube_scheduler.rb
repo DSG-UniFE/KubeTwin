@@ -11,12 +11,12 @@ module KUBETWIN
     end
 
     # information regarding requirements are available usin the pod class
-    def get_node(resource_requirements)
+    def get_node(resource_requirements, node_affinity)
       # get the requirements (we should specify at least a requirement here,
       # CPU percentage)
       # filter available nodes
       # this should return a candidate node
-      filter_and_score(resource_requirements)
+      filter_and_score(resource_requirements, node_affinity)
     end
 
     private
@@ -46,7 +46,9 @@ module KUBETWIN
           # filter only those nodes capable to execute the pods
           available_resources_cpu = node.available_resources_cpu
           @filtered_nodes << {node: node, cluster_id: c.cluster_id,
-                             price: c.fixed_hourly_cost_cpu, available_resources_cpu: available_resources_cpu,
+                             type: c.type,
+                             price: c.fixed_hourly_cost_cpu,
+                             available_resources_cpu: available_resources_cpu,
                              requested_resources: node.requested_resources[:cpu],
                              deployed_pods: node.pod_id_list.length} if available_resources_cpu >= requirements
         end
@@ -64,7 +66,13 @@ module KUBETWIN
         puts "Resource saturation"
         return nil
       end
-      @filtered_nodes.sort_by { |n| -n[:available_resources_cpu] }[0][:node]
+
+      # check also for node affinity here
+      node = @filtered_nodes.select{|n| n[:type] == :mec}.sort_by { |n| -n[:available_resources_cpu] }[0][:node] unless node_affinity.nil?
+      if node.nil?
+        @filtered_nodes.sort_by { |n| -n[:available_resources_cpu] }[0][:node]
+      end
+      return node
     end
 
   end
