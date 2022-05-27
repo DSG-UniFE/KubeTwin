@@ -145,7 +145,7 @@ solver_conf = {
         {from: 0, to: 2},
       ]
   },
-  exit_condition: lambda { |iteration, _| iteration > 5 }
+  exit_condition: lambda { |iteration, _| iteration > 10 }
 }
 
 solver = MHL::GeneticAlgorithmSolver.new(solver_conf)

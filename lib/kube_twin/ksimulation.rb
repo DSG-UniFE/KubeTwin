@@ -271,9 +271,9 @@ module KUBETWIN
 
       # benchmark file
       time = Time.now.strftime('%Y%m%d%H%M%S')
-      @sim_bench = File.open("sim_bench_#{time}.csv", 'w')
+      #@sim_bench = File.open("sim_bench_#{time}.csv", 'w')
 
-      @sim_bench << "Time,Component,Request,TTP,Pods\n"
+      #@sim_bench << "Time,Component,Request,TTP,Pods\n"
 
       # launch simulation
       until @event_queue.empty?
@@ -606,7 +606,7 @@ module KUBETWIN
             @services.each do |k, s|
               pods_number = s.pods[s.selector].length
               pods_n += "#{k}: #{pods_number} "
-              @sim_bench << "#{now},#{k},#{per_component_stats[k].received},#{per_component_stats[k].mean},#{pods_number}\n"
+              #@sim_bench << "#{now},#{k},#{per_component_stats[k].received},#{per_component_stats[k].mean},#{pods_number}\n"
             end
 
             #puts "++++++++++++++++\n"+
@@ -656,7 +656,7 @@ module KUBETWIN
 
      
      #puts "\n\n"
-     @sim_bench.close
+     #@sim_bench.close
      #puts "Finished after #{now - @configuration.end_time}"
      puts "====== Evaluating new allocation ======\n" +
           # "costs: #{costs}\n" +
