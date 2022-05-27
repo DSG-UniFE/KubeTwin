@@ -21,11 +21,8 @@ module KUBETWIN
       @pod_id = pod_id
       @podName = podName
       @node = node
-      if image_info[:node_affinity]
-        @node_affinity = image_info[:node_affinity]
-      else
-        @node_affinity = nil
-      end
+      
+      @node_affinity = image_info[:node_affinity].nil? ? nil : image_info[:node_affinity]
 
       @container = Container.new(0, 1, image_info[:service_time_distribution][node.type],
                         {blocking: image_info[:blocking]})

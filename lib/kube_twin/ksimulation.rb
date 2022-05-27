@@ -43,7 +43,7 @@ module KUBETWIN
 
     # rss is replica set
     # css is service configuration
-    def evaluate_allocation(rss=nil, css=nil)
+    def evaluate_allocation(rss=nil, css=nil, mtt=nil)
       # seeds
       latency_seed = @configuration.seeds[:communication_latencies]
       service_time_seed = @configuration.seeds[:service_times]
@@ -90,7 +90,7 @@ module KUBETWIN
       end
 
       # information regarding microservices
-      @microservice_types = @configuration.microservice_types
+      @microservice_types = mtt.nil? ? @configuration.microservice_types : mtt
 
       # information regarding customers
       customer_repository = @configuration.customers
@@ -669,12 +669,15 @@ module KUBETWIN
 
       # decomment this one more info required
       # think about what need to show
-      # cluster_repository.each do |_,c|
-      #   puts "#{c.name} -- Allocation:"
-      #   c.nodes.values.each do |n|
-      #     puts "node_id: #{n.node_id}: pods: #{n.pod_id_list.length}"
-      #   end
-      # end
+      cluster_repository.each do |_,c|
+         #puts "Allocation -- #{c.name} Pods: #{pods}"
+         pods = 0
+         c.nodes.values.each do |n|
+          pods += n.pod_id_list.length
+          #puts "node_id: #{n.node_id}: pods: #{n.pod_id_list.length}"
+         end
+         puts "Allocation -- #{c.name} Pods: #{pods}"
+      end
 
       # we want to minimize the cost, so we define fitness as the opposite of
       # the sum of all costs incurred

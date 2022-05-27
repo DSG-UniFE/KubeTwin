@@ -11,17 +11,18 @@ module KUBETWIN
 
     attr_reader :cluster_id, :location_id, :node_number, 
                 :nodes, :name, :node_resources_cpu, :node_resources_memory, :type,
-                :fixed_hourly_cost_cpu, :fixed_hourly_cost_memory
+                :tier,:fixed_hourly_cost_cpu, :fixed_hourly_cost_memory
 
     # type is mec or cloud, something similar to what we implemented
     # in Phileas
-    def initialize(id:, fixed_hourly_cost_cpu:, fixed_hourly_cost_memory:, location_id:, name:, type:,
+    def initialize(id:, fixed_hourly_cost_cpu:, fixed_hourly_cost_memory:, location_id:, name:, type:, tier:,
                    node_number:, node_resources_cpu:, node_resources_memory:, **opts)
       @cluster_id    = id
       @location_id   = location_id
       @nodes         = {}
       @name          = name
       @type          = type
+      @tier          = tier
       @node_number   = node_number
       @node_resources_cpu = node_resources_cpu
       @node_resources_memory = node_resources_memory
