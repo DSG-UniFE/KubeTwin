@@ -48,16 +48,16 @@ sim_conf = KUBETWIN::Configuration.load_from_file(ARGV[0])
 
 n_ms = sim_conf.microservice_types.length
 rss = sim_conf.replica_sets
+msc = sim_conf.microservice_types
 
 $start_time = sim_conf.start_time
 
-def encode_replicas_set(x, n_ms, rss, slb)
+def encode_replicas_set(x, n_ms, rss, slb, msc)
   ra = rss.keys.to_a
   (0..(n_ms - 1)).each do |sj|
     rss[ra[sj]][:replicas] = x[sj]
   end
   # here decide the load balancing configuration
-  
   # 0 would be round robin 1 is random
   ss = slb.keys.to_a
   (0..(n_ms - 1)).each do |sj|
@@ -70,8 +70,33 @@ def encode_replicas_set(x, n_ms, rss, slb)
     end
     slb[ss[sj]][:load_balancing] = policy
   end
+
+  # affinity based on tier
+  # here 0 means local
+  # 1 means tier1
+  # 2 means tier2
+  # 3 means remote dc
+  msck = msc.keys.to_a
+  (0..(n_ms - 1)).each do |sj|
+    # shift to right
+    xj = sj + 2 * n_ms
+
+    if x[xj] == 0
+      affinity = "local"
+    elsif x[xj] == 1
+      affinity = "t1"
+    elsif x[xj] == 2
+      affinity = "t2"
+    else
+      affinity = "rdc"
+    end
+
+    msc[sj][:node_affinity] = affinity
+  end
+  # plus the node affinty for pods
+  
   #$logger.debug "Replica Sets: #{rss}"
-  return rss, slb
+  return rss, slb, msc
 end
 
 
@@ -81,14 +106,15 @@ to_optimize = lambda do |component_allocation|
 
     rss = sim_conf.replica_sets
     slb = sim_conf.services
+    msc = sim_con.microservice_types
 
-    rss, slb = encode_replicas_set(component_allocation, n_ms, rss, slb)
+    rss, slb, msc = encode_replicas_set(component_allocation, n_ms, rss, slb, msc)
 
     # create a simulator and launch it
     $logger.debug component_allocation
     sim = KUBETWIN::KSimulation.new(configuration: conf,
                                 evaluator: KUBETWIN::Evaluator.new(conf))
-    res = sim.evaluate_allocation(rss, slb)
+    res = sim.evaluate_allocation(rss, slb, msc)
     res
 end
 
@@ -114,6 +140,10 @@ solver_conf = {
         {from: 0, to: 1},
         {from: 0, to: 1},
         {from: 0, to: 1},
+        # for node affinity
+        {from: 0, to: 2},
+        {from: 0, to: 2},
+        {from: 0, to: 2},
       ]
   },
   exit_condition: lambda { |iteration, _| iteration > 2 }
