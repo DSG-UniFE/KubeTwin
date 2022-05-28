@@ -5,7 +5,7 @@ require_relative './replica_set'
 require_relative './horizontal_pod_autoscaler'
 require_relative './service'
 require_relative './event'
-require_relative './generator'
+require_relative './request_generator'
 require_relative './sorted_array'
 require_relative './statistics'
 require_relative './component_statistics'
@@ -240,11 +240,10 @@ module KUBETWIN
       # this stores all simulation events
       @event_queue = SortedArray.new
 
-      # puts "========== Simulation Start =========="
-
+      # puts "========== Simulation Start =========="      
       # generate first request
-      rg = RequestGenerator.new(@configuration.request_generation)
-      req_attrs = rg.generate
+      rg = RequestGenerator.new(@configuration.request_gen[1])
+      req_attrs = rg.generate(now)
       new_event(Event::ET_REQUEST_GENERATION, req_attrs, req_attrs[:generation_time], nil)
 
       # generate first HPA check
@@ -301,11 +300,9 @@ module KUBETWIN
             # find first component name for requested workflow
             workflow = workflow_type_repository[req_attrs[:workflow_type_id]]
             first_component_name = workflow[:component_sequence][0][:name]
-            # puts first_component_name
 
             # first we need to resolve the component name using
             # the kubernetes DNS
-
             # TODO -- modeling internal service time
             # this code can be split into two when
 
@@ -329,7 +326,7 @@ module KUBETWIN
 
             # schedule generation of next request
             if @current_time < cooldown_treshold
-              req_attrs = rg.generate   
+              req_attrs = rg.generate(@current_time)   
               new_event(Event::ET_REQUEST_GENERATION, req_attrs, req_attrs[:generation_time], nil)
             end
 
