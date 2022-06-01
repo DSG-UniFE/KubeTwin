@@ -2,7 +2,7 @@
 
 module KUBETWIN
 
-  class RequestGenerator
+  class RequestGeneratorR
 
     def initialize(opts={})
       if opts.has_key? :filename

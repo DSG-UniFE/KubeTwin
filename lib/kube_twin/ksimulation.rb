@@ -5,6 +5,7 @@ require_relative './replica_set'
 require_relative './horizontal_pod_autoscaler'
 require_relative './service'
 require_relative './event'
+require_relative './generator'
 require_relative './request_generator'
 require_relative './sorted_array'
 require_relative './statistics'
@@ -242,7 +243,13 @@ module KUBETWIN
 
       # puts "========== Simulation Start =========="      
       # generate first request
-      rg = RequestGenerator.new(@configuration.request_gen[1])
+      # both R and ruby should work request_gen is written in Ruby
+      # request_generation is csv or R
+      if @configuration.request_gen.nil? 
+        rg = RequestGeneratorR.new(@configuration.request_generation)
+      else 
+        rg = RequestGenerator.new(@configuration.request_gen[1])
+      end
       req_attrs = rg.generate(now)
       new_event(Event::ET_REQUEST_GENERATION, req_attrs, req_attrs[:generation_time], nil)
 
