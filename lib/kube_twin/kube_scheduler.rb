@@ -70,7 +70,7 @@ module KUBETWIN
       # check also for node affinity here
       node = @filtered_nodes.select{|n| n[:tier] == node_affinity}.sort_by { |n| -n[:available_resources_cpu] }[0][:node] unless node_affinity.nil?
       if node.nil?
-        @filtered_nodes.sort_by { |n| -n[:available_resources_cpu] }[0][:node]
+        node = @filtered_nodes.sort_by { |n| -n[:available_resources_cpu] }[0][:node]
       end
       return node
     end

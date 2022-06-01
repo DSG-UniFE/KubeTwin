@@ -26,7 +26,7 @@ module KUBETWIN
     end
 
 
-    def generate
+    def generate(time)
       # read next line from file
       line = @file.gets
       raise "End of input reached while reading request #{@next_rid}!" unless line
