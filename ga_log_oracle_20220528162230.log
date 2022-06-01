@@ -1,0 +1,41 @@
+# Logfile created on 2022-05-28 16:22:30 +0200 by logger.rb/v1.5.0
+I, [2022-05-28T16:22:30.368176 #22807]  INFO -- : GA - Starting generation 1
+I, [2022-05-28T16:22:40.637985 #22807]  INFO -- : > gen 1, overall_best: 
+I, [2022-05-28T16:22:40.638075 #22807]  INFO -- : > position_at 1, [4, 10, 3, 1, 1, 0, 1, 2, 1]
+I, [2022-05-28T16:22:40.639210 #22807]  INFO -- : GA - Starting generation 2
+I, [2022-05-28T16:22:51.731253 #22807]  INFO -- : > gen 2, overall_best: 
+I, [2022-05-28T16:22:51.731852 #22807]  INFO -- : > position_at 2, [4, 10, 3, 1, 1, 0, 1, 2, 1]
+I, [2022-05-28T16:22:51.733082 #22807]  INFO -- : GA - Starting generation 3
+I, [2022-05-28T16:23:03.077272 #22807]  INFO -- : > gen 3, overall_best: 
+I, [2022-05-28T16:23:03.077357 #22807]  INFO -- : > position_at 3, [4, 10, 3, 1, 1, 0, 1, 2, 1]
+I, [2022-05-28T16:23:03.078756 #22807]  INFO -- : GA - Starting generation 4
+I, [2022-05-28T16:23:15.709421 #22807]  INFO -- : > gen 4, overall_best: 
+I, [2022-05-28T16:23:15.709713 #22807]  INFO -- : > position_at 4, [4, 10, 3, 1, 1, 0, 1, 2, 1]
+I, [2022-05-28T16:23:15.711044 #22807]  INFO -- : GA - Starting generation 5
+I, [2022-05-28T16:23:27.374743 #22807]  INFO -- : > gen 5, overall_best: 
+I, [2022-05-28T16:23:27.375198 #22807]  INFO -- : > position_at 5, [4, 10, 3, 1, 1, 0, 1, 2, 1]
+I, [2022-05-28T16:23:27.376761 #22807]  INFO -- : GA - Starting generation 6
+I, [2022-05-28T16:23:38.563719 #22807]  INFO -- : > gen 6, overall_best: 
+I, [2022-05-28T16:23:38.563808 #22807]  INFO -- : > position_at 6, [4, 10, 3, 1, 1, 0, 1, 2, 1]
+I, [2022-05-28T16:23:38.565175 #22807]  INFO -- : GA - Starting generation 7
+I, [2022-05-28T16:23:50.738705 #22807]  INFO -- : > gen 7, overall_best: 
+I, [2022-05-28T16:23:50.739105 #22807]  INFO -- : > position_at 7, [4, 10, 3, 1, 1, 0, 1, 2, 1]
+I, [2022-05-28T16:23:50.740318 #22807]  INFO -- : GA - Starting generation 8
+I, [2022-05-28T16:24:01.679611 #22807]  INFO -- : > gen 8, overall_best: 
+I, [2022-05-28T16:24:01.680003 #22807]  INFO -- : > position_at 8, [4, 10, 3, 1, 1, 0, 1, 2, 1]
+I, [2022-05-28T16:24:01.681422 #22807]  INFO -- : GA - Starting generation 9
+I, [2022-05-28T16:24:12.800851 #22807]  INFO -- : > gen 9, overall_best: 
+I, [2022-05-28T16:24:12.801676 #22807]  INFO -- : > position_at 9, [4, 10, 3, 1, 1, 0, 1, 2, 1]
+I, [2022-05-28T16:24:12.802869 #22807]  INFO -- : GA - Starting generation 10
+I, [2022-05-28T16:24:22.584965 #22807]  INFO -- : > gen 10, overall_best: 
+I, [2022-05-28T16:24:22.585039 #22807]  INFO -- : > position_at 10, [4, 10, 3, 1, 1, 0, 1, 2, 1]
+I, [2022-05-28T16:24:22.586209 #22807]  INFO -- : GA - Starting generation 11
+I, [2022-05-28T16:24:33.229811 #22807]  INFO -- : > gen 11, overall_best: 
+I, [2022-05-28T16:24:33.230171 #22807]  INFO -- : > position_at 11, [4, 10, 3, 1, 1, 0, 1, 2, 1]
+I, [2022-05-28T16:24:33.231347 #22807]  INFO -- : GA - Starting generation 12
+I, [2022-05-28T16:24:43.696687 #22807]  INFO -- : > gen 12, overall_best: 
+I, [2022-05-28T16:24:43.697512 #22807]  INFO -- : > position_at 12, [4, 10, 3, 1, 1, 0, 1, 2, 1]
+I, [2022-05-28T16:24:43.698688 #22807]  INFO -- : GA - Starting generation 13
+I, [2022-05-28T16:24:53.917296 #22807]  INFO -- : > gen 13, overall_best: 
+I, [2022-05-28T16:24:53.918095 #22807]  INFO -- : > position_at 13, [4, 10, 3, 1, 1, 0, 1, 2, 1]
+I, [2022-05-28T16:24:53.920095 #22807]  INFO -- : GA - Starting generation 14

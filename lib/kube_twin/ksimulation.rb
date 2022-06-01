@@ -642,12 +642,14 @@ module KUBETWIN
 
       # decomment this one more info required
       # think about what need to show
-      # cluster_repository.each do |_,c|
-      #   puts "#{c.name} -- Allocation:"
-      #   c.nodes.values.each do |n|
-      #     puts "node_id: #{n.node_id}: pods: #{n.pod_id_list.length}"
-      #   end
-      # end
+      cluster_repository.each do |_,c|
+         pods = 0
+         c.nodes.values.each do |n|
+           pods += n.pod_id_list.length
+           #puts "node_id: #{n.node_id}: pods: #{n.pod_id_list.length}"
+         end
+         puts "#{c.name} -- Allocated Pods: #{pods}"
+      end
 
       # we want to minimize the cost, so we define fitness as the opposite of
       # the sum of all costs incurred
