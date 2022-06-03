@@ -8,7 +8,7 @@ suppressMessages(library(VGAM))
 # location 1.2E-4 --> 6666 rps
 # location 3.7E-4 --> 2162 rps
 # location 2.0E-4 --> 4000 rps
-
+set.seed(123)
 location            <- 3.7E-4
 shape               <- 5
 requests.per.second <- (shape - 1) / (shape * location)

@@ -66,8 +66,9 @@ module KUBETWIN
       evaluation_cost = Hash.new
 
       @configuration.evaluation[:cluster_hourly_cost].each do |c| 
-        evaluation_cost[c[:cluster_cpu]] = c[:fixed_cpu_hourly_cost]
-        evaluation_cost[c[:cluster_memory]] = c[:fixed_memory_hourly_cost]
+        evaluation_cost[c[:cluster]] = c[:fixed_cpu_hourly_cost]
+        # c[:cluster_cpu]]
+        # evaluation_cost[]c[:cluster_memory]] = c[:fixed_memory_hourly_cost]
       end
 
       # create clusters and relative nodes and store them in a repository

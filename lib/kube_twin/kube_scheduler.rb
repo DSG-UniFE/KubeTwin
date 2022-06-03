@@ -64,7 +64,7 @@ module KUBETWIN
         puts "Resource saturation"
         return nil
       end
-      @filtered_nodes.sort_by { |n| -n[:available_resources_cpu] }[0][:node]
+      @filtered_nodes.sort_by { |n| n[:price] }[0][:node]
     end
 
   end
