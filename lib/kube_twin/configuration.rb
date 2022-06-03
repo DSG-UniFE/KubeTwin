@@ -59,6 +59,7 @@ module KUBETWIN
                  :evaluation,
                  :kpi_customization,
                  :latency_models,
+                 :seed,
                  :request_generation,
                  :microservice_types,
                  :seeds,
