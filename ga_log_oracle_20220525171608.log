@@ -1,7 +1,0 @@
-# Logfile created on 2022-05-25 17:16:08 +0200 by logger.rb/v1.5.0
-I, [2022-05-25T17:16:08.504369 #61332]  INFO -- : GA - Starting generation 1
-I, [2022-05-25T17:16:08.631392 #61332]  INFO -- : > gen 1, best: [4, 1, 2, 1, 1, 1], 
-I, [2022-05-25T17:16:08.634134 #61332]  INFO -- : GA - Starting generation 2
-I, [2022-05-25T17:16:08.748825 #61332]  INFO -- : > gen 2, best: [6, 8, 3, 1, 0, 0], 
-I, [2022-05-25T17:16:08.750498 #61332]  INFO -- : GA - Starting generation 3
-I, [2022-05-25T17:16:08.857587 #61332]  INFO -- : > gen 3, best: [6, 14, 7, 1, 1, 0], 
