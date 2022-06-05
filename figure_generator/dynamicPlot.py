@@ -26,7 +26,7 @@ ax1.set_xlabel('Simulation Time (s)')
 ax1.legend()
 
 
-fig1.savefig('fig_6.png')
+fig1.savefig('fig_6.pdf')
 plt.show()
 
 
@@ -82,7 +82,7 @@ fig1.supylabel('TTP (s)')
 #ax2.legend()
 
 
-fig1.savefig('fig_5.png')
+fig1.savefig('fig_5.pdf')
 plt.show()
 
 #fig1.savefig('dynamic2.png')
