@@ -8,7 +8,7 @@ suppressMessages(library(VGAM))
 # location 1.2E-4 --> 6666 rps
 # location 3.7E-4 --> 2162 rps
 # location 2.0E-4 --> 4000 rps
-
+set.seed(123)
 location            <- 3.7E-4
 shape               <- 5
 requests.per.second <- (shape - 1) / (shape * location)
@@ -18,7 +18,7 @@ requests.per.second <- (shape - 1) / (shape * location)
 simulation.time <- 5 * 60
 
 # number of requests
-num.requests <- 0.3 * simulation.time * requests.per.second
+num.requests <- 0.4 * simulation.time * requests.per.second
 
 # request generation times
 first.request.time         <- as.POSIXct(as.Date("28/5/2020", "%d/%m/%Y"))
@@ -48,7 +48,7 @@ location <- 2.0E-4
 requests.per.second <- (shape - 1) / (shape * location)
 
 # 0.3 + 0.5 + 0.4 
-num.requests <- 0.05 * simulation.time * requests.per.second
+num.requests <- 0.15 * simulation.time * requests.per.second
 
 request.interarrival.times <- rpareto(num.requests, location, shape)
 generation.times.2         <- diffinv(request.interarrival.times, xi=first.request.time)
@@ -73,7 +73,7 @@ location <- 3.7E-4
 requests.per.second <- (shape - 1) / (shape * location)
 
 # 0.3 + 0.5 + 0.4 
-num.requests <- 0.85 * simulation.time * requests.per.second
+num.requests <- 0.50 * simulation.time * requests.per.second
 
 request.interarrival.times <- rpareto(num.requests, location, shape)
 generation.times.3         <- diffinv(request.interarrival.times, xi=first.request.time)

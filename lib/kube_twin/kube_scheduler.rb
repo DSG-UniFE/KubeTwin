@@ -69,6 +69,9 @@ module KUBETWIN
 
       # check also for node affinity here
       node = @filtered_nodes.select{|n| n[:tier] == node_affinity}.sort_by { |n| -n[:available_resources_cpu] }[0][:node] unless node_affinity.nil?
+      # distribute the application load among clusters
+      # available_resources_cpu prefers powerful nodes
+      # select mec first
       if node.nil?
         node = @filtered_nodes.sort_by { |n| -n[:available_resources_cpu] }[0][:node]
       end
