@@ -683,10 +683,7 @@ module KUBETWIN
            "component_stats: #{per_component_stats.to_s}\n" +
            "allocation_map: #{allocation_map}\n" +
            "=======================================\n"
-
       # debug info here
-
-
 
       # we want to minimize the cost, so we define fitness as the opposite of
       # the sum of all costs incurred
