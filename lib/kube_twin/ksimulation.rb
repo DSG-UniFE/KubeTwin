@@ -663,17 +663,8 @@ module KUBETWIN
      #puts "\n\n"
      #@sim_bench.close
      #puts "Finished after #{now - @configuration.end_time}"
-     puts "====== Evaluating new allocation ======\n" +
-          # "costs: #{costs}\n" +
-           "stats: #{stats.to_s}\n" +
-           "per_workflow_and_customer_stats: #{per_workflow_and_customer_stats.to_s}\n" +
-           "component_stats: #{per_component_stats.to_s}\n" +
-           "=======================================\n"
 
-      # debug info here
-
-      # decomment this one more info required
-      # think about what need to show
+      allocation_map = {}
       cluster_repository.each do |_,c|
          #puts "Allocation -- #{c.name} Pods: #{pods}"
          pods = 0
@@ -681,8 +672,21 @@ module KUBETWIN
           pods += n.pod_id_list.length
           #puts "node_id: #{n.node_id}: pods: #{n.pod_id_list.length}"
          end
-         puts "Allocation -- #{c.name} Pods: #{pods}"
+         allocation_map[c.name] = {tier: c.tier, pods: pods}
+         #puts "Allocation -- #{c.name} Pods: #{pods}"
       end
+
+     puts "====== Evaluating new allocation ======\n" +
+          # "costs: #{costs}\n" +
+           "stats: #{stats.to_s}\n" +
+           "per_workflow_and_customer_stats: #{per_workflow_and_customer_stats.to_s}\n" +
+           "component_stats: #{per_component_stats.to_s}\n" +
+           "allocation_map: #{allocation_map}\n" +
+           "=======================================\n"
+
+      # debug info here
+
+
 
       # we want to minimize the cost, so we define fitness as the opposite of
       # the sum of all costs incurred

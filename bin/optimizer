@@ -132,9 +132,9 @@ solver_conf = {
       random_func: lambda { Array.new(n_ms) { rand(1..10) } + Array.new(n_ms) {rand(0..1)} + Array.new(n_ms) {rand(0..2)}},
       constraints: [
         # for rss configuration
-        {from: 1, to: 20},
-        {from: 1, to: 20},
-        {from: 1, to: 20},
+        {from: 1, to: 400},
+        {from: 1, to: 400},
+        {from: 1, to: 400},
         # for load balancing configuration
         {from: 0, to: 1},
         {from: 0, to: 1},
