@@ -687,10 +687,12 @@ module KUBETWIN
 
       # we want to minimize the cost, so we define fitness as the opposite of
       # the sum of all costs incurred
-      #-costs.values.inject(0.0){|s,x| s += x }
+      # -costs.values.inject(0.0){|s,x| s += x }
       # 99-th percentile ttr + closed_request + 
       # (- 0.99 )
-      -stats.mean
+      # -stats.mean
+      -per_workflow_and_customer_stats[1][1].longer_than[0.150] / 
+          per_workflow_and_customer_stats[1][1].closed.to_f
     end
 
   end
