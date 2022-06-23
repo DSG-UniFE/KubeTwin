@@ -15,7 +15,7 @@ module KUBETWIN
                 :pods 
                 #, :targetPort
 
-    def initialize(serviceName, selector, load_balancing=:round_robin)
+    def initialize(serviceName, selector, load_balancing=:load_balancing)
       @serviceName = serviceName
       @selector = selector
       @pods = {}
