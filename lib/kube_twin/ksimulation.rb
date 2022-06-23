@@ -385,7 +385,7 @@ module KUBETWIN
             
             # increase count of received requests in per_component_stats
             workflow = workflow_type_repository[req.workflow_type_id]
-            component_name = workflow[:component_sequence][req.worked_step][:name]
+            component_name = workflow[:component_sequence][req.next_step][:name]
             per_component_stats[component_name].request_received
 
             # here we should use the delegator
