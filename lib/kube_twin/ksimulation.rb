@@ -695,8 +695,11 @@ module KUBETWIN
       #    per_workflow_and_customer_stats[1][1].closed.to_f
       # puts "Res: #{res}"
       # res
+
+        per_workflow_and_customer_stats[1][1].shorter_than.each_key do |t|
+          puts "#{(per_workflow_and_customer_stats[1][1].shorter_than[t] / per_workflow_and_customer_stats[1][1].closed.to_f) * 100}% #{t}ms"
+        end
       -stats.mean
     end
-
   end
 end
