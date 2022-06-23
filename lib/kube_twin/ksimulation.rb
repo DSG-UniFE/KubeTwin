@@ -691,10 +691,11 @@ module KUBETWIN
       # 99-th percentile ttr + closed_request + 
       # (- 0.99 )
       # -stats.mean
-      res = -per_workflow_and_customer_stats[1][1].longer_than[0.150] / 
-          per_workflow_and_customer_stats[1][1].closed.to_f
-      puts "Res: #{res}"
-      res
+      #res = -per_workflow_and_customer_stats[1][1].longer_than[0.51] / 
+      #    per_workflow_and_customer_stats[1][1].closed.to_f
+      # puts "Res: #{res}"
+      # res
+      -stats.mean
     end
 
   end
