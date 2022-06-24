@@ -213,7 +213,7 @@ module KUBETWIN
           node_affinity = sct[:node_affinity]
 
           node = @kube_scheduler.get_node(reqs_c, node_affinity)
-
+          next if node.nil? # no more resources
           # once we know where the pod is going to be allocated
           # we can retrieve also the service_time_distribution
           # depending on its cluster type
