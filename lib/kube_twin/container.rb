@@ -54,6 +54,7 @@ module KUBETWIN
       # we do no longer have image info here, just the
       # service time distribution
       # snd = image_info[:service_time_distribution]
+      # snd = st_distribution
 
       @service_time = if st_distribution[:seed]
                             orig_std_conf = snd
