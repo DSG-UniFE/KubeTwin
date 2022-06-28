@@ -432,7 +432,6 @@ module KUBETWIN
               transmission_time =
                 latency_manager.sample_latency_between(current_cluster.location_id,
                                                      cluster.location_id)
-              
               req.update_transfer_time(transmission_time)
               forwarding_time += transmission_time
 

@@ -25,7 +25,7 @@ module KUBETWIN
       @node_affinity = image_info[:node_affinity].nil? ? nil : image_info[:node_affinity]
 
       @container = Container.new(0, 1, image_info[:service_time_distribution][node.type],
-                        {blocking: image_info[:blocking]})
+                        {blocking: image_info[:blocking], node: @node})
                         
        # image_info[:blocking]) #, opts[:port]) # @containers = {}
       # startup the container here -- we just need a MVP for now

@@ -47,6 +47,10 @@ module KUBETWIN
         @blocking = true
       end
 
+      # node info
+      @node = opts[:node]
+
+
 
       # retrieving image info here
       # @service_n_cycles = image_info[:service_n_cycles]
@@ -55,7 +59,7 @@ module KUBETWIN
       # service time distribution
       # snd = image_info[:service_time_distribution]
       # snd = st_distribution
-
+=begin
       @service_time = if st_distribution[:seed]
                             orig_std_conf = snd
                             std_conf = orig_std_conf.dup
@@ -64,7 +68,9 @@ module KUBETWIN
                           else
                             ERV::RandomVariable.new(st_distribution)
       end
-
+=end
+      # seed should alreay be here
+      @service_time = ERV::RandomVariable.new(st_distribution)
       @busy           = false
       @request_queue  = [] # queue incoming requests
 
@@ -93,6 +99,10 @@ module KUBETWIN
       # improve this code in the future
       r.arrival_at_container = time
       while (st = @service_time.next) <= 1E-6; end
+      # add concurrent execution
+      pod_executing = @node.pod_id_list.length
+      #st *= Math::log(pod_executing) if pod_executing > 2
+      
       ri = RequestInfo.new(r, st, time)
       @request_queue << ri
 
