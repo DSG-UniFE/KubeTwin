@@ -29,6 +29,8 @@ module KUBETWIN
     def initialize(opts = {})
       @configuration = opts[:configuration]
       @evaluator     = opts[:evaluator]
+      @benchmark = File.open("requests_log_#{Time.now.to_i}.csv", 'w')
+      @benchmark << "rid,ttr\n"
     end
 
 
@@ -488,6 +490,7 @@ module KUBETWIN
 
               # collect request statistics in per_workflow_and_customer_stats
               per_workflow_and_customer_stats[req.workflow_type_id][req.customer_id].record_request(req, @current_time)
+              @benchmark << "#{req.rid},#{req.ttr(@current_time)}\n"
             end
 
           when Event::ET_HPA_CONTROL
