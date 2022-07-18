@@ -1,4 +1,6 @@
 *~
+*.csv
+ms*.txt
 sim*.csv
 req*.csv
 *.png

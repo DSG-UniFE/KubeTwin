@@ -82,6 +82,10 @@ module KUBETWIN
       @closure_time.nil? ? (time - @arrival_at_container) : (@closure_time - @arrival_time)
     end
 
+    def ttr_step(time)
+      time - @arrival_at_container
+    end
+
     def to_s
       "rid: #{@rid}, generation_time: #{@generation_time}, data_center_id: #{@data_center_id}, arrival_time: #{@arrival_time}, queuing_time #{@queuing_time}"
     end

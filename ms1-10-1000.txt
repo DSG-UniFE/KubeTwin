@@ -1,0 +1,1932 @@
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  33512
+MS1+MS2+MS1: Total process+classify requests time in ms:  423.152
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4835
+MS1+MS2+MS1: Total process+classify requests time in ms:  25.941
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4785
+MS1+MS2+MS1: Total process+classify requests time in ms:  26.453999999999997
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  6559
+MS1+MS2+MS1: Total process+classify requests time in ms:  37.189
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  6088
+MS1+MS2+MS1: Total process+classify requests time in ms:  30.058
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  57556
+MS1+MS2+MS1: Total process+classify requests time in ms:  84.963
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10629
+MS1+MS2+MS1: Total process+classify requests time in ms:  63.249
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  7305
+MS1+MS2+MS1: Total process+classify requests time in ms:  35.043
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9916
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.02
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  8885
+MS1+MS2+MS1: Total process+classify requests time in ms:  50.071
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  8126
+MS1+MS2+MS1: Total process+classify requests time in ms:  42.074
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4958
+MS1+MS2+MS1: Total process+classify requests time in ms:  25.038
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4785
+MS1+MS2+MS1: Total process+classify requests time in ms:  26.482
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9863
+MS1+MS2+MS1: Total process+classify requests time in ms:  54.463
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10261
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.58
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9491
+MS1+MS2+MS1: Total process+classify requests time in ms:  50.282000000000004
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10104
+MS1+MS2+MS1: Total process+classify requests time in ms:  54.904
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10911
+MS1+MS2+MS1: Total process+classify requests time in ms:  54.678
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9044
+MS1+MS2+MS1: Total process+classify requests time in ms:  53.189
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10700
+MS1+MS2+MS1: Total process+classify requests time in ms:  58.006
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9757
+MS1+MS2+MS1: Total process+classify requests time in ms:  45.748999999999995
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  8965
+MS1+MS2+MS1: Total process+classify requests time in ms:  53.937
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5701
+MS1+MS2+MS1: Total process+classify requests time in ms:  29.103
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5280
+MS1+MS2+MS1: Total process+classify requests time in ms:  27.657999999999998
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5323
+MS1+MS2+MS1: Total process+classify requests time in ms:  28.75
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5290
+MS1+MS2+MS1: Total process+classify requests time in ms:  44.433
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5230
+MS1+MS2+MS1: Total process+classify requests time in ms:  27.429
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4896
+MS1+MS2+MS1: Total process+classify requests time in ms:  34.169
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5185
+MS1+MS2+MS1: Total process+classify requests time in ms:  27.262
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10612
+MS1+MS2+MS1: Total process+classify requests time in ms:  49.815
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  7619
+MS1+MS2+MS1: Total process+classify requests time in ms:  43.294
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  8172
+MS1+MS2+MS1: Total process+classify requests time in ms:  44.452
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9166
+MS1+MS2+MS1: Total process+classify requests time in ms:  48.732
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  8656
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.566
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10123
+MS1+MS2+MS1: Total process+classify requests time in ms:  49.431999999999995
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9522
+MS1+MS2+MS1: Total process+classify requests time in ms:  49.52
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9714
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.220000000000006
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9615
+MS1+MS2+MS1: Total process+classify requests time in ms:  54.660000000000004
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  6248
+MS1+MS2+MS1: Total process+classify requests time in ms:  36.401999999999994
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  8773
+MS1+MS2+MS1: Total process+classify requests time in ms:  38.341
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5253
+MS1+MS2+MS1: Total process+classify requests time in ms:  33.372
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  6045
+MS1+MS2+MS1: Total process+classify requests time in ms:  35.138000000000005
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  6359
+MS1+MS2+MS1: Total process+classify requests time in ms:  34.534
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  6283
+MS1+MS2+MS1: Total process+classify requests time in ms:  33.222
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5622
+MS1+MS2+MS1: Total process+classify requests time in ms:  29.721
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  7806
+MS1+MS2+MS1: Total process+classify requests time in ms:  31.982999999999997
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5824
+MS1+MS2+MS1: Total process+classify requests time in ms:  33.141999999999996
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  6774
+MS1+MS2+MS1: Total process+classify requests time in ms:  32.006
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  6141
+MS1+MS2+MS1: Total process+classify requests time in ms:  34.61
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9112
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.213
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  11395
+MS1+MS2+MS1: Total process+classify requests time in ms:  45.971
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9687
+MS1+MS2+MS1: Total process+classify requests time in ms:  44.51
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  6250
+MS1+MS2+MS1: Total process+classify requests time in ms:  30.529
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5288
+MS1+MS2+MS1: Total process+classify requests time in ms:  27.487000000000002
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  6226
+MS1+MS2+MS1: Total process+classify requests time in ms:  29.653
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  6628
+MS1+MS2+MS1: Total process+classify requests time in ms:  32.847
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5967
+MS1+MS2+MS1: Total process+classify requests time in ms:  32.999
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  8323
+MS1+MS2+MS1: Total process+classify requests time in ms:  40.803
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  8429
+MS1+MS2+MS1: Total process+classify requests time in ms:  40.659
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  6373
+MS1+MS2+MS1: Total process+classify requests time in ms:  35.872
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  7537
+MS1+MS2+MS1: Total process+classify requests time in ms:  48.370999999999995
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9194
+MS1+MS2+MS1: Total process+classify requests time in ms:  48.446999999999996
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  16536
+MS1+MS2+MS1: Total process+classify requests time in ms:  55.065999999999995
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  8687
+MS1+MS2+MS1: Total process+classify requests time in ms:  48.711
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4992
+MS1+MS2+MS1: Total process+classify requests time in ms:  35.798
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  8277
+MS1+MS2+MS1: Total process+classify requests time in ms:  41.698
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  8232
+MS1+MS2+MS1: Total process+classify requests time in ms:  38.155
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  6485
+MS1+MS2+MS1: Total process+classify requests time in ms:  40.896
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4858
+MS1+MS2+MS1: Total process+classify requests time in ms:  25.593999999999998
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4899
+MS1+MS2+MS1: Total process+classify requests time in ms:  26.081
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5074
+MS1+MS2+MS1: Total process+classify requests time in ms:  26.879
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4871
+MS1+MS2+MS1: Total process+classify requests time in ms:  25.618
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4742
+MS1+MS2+MS1: Total process+classify requests time in ms:  25.046
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4833
+MS1+MS2+MS1: Total process+classify requests time in ms:  25.204
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10110
+MS1+MS2+MS1: Total process+classify requests time in ms:  54.114000000000004
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9190
+MS1+MS2+MS1: Total process+classify requests time in ms:  48.661
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  8984
+MS1+MS2+MS1: Total process+classify requests time in ms:  49.635
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10554
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.932
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  11525
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.831999999999994
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9841
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.3
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10092
+MS1+MS2+MS1: Total process+classify requests time in ms:  50.442
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  7878
+MS1+MS2+MS1: Total process+classify requests time in ms:  44.364
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9769
+MS1+MS2+MS1: Total process+classify requests time in ms:  49.797000000000004
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4973
+MS1+MS2+MS1: Total process+classify requests time in ms:  27.578
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4946
+MS1+MS2+MS1: Total process+classify requests time in ms:  25.821
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5489
+MS1+MS2+MS1: Total process+classify requests time in ms:  26.412000000000003
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4880
+MS1+MS2+MS1: Total process+classify requests time in ms:  25.045
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  7874
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.399
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9738
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.857
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9214
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.467999999999996
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  8600
+MS1+MS2+MS1: Total process+classify requests time in ms:  49.879
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9593
+MS1+MS2+MS1: Total process+classify requests time in ms:  53.402
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  8856
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.161
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  8394
+MS1+MS2+MS1: Total process+classify requests time in ms:  49.688
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10332
+MS1+MS2+MS1: Total process+classify requests time in ms:  53.352
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10487
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.238
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10674
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.998000000000005
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  6277
+MS1+MS2+MS1: Total process+classify requests time in ms:  27.803
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5150
+MS1+MS2+MS1: Total process+classify requests time in ms:  25.815
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4823
+MS1+MS2+MS1: Total process+classify requests time in ms:  27.294999999999998
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  6045
+MS1+MS2+MS1: Total process+classify requests time in ms:  27.283
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5322
+MS1+MS2+MS1: Total process+classify requests time in ms:  26.836
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4844
+MS1+MS2+MS1: Total process+classify requests time in ms:  26.526999999999997
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10500
+MS1+MS2+MS1: Total process+classify requests time in ms:  53.143
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9836
+MS1+MS2+MS1: Total process+classify requests time in ms:  50.413
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9238
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.106
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  8046
+MS1+MS2+MS1: Total process+classify requests time in ms:  49.344
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  8132
+MS1+MS2+MS1: Total process+classify requests time in ms:  49.714
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9263
+MS1+MS2+MS1: Total process+classify requests time in ms:  50.797000000000004
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  8562
+MS1+MS2+MS1: Total process+classify requests time in ms:  48.65
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9405
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.331999999999994
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10514
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.8
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9396
+MS1+MS2+MS1: Total process+classify requests time in ms:  54.283
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10481
+MS1+MS2+MS1: Total process+classify requests time in ms:  50.074
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4840
+MS1+MS2+MS1: Total process+classify requests time in ms:  24.929
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4904
+MS1+MS2+MS1: Total process+classify requests time in ms:  27.377
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  6004
+MS1+MS2+MS1: Total process+classify requests time in ms:  27.319
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4958
+MS1+MS2+MS1: Total process+classify requests time in ms:  28.011000000000003
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5558
+MS1+MS2+MS1: Total process+classify requests time in ms:  29.353
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4817
+MS1+MS2+MS1: Total process+classify requests time in ms:  25.026
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4936
+MS1+MS2+MS1: Total process+classify requests time in ms:  38.617
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  6603
+MS1+MS2+MS1: Total process+classify requests time in ms:  41.25
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10113
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.70099999999999
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10857
+MS1+MS2+MS1: Total process+classify requests time in ms:  53.072
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10414
+MS1+MS2+MS1: Total process+classify requests time in ms:  53.555
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9417
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.473
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10027
+MS1+MS2+MS1: Total process+classify requests time in ms:  50.318000000000005
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10054
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.234
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10337
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.44
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9574
+MS1+MS2+MS1: Total process+classify requests time in ms:  47.487
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10084
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.436
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5411
+MS1+MS2+MS1: Total process+classify requests time in ms:  25.637
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4992
+MS1+MS2+MS1: Total process+classify requests time in ms:  25.593
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5150
+MS1+MS2+MS1: Total process+classify requests time in ms:  27.786
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5147
+MS1+MS2+MS1: Total process+classify requests time in ms:  26.792
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4973
+MS1+MS2+MS1: Total process+classify requests time in ms:  27.337
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5288
+MS1+MS2+MS1: Total process+classify requests time in ms:  26.752000000000002
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9354
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.781
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10287
+MS1+MS2+MS1: Total process+classify requests time in ms:  50.42
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9790
+MS1+MS2+MS1: Total process+classify requests time in ms:  49.527
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10681
+MS1+MS2+MS1: Total process+classify requests time in ms:  55.135999999999996
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4878
+MS1+MS2+MS1: Total process+classify requests time in ms:  24.955000000000002
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5584
+MS1+MS2+MS1: Total process+classify requests time in ms:  29.419
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4804
+MS1+MS2+MS1: Total process+classify requests time in ms:  25.756
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10729
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.739000000000004
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9835
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.28
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10128
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.302
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  8707
+MS1+MS2+MS1: Total process+classify requests time in ms:  50.712
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9798
+MS1+MS2+MS1: Total process+classify requests time in ms:  48.485
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  11188
+MS1+MS2+MS1: Total process+classify requests time in ms:  53.858999999999995
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10160
+MS1+MS2+MS1: Total process+classify requests time in ms:  53.168
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10884
+MS1+MS2+MS1: Total process+classify requests time in ms:  75.125
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5984
+MS1+MS2+MS1: Total process+classify requests time in ms:  26.767
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4756
+MS1+MS2+MS1: Total process+classify requests time in ms:  26.539
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4666
+MS1+MS2+MS1: Total process+classify requests time in ms:  25.296
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4846
+MS1+MS2+MS1: Total process+classify requests time in ms:  25.016000000000002
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4909
+MS1+MS2+MS1: Total process+classify requests time in ms:  24.773
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5357
+MS1+MS2+MS1: Total process+classify requests time in ms:  26.118
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10010
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.594
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10322
+MS1+MS2+MS1: Total process+classify requests time in ms:  54.364999999999995
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10425
+MS1+MS2+MS1: Total process+classify requests time in ms:  50.076
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  6936
+MS1+MS2+MS1: Total process+classify requests time in ms:  43.72
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  8588
+MS1+MS2+MS1: Total process+classify requests time in ms:  49.084999999999994
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10118
+MS1+MS2+MS1: Total process+classify requests time in ms:  53.701
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10685
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.574999999999996
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9581
+MS1+MS2+MS1: Total process+classify requests time in ms:  49.424
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10217
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.019999999999996
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5282
+MS1+MS2+MS1: Total process+classify requests time in ms:  27.007
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4727
+MS1+MS2+MS1: Total process+classify requests time in ms:  24.653000000000002
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5471
+MS1+MS2+MS1: Total process+classify requests time in ms:  25.994
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4808
+MS1+MS2+MS1: Total process+classify requests time in ms:  26.435
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5063
+MS1+MS2+MS1: Total process+classify requests time in ms:  26.515
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  8134
+MS1+MS2+MS1: Total process+classify requests time in ms:  50.309
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  8586
+MS1+MS2+MS1: Total process+classify requests time in ms:  46.114000000000004
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9836
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.276
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10101
+MS1+MS2+MS1: Total process+classify requests time in ms:  53.5
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10003
+MS1+MS2+MS1: Total process+classify requests time in ms:  53.216
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10399
+MS1+MS2+MS1: Total process+classify requests time in ms:  45.758
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5109
+MS1+MS2+MS1: Total process+classify requests time in ms:  25.698
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4850
+MS1+MS2+MS1: Total process+classify requests time in ms:  26.291999999999998
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  6955
+MS1+MS2+MS1: Total process+classify requests time in ms:  41.156
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  7697
+MS1+MS2+MS1: Total process+classify requests time in ms:  46.163000000000004
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10463
+MS1+MS2+MS1: Total process+classify requests time in ms:  47.349000000000004
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  8986
+MS1+MS2+MS1: Total process+classify requests time in ms:  46.071
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9780
+MS1+MS2+MS1: Total process+classify requests time in ms:  49.504
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5201
+MS1+MS2+MS1: Total process+classify requests time in ms:  25.453
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5154
+MS1+MS2+MS1: Total process+classify requests time in ms:  26.28
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5009
+MS1+MS2+MS1: Total process+classify requests time in ms:  25.764
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4832
+MS1+MS2+MS1: Total process+classify requests time in ms:  26.258
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9789
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.449000000000005
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9297
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.208999999999996
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9488
+MS1+MS2+MS1: Total process+classify requests time in ms:  50.719
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10081
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.829
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10742
+MS1+MS2+MS1: Total process+classify requests time in ms:  35.662
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5133
+MS1+MS2+MS1: Total process+classify requests time in ms:  25.872
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4898
+MS1+MS2+MS1: Total process+classify requests time in ms:  24.717
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5027
+MS1+MS2+MS1: Total process+classify requests time in ms:  25.726
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4851
+MS1+MS2+MS1: Total process+classify requests time in ms:  24.711000000000002
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5189
+MS1+MS2+MS1: Total process+classify requests time in ms:  27.302
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4662
+MS1+MS2+MS1: Total process+classify requests time in ms:  30.183999999999997
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10326
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.778999999999996
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9784
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.515
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10123
+MS1+MS2+MS1: Total process+classify requests time in ms:  54.208
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  8298
+MS1+MS2+MS1: Total process+classify requests time in ms:  32.287000000000006
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9434
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.491
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10214
+MS1+MS2+MS1: Total process+classify requests time in ms:  53.726000000000006
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4769
+MS1+MS2+MS1: Total process+classify requests time in ms:  24.447
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4796
+MS1+MS2+MS1: Total process+classify requests time in ms:  24.548000000000002
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5241
+MS1+MS2+MS1: Total process+classify requests time in ms:  25.948
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4649
+MS1+MS2+MS1: Total process+classify requests time in ms:  24.519
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4971
+MS1+MS2+MS1: Total process+classify requests time in ms:  26.630999999999997
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5021
+MS1+MS2+MS1: Total process+classify requests time in ms:  26.302
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4881
+MS1+MS2+MS1: Total process+classify requests time in ms:  24.733999999999998
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4656
+MS1+MS2+MS1: Total process+classify requests time in ms:  32.762
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10288
+MS1+MS2+MS1: Total process+classify requests time in ms:  59.35
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10190
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.019999999999996
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10074
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.143
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10293
+MS1+MS2+MS1: Total process+classify requests time in ms:  53.601000000000006
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10155
+MS1+MS2+MS1: Total process+classify requests time in ms:  50.918
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9626
+MS1+MS2+MS1: Total process+classify requests time in ms:  50.891
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10012
+MS1+MS2+MS1: Total process+classify requests time in ms:  50.514
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  8930
+MS1+MS2+MS1: Total process+classify requests time in ms:  50.394
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  7826
+MS1+MS2+MS1: Total process+classify requests time in ms:  48.425999999999995
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  6097
+MS1+MS2+MS1: Total process+classify requests time in ms:  26.997
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4817
+MS1+MS2+MS1: Total process+classify requests time in ms:  24.532
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9041
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.636
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9915
+MS1+MS2+MS1: Total process+classify requests time in ms:  53.747
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9241
+MS1+MS2+MS1: Total process+classify requests time in ms:  50.403999999999996
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10115
+MS1+MS2+MS1: Total process+classify requests time in ms:  54.504
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  13443
+MS1+MS2+MS1: Total process+classify requests time in ms:  55.468999999999994
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9733
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.211
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9233
+MS1+MS2+MS1: Total process+classify requests time in ms:  46.4
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9026
+MS1+MS2+MS1: Total process+classify requests time in ms:  50.884
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9966
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.249
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10725
+MS1+MS2+MS1: Total process+classify requests time in ms:  53.293
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4959
+MS1+MS2+MS1: Total process+classify requests time in ms:  25.043
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4809
+MS1+MS2+MS1: Total process+classify requests time in ms:  25.294
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5690
+MS1+MS2+MS1: Total process+classify requests time in ms:  27.064999999999998
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5457
+MS1+MS2+MS1: Total process+classify requests time in ms:  26.404
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5136
+MS1+MS2+MS1: Total process+classify requests time in ms:  25.444000000000003
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4824
+MS1+MS2+MS1: Total process+classify requests time in ms:  25.777
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5273
+MS1+MS2+MS1: Total process+classify requests time in ms:  27.02
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10140
+MS1+MS2+MS1: Total process+classify requests time in ms:  53.379999999999995
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10677
+MS1+MS2+MS1: Total process+classify requests time in ms:  55.852
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9202
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.907000000000004
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10112
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.193000000000005
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9658
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.111
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10203
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.537
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10344
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.677
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10219
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.145999999999994
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9805
+MS1+MS2+MS1: Total process+classify requests time in ms:  50.306999999999995
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9145
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.452
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  8962
+MS1+MS2+MS1: Total process+classify requests time in ms:  50.104
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4789
+MS1+MS2+MS1: Total process+classify requests time in ms:  30.32
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5415
+MS1+MS2+MS1: Total process+classify requests time in ms:  28.247999999999998
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4893
+MS1+MS2+MS1: Total process+classify requests time in ms:  25.761
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5754
+MS1+MS2+MS1: Total process+classify requests time in ms:  28.375
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4900
+MS1+MS2+MS1: Total process+classify requests time in ms:  27.208
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5064
+MS1+MS2+MS1: Total process+classify requests time in ms:  27.029
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  7258
+MS1+MS2+MS1: Total process+classify requests time in ms:  44.495
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10240
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.461
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  8949
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.495
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9504
+MS1+MS2+MS1: Total process+classify requests time in ms:  50.521
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10185
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.016
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10367
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.887
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10577
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.787
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10296
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.1
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  8964
+MS1+MS2+MS1: Total process+classify requests time in ms:  48.522000000000006
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10158
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.958999999999996
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  8126
+MS1+MS2+MS1: Total process+classify requests time in ms:  47.998
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9840
+MS1+MS2+MS1: Total process+classify requests time in ms:  35.196
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4717
+MS1+MS2+MS1: Total process+classify requests time in ms:  24.391
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4712
+MS1+MS2+MS1: Total process+classify requests time in ms:  26.541999999999998
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4754
+MS1+MS2+MS1: Total process+classify requests time in ms:  24.629
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4771
+MS1+MS2+MS1: Total process+classify requests time in ms:  24.741
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4772
+MS1+MS2+MS1: Total process+classify requests time in ms:  25.519
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5518
+MS1+MS2+MS1: Total process+classify requests time in ms:  26.271
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9275
+MS1+MS2+MS1: Total process+classify requests time in ms:  50.639
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9812
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.092
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9326
+MS1+MS2+MS1: Total process+classify requests time in ms:  49.538
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  8475
+MS1+MS2+MS1: Total process+classify requests time in ms:  49.910999999999994
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9705
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.174
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  8234
+MS1+MS2+MS1: Total process+classify requests time in ms:  48.586
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9908
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.583999999999996
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10197
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.589999999999996
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9953
+MS1+MS2+MS1: Total process+classify requests time in ms:  50.875
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10068
+MS1+MS2+MS1: Total process+classify requests time in ms:  53.019999999999996
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9386
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.147
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9699
+MS1+MS2+MS1: Total process+classify requests time in ms:  33.702999999999996
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5168
+MS1+MS2+MS1: Total process+classify requests time in ms:  26.662000000000003
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4824
+MS1+MS2+MS1: Total process+classify requests time in ms:  24.785999999999998
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4895
+MS1+MS2+MS1: Total process+classify requests time in ms:  25.922
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4822
+MS1+MS2+MS1: Total process+classify requests time in ms:  26.895
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9500
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.896
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10258
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.705
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  8707
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.388999999999996
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9229
+MS1+MS2+MS1: Total process+classify requests time in ms:  46.216
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10287
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.13
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10253
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.202
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10201
+MS1+MS2+MS1: Total process+classify requests time in ms:  53.065
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9318
+MS1+MS2+MS1: Total process+classify requests time in ms:  53.745000000000005
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4979
+MS1+MS2+MS1: Total process+classify requests time in ms:  25.410999999999998
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4759
+MS1+MS2+MS1: Total process+classify requests time in ms:  24.676
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4642
+MS1+MS2+MS1: Total process+classify requests time in ms:  24.398
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4690
+MS1+MS2+MS1: Total process+classify requests time in ms:  24.976000000000003
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5093
+MS1+MS2+MS1: Total process+classify requests time in ms:  37.760000000000005
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9158
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.206
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9640
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.365
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10622
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.658
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4879
+MS1+MS2+MS1: Total process+classify requests time in ms:  24.904
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4807
+MS1+MS2+MS1: Total process+classify requests time in ms:  24.909
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4673
+MS1+MS2+MS1: Total process+classify requests time in ms:  26.47
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10996
+MS1+MS2+MS1: Total process+classify requests time in ms:  53.185
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  8586
+MS1+MS2+MS1: Total process+classify requests time in ms:  50.616
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10206
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.194
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10331
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.72
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10264
+MS1+MS2+MS1: Total process+classify requests time in ms:  49.463
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4742
+MS1+MS2+MS1: Total process+classify requests time in ms:  24.717
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4621
+MS1+MS2+MS1: Total process+classify requests time in ms:  24.203
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5203
+MS1+MS2+MS1: Total process+classify requests time in ms:  25.958
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4759
+MS1+MS2+MS1: Total process+classify requests time in ms:  24.477
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4759
+MS1+MS2+MS1: Total process+classify requests time in ms:  24.544
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5910
+MS1+MS2+MS1: Total process+classify requests time in ms:  42.996
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  8725
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.377
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  8697
+MS1+MS2+MS1: Total process+classify requests time in ms:  56.875
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  8334
+MS1+MS2+MS1: Total process+classify requests time in ms:  38.519999999999996
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10234
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.631
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9667
+MS1+MS2+MS1: Total process+classify requests time in ms:  41.538
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  6092
+MS1+MS2+MS1: Total process+classify requests time in ms:  40.445
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10509
+MS1+MS2+MS1: Total process+classify requests time in ms:  53.1
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9795
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.107
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  8585
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.07
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9891
+MS1+MS2+MS1: Total process+classify requests time in ms:  35.774
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4798
+MS1+MS2+MS1: Total process+classify requests time in ms:  25.049
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5262
+MS1+MS2+MS1: Total process+classify requests time in ms:  28.854000000000003
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4814
+MS1+MS2+MS1: Total process+classify requests time in ms:  26.721
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5990
+MS1+MS2+MS1: Total process+classify requests time in ms:  26.766000000000002
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4702
+MS1+MS2+MS1: Total process+classify requests time in ms:  25.746000000000002
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9428
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.762
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10127
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.738
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9938
+MS1+MS2+MS1: Total process+classify requests time in ms:  54.008
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9425
+MS1+MS2+MS1: Total process+classify requests time in ms:  50.206
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9291
+MS1+MS2+MS1: Total process+classify requests time in ms:  50.555
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  7456
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.721
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  8926
+MS1+MS2+MS1: Total process+classify requests time in ms:  49.958000000000006
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10076
+MS1+MS2+MS1: Total process+classify requests time in ms:  49.729
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9173
+MS1+MS2+MS1: Total process+classify requests time in ms:  48.988
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9871
+MS1+MS2+MS1: Total process+classify requests time in ms:  50.687999999999995
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10198
+MS1+MS2+MS1: Total process+classify requests time in ms:  55.233
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5372
+MS1+MS2+MS1: Total process+classify requests time in ms:  27.266
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5651
+MS1+MS2+MS1: Total process+classify requests time in ms:  29.911
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5243
+MS1+MS2+MS1: Total process+classify requests time in ms:  25.356
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5584
+MS1+MS2+MS1: Total process+classify requests time in ms:  30.633
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9564
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.592
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  8336
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.504
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10247
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.333999999999996
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  7783
+MS1+MS2+MS1: Total process+classify requests time in ms:  48.069
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9238
+MS1+MS2+MS1: Total process+classify requests time in ms:  50.249
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  8734
+MS1+MS2+MS1: Total process+classify requests time in ms:  54.879999999999995
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  7936
+MS1+MS2+MS1: Total process+classify requests time in ms:  48.479
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9865
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.629
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  8679
+MS1+MS2+MS1: Total process+classify requests time in ms:  45.571
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4860
+MS1+MS2+MS1: Total process+classify requests time in ms:  24.715
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5022
+MS1+MS2+MS1: Total process+classify requests time in ms:  25.278
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4930
+MS1+MS2+MS1: Total process+classify requests time in ms:  26.015
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4839
+MS1+MS2+MS1: Total process+classify requests time in ms:  24.653000000000002
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10275
+MS1+MS2+MS1: Total process+classify requests time in ms:  49.832
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10000
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.827
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  8486
+MS1+MS2+MS1: Total process+classify requests time in ms:  48.406
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9931
+MS1+MS2+MS1: Total process+classify requests time in ms:  49.696
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5020
+MS1+MS2+MS1: Total process+classify requests time in ms:  25.141000000000002
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10145
+MS1+MS2+MS1: Total process+classify requests time in ms:  50.268
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10311
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.056
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  8713
+MS1+MS2+MS1: Total process+classify requests time in ms:  50.047000000000004
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10555
+MS1+MS2+MS1: Total process+classify requests time in ms:  55.232000000000006
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  8756
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.976
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  8997
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.496
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9560
+MS1+MS2+MS1: Total process+classify requests time in ms:  50.867000000000004
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9683
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.149
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10110
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.674
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4965
+MS1+MS2+MS1: Total process+classify requests time in ms:  24.951
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4722
+MS1+MS2+MS1: Total process+classify requests time in ms:  28.486
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4912
+MS1+MS2+MS1: Total process+classify requests time in ms:  25.034
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5043
+MS1+MS2+MS1: Total process+classify requests time in ms:  25.61
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10284
+MS1+MS2+MS1: Total process+classify requests time in ms:  50.905
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  8775
+MS1+MS2+MS1: Total process+classify requests time in ms:  49.308
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9682
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.933
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9701
+MS1+MS2+MS1: Total process+classify requests time in ms:  55.309
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10273
+MS1+MS2+MS1: Total process+classify requests time in ms:  53.358999999999995
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10157
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.366
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9926
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.227000000000004
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10151
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.723
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10435
+MS1+MS2+MS1: Total process+classify requests time in ms:  50.744
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10260
+MS1+MS2+MS1: Total process+classify requests time in ms:  42.08
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4822
+MS1+MS2+MS1: Total process+classify requests time in ms:  25.921
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5453
+MS1+MS2+MS1: Total process+classify requests time in ms:  27.329
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4959
+MS1+MS2+MS1: Total process+classify requests time in ms:  28.783
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9762
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.75
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9976
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.303000000000004
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10017
+MS1+MS2+MS1: Total process+classify requests time in ms:  57.419
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9965
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.76
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  11942
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.285
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9912
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.587
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  8395
+MS1+MS2+MS1: Total process+classify requests time in ms:  45.284
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10420
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.859
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9194
+MS1+MS2+MS1: Total process+classify requests time in ms:  35.215999999999994
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4870
+MS1+MS2+MS1: Total process+classify requests time in ms:  24.903000000000002
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4831
+MS1+MS2+MS1: Total process+classify requests time in ms:  25.252
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5213
+MS1+MS2+MS1: Total process+classify requests time in ms:  27.527
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  8728
+MS1+MS2+MS1: Total process+classify requests time in ms:  44.284
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10131
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.176
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10315
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.928999999999995
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  8322
+MS1+MS2+MS1: Total process+classify requests time in ms:  50.292
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10250
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.51
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  11950
+MS1+MS2+MS1: Total process+classify requests time in ms:  53.028
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10202
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.339000000000006
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  6711
+MS1+MS2+MS1: Total process+classify requests time in ms:  27.487000000000002
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5307
+MS1+MS2+MS1: Total process+classify requests time in ms:  25.683999999999997
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5031
+MS1+MS2+MS1: Total process+classify requests time in ms:  25.965
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4956
+MS1+MS2+MS1: Total process+classify requests time in ms:  25.968
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  8773
+MS1+MS2+MS1: Total process+classify requests time in ms:  49.554
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10849
+MS1+MS2+MS1: Total process+classify requests time in ms:  60.567
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10026
+MS1+MS2+MS1: Total process+classify requests time in ms:  53.165
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9895
+MS1+MS2+MS1: Total process+classify requests time in ms:  50.909000000000006
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9994
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.202
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10461
+MS1+MS2+MS1: Total process+classify requests time in ms:  53.739000000000004
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4864
+MS1+MS2+MS1: Total process+classify requests time in ms:  24.660999999999998
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5163
+MS1+MS2+MS1: Total process+classify requests time in ms:  25.904
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4761
+MS1+MS2+MS1: Total process+classify requests time in ms:  24.57
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5360
+MS1+MS2+MS1: Total process+classify requests time in ms:  26.541
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5969
+MS1+MS2+MS1: Total process+classify requests time in ms:  43.969
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9696
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.943000000000005
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10006
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.788000000000004
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9788
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.144000000000005
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9697
+MS1+MS2+MS1: Total process+classify requests time in ms:  47.875
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9947
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.413000000000004
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9592
+MS1+MS2+MS1: Total process+classify requests time in ms:  50.448
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9514
+MS1+MS2+MS1: Total process+classify requests time in ms:  50.521
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  8021
+MS1+MS2+MS1: Total process+classify requests time in ms:  47.695
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9973
+MS1+MS2+MS1: Total process+classify requests time in ms:  44.41
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5096
+MS1+MS2+MS1: Total process+classify requests time in ms:  25.835
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4786
+MS1+MS2+MS1: Total process+classify requests time in ms:  26.038999999999998
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4825
+MS1+MS2+MS1: Total process+classify requests time in ms:  27.063
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  7893
+MS1+MS2+MS1: Total process+classify requests time in ms:  47.282
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9748
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.267
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9043
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.102000000000004
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9633
+MS1+MS2+MS1: Total process+classify requests time in ms:  50.949
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9511
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.546
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10664
+MS1+MS2+MS1: Total process+classify requests time in ms:  53.273
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9763
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.99
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9671
+MS1+MS2+MS1: Total process+classify requests time in ms:  53.009
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10079
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.468
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10644
+MS1+MS2+MS1: Total process+classify requests time in ms:  48.87
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4753
+MS1+MS2+MS1: Total process+classify requests time in ms:  25.467
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  6094
+MS1+MS2+MS1: Total process+classify requests time in ms:  27.775000000000002
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5204
+MS1+MS2+MS1: Total process+classify requests time in ms:  30.91
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9383
+MS1+MS2+MS1: Total process+classify requests time in ms:  58.101
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  8903
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.748000000000005
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10204
+MS1+MS2+MS1: Total process+classify requests time in ms:  55.632
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9981
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.516
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10518
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.751
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9463
+MS1+MS2+MS1: Total process+classify requests time in ms:  50.601
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  8752
+MS1+MS2+MS1: Total process+classify requests time in ms:  37.36
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5197
+MS1+MS2+MS1: Total process+classify requests time in ms:  26.015
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5021
+MS1+MS2+MS1: Total process+classify requests time in ms:  25.742
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4824
+MS1+MS2+MS1: Total process+classify requests time in ms:  25.137
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4941
+MS1+MS2+MS1: Total process+classify requests time in ms:  24.913
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9757
+MS1+MS2+MS1: Total process+classify requests time in ms:  45.494
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  11191
+MS1+MS2+MS1: Total process+classify requests time in ms:  54.703
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  8924
+MS1+MS2+MS1: Total process+classify requests time in ms:  50.361000000000004
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9252
+MS1+MS2+MS1: Total process+classify requests time in ms:  50.782000000000004
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9990
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.821
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  8820
+MS1+MS2+MS1: Total process+classify requests time in ms:  49.96
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9797
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.376
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9409
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.265
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4698
+MS1+MS2+MS1: Total process+classify requests time in ms:  24.934
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4749
+MS1+MS2+MS1: Total process+classify requests time in ms:  26.515
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9783
+MS1+MS2+MS1: Total process+classify requests time in ms:  53.268
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10217
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.095
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10638
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.112
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9855
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.53
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9284
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.575
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  8804
+MS1+MS2+MS1: Total process+classify requests time in ms:  50.78
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10077
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.995
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  7937
+MS1+MS2+MS1: Total process+classify requests time in ms:  46.673
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4808
+MS1+MS2+MS1: Total process+classify requests time in ms:  25.695
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4818
+MS1+MS2+MS1: Total process+classify requests time in ms:  24.872
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  8456
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.016
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9871
+MS1+MS2+MS1: Total process+classify requests time in ms:  53.766
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  8648
+MS1+MS2+MS1: Total process+classify requests time in ms:  47.518
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10025
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.664
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9565
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.888999999999996
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9847
+MS1+MS2+MS1: Total process+classify requests time in ms:  54.091
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9942
+MS1+MS2+MS1: Total process+classify requests time in ms:  49.147000000000006
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9957
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.937
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9989
+MS1+MS2+MS1: Total process+classify requests time in ms:  57.776
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9255
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.096000000000004
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9533
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.242999999999995
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9384
+MS1+MS2+MS1: Total process+classify requests time in ms:  40.515
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4835
+MS1+MS2+MS1: Total process+classify requests time in ms:  36.332
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9569
+MS1+MS2+MS1: Total process+classify requests time in ms:  45.201
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4891
+MS1+MS2+MS1: Total process+classify requests time in ms:  24.843
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4756
+MS1+MS2+MS1: Total process+classify requests time in ms:  24.89
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4817
+MS1+MS2+MS1: Total process+classify requests time in ms:  25.054
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  8600
+MS1+MS2+MS1: Total process+classify requests time in ms:  48.679
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10260
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.708999999999996
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9501
+MS1+MS2+MS1: Total process+classify requests time in ms:  50.355999999999995
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9423
+MS1+MS2+MS1: Total process+classify requests time in ms:  50.381
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9217
+MS1+MS2+MS1: Total process+classify requests time in ms:  49.503
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  8958
+MS1+MS2+MS1: Total process+classify requests time in ms:  50.428
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9025
+MS1+MS2+MS1: Total process+classify requests time in ms:  49.237
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10168
+MS1+MS2+MS1: Total process+classify requests time in ms:  50.761
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5530
+MS1+MS2+MS1: Total process+classify requests time in ms:  26.808
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5217
+MS1+MS2+MS1: Total process+classify requests time in ms:  25.464000000000002
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4877
+MS1+MS2+MS1: Total process+classify requests time in ms:  24.503
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5188
+MS1+MS2+MS1: Total process+classify requests time in ms:  25.737
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9856
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.609
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  8163
+MS1+MS2+MS1: Total process+classify requests time in ms:  46.397
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9224
+MS1+MS2+MS1: Total process+classify requests time in ms:  50.726
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10013
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.003
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9601
+MS1+MS2+MS1: Total process+classify requests time in ms:  50.217999999999996
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9731
+MS1+MS2+MS1: Total process+classify requests time in ms:  53.093
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10223
+MS1+MS2+MS1: Total process+classify requests time in ms:  56.021
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4742
+MS1+MS2+MS1: Total process+classify requests time in ms:  24.787
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5223
+MS1+MS2+MS1: Total process+classify requests time in ms:  26.458
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4786
+MS1+MS2+MS1: Total process+classify requests time in ms:  25.287
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4891
+MS1+MS2+MS1: Total process+classify requests time in ms:  30.113
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4900
+MS1+MS2+MS1: Total process+classify requests time in ms:  26.144000000000002
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5000
+MS1+MS2+MS1: Total process+classify requests time in ms:  25.435
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5083
+MS1+MS2+MS1: Total process+classify requests time in ms:  24.857
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9915
+MS1+MS2+MS1: Total process+classify requests time in ms:  53.150999999999996
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10261
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.71
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10182
+MS1+MS2+MS1: Total process+classify requests time in ms:  50.738
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  11007
+MS1+MS2+MS1: Total process+classify requests time in ms:  53.142
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9275
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.311
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  8556
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.811
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9977
+MS1+MS2+MS1: Total process+classify requests time in ms:  54.729
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9394
+MS1+MS2+MS1: Total process+classify requests time in ms:  47.367
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10743
+MS1+MS2+MS1: Total process+classify requests time in ms:  53.822
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4970
+MS1+MS2+MS1: Total process+classify requests time in ms:  26.195
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4807
+MS1+MS2+MS1: Total process+classify requests time in ms:  24.614
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4689
+MS1+MS2+MS1: Total process+classify requests time in ms:  24.371
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4932
+MS1+MS2+MS1: Total process+classify requests time in ms:  25.936
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4766
+MS1+MS2+MS1: Total process+classify requests time in ms:  25.392000000000003
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4982
+MS1+MS2+MS1: Total process+classify requests time in ms:  33.565999999999995
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10608
+MS1+MS2+MS1: Total process+classify requests time in ms:  61.114000000000004
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10160
+MS1+MS2+MS1: Total process+classify requests time in ms:  47.53
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  8879
+MS1+MS2+MS1: Total process+classify requests time in ms:  48.76
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10379
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.827
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10063
+MS1+MS2+MS1: Total process+classify requests time in ms:  54.584
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9601
+MS1+MS2+MS1: Total process+classify requests time in ms:  55.385
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10063
+MS1+MS2+MS1: Total process+classify requests time in ms:  56.277
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  7525
+MS1+MS2+MS1: Total process+classify requests time in ms:  49.355000000000004
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10111
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.171
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  8902
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.11
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9881
+MS1+MS2+MS1: Total process+classify requests time in ms:  49.945
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4829
+MS1+MS2+MS1: Total process+classify requests time in ms:  26.548
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5759
+MS1+MS2+MS1: Total process+classify requests time in ms:  27.279999999999998
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4991
+MS1+MS2+MS1: Total process+classify requests time in ms:  27.868000000000002
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4776
+MS1+MS2+MS1: Total process+classify requests time in ms:  24.642
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4782
+MS1+MS2+MS1: Total process+classify requests time in ms:  26.038999999999998
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5017
+MS1+MS2+MS1: Total process+classify requests time in ms:  34.967
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  8673
+MS1+MS2+MS1: Total process+classify requests time in ms:  48.902
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9135
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.306
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9660
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.377
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9949
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.477000000000004
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9519
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.075
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  8469
+MS1+MS2+MS1: Total process+classify requests time in ms:  50.414
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9942
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.698
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  8645
+MS1+MS2+MS1: Total process+classify requests time in ms:  50.888999999999996
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4728
+MS1+MS2+MS1: Total process+classify requests time in ms:  31.112000000000002
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5153
+MS1+MS2+MS1: Total process+classify requests time in ms:  25.683
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5100
+MS1+MS2+MS1: Total process+classify requests time in ms:  26.727
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5095
+MS1+MS2+MS1: Total process+classify requests time in ms:  26.923
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5094
+MS1+MS2+MS1: Total process+classify requests time in ms:  26.164
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  6732
+MS1+MS2+MS1: Total process+classify requests time in ms:  46.971
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10047
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.903999999999996
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10690
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.812
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10224
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.083999999999996
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  8278
+MS1+MS2+MS1: Total process+classify requests time in ms:  49.01
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10452
+MS1+MS2+MS1: Total process+classify requests time in ms:  53.853
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10324
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.28
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9316
+MS1+MS2+MS1: Total process+classify requests time in ms:  49.516999999999996
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  7544
+MS1+MS2+MS1: Total process+classify requests time in ms:  48.772999999999996
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  11159
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.998000000000005
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9260
+MS1+MS2+MS1: Total process+classify requests time in ms:  36.409
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4730
+MS1+MS2+MS1: Total process+classify requests time in ms:  25.342
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5162
+MS1+MS2+MS1: Total process+classify requests time in ms:  26.494
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4885
+MS1+MS2+MS1: Total process+classify requests time in ms:  25.105999999999998
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4899
+MS1+MS2+MS1: Total process+classify requests time in ms:  26.47
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4991
+MS1+MS2+MS1: Total process+classify requests time in ms:  32.077
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  12008
+MS1+MS2+MS1: Total process+classify requests time in ms:  54.952
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10269
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.028
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10306
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.032000000000004
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  7335
+MS1+MS2+MS1: Total process+classify requests time in ms:  45.942
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9614
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.51
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9336
+MS1+MS2+MS1: Total process+classify requests time in ms:  44.984
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5292
+MS1+MS2+MS1: Total process+classify requests time in ms:  26.137
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4897
+MS1+MS2+MS1: Total process+classify requests time in ms:  24.543
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5099
+MS1+MS2+MS1: Total process+classify requests time in ms:  26.204
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4788
+MS1+MS2+MS1: Total process+classify requests time in ms:  25.941
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9917
+MS1+MS2+MS1: Total process+classify requests time in ms:  50.884
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9235
+MS1+MS2+MS1: Total process+classify requests time in ms:  49.813
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9958
+MS1+MS2+MS1: Total process+classify requests time in ms:  57.597
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10144
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.622
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  8720
+MS1+MS2+MS1: Total process+classify requests time in ms:  50.6
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10887
+MS1+MS2+MS1: Total process+classify requests time in ms:  53.447
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9809
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.797999999999995
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10135
+MS1+MS2+MS1: Total process+classify requests time in ms:  54.668
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10383
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.484
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  8980
+MS1+MS2+MS1: Total process+classify requests time in ms:  45.948
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5108
+MS1+MS2+MS1: Total process+classify requests time in ms:  29.584
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4775
+MS1+MS2+MS1: Total process+classify requests time in ms:  25.878999999999998
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4913
+MS1+MS2+MS1: Total process+classify requests time in ms:  24.909
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4879
+MS1+MS2+MS1: Total process+classify requests time in ms:  25.951999999999998
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4935
+MS1+MS2+MS1: Total process+classify requests time in ms:  24.823999999999998
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  6376
+MS1+MS2+MS1: Total process+classify requests time in ms:  45.307
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10092
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.061
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9669
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.424
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  11027
+MS1+MS2+MS1: Total process+classify requests time in ms:  55.372
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9699
+MS1+MS2+MS1: Total process+classify requests time in ms:  49.766999999999996
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10008
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.708999999999996
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  8629
+MS1+MS2+MS1: Total process+classify requests time in ms:  50.685
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10182
+MS1+MS2+MS1: Total process+classify requests time in ms:  49.271
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4711
+MS1+MS2+MS1: Total process+classify requests time in ms:  24.44
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4704
+MS1+MS2+MS1: Total process+classify requests time in ms:  27.011
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5002
+MS1+MS2+MS1: Total process+classify requests time in ms:  26.221
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4848
+MS1+MS2+MS1: Total process+classify requests time in ms:  24.875
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4938
+MS1+MS2+MS1: Total process+classify requests time in ms:  26.048000000000002
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  6803
+MS1+MS2+MS1: Total process+classify requests time in ms:  48.233
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10607
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.205
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9807
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.137
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  8914
+MS1+MS2+MS1: Total process+classify requests time in ms:  49.323
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9986
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.768
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9623
+MS1+MS2+MS1: Total process+classify requests time in ms:  50.516999999999996
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  7086
+MS1+MS2+MS1: Total process+classify requests time in ms:  43.308
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9446
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.142
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10097
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.568999999999996
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9973
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.026
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9564
+MS1+MS2+MS1: Total process+classify requests time in ms:  49.149
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9205
+MS1+MS2+MS1: Total process+classify requests time in ms:  50.589
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9002
+MS1+MS2+MS1: Total process+classify requests time in ms:  50.837
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5136
+MS1+MS2+MS1: Total process+classify requests time in ms:  26.216
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4927
+MS1+MS2+MS1: Total process+classify requests time in ms:  25.273
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4715
+MS1+MS2+MS1: Total process+classify requests time in ms:  24.979000000000003
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5013
+MS1+MS2+MS1: Total process+classify requests time in ms:  25.255
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5126
+MS1+MS2+MS1: Total process+classify requests time in ms:  34.646
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  8374
+MS1+MS2+MS1: Total process+classify requests time in ms:  50.812000000000005
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9764
+MS1+MS2+MS1: Total process+classify requests time in ms:  50.942
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9342
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.759
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10137
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.718
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  8233
+MS1+MS2+MS1: Total process+classify requests time in ms:  49.934
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9931
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.963
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9189
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.040000000000006
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10377
+MS1+MS2+MS1: Total process+classify requests time in ms:  53.235
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9067
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.282000000000004
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9387
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.119
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9670
+MS1+MS2+MS1: Total process+classify requests time in ms:  50.853
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9094
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.369
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  6511
+MS1+MS2+MS1: Total process+classify requests time in ms:  29.108999999999998
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4729
+MS1+MS2+MS1: Total process+classify requests time in ms:  25.674
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4658
+MS1+MS2+MS1: Total process+classify requests time in ms:  25.703
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4882
+MS1+MS2+MS1: Total process+classify requests time in ms:  24.495
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5046
+MS1+MS2+MS1: Total process+classify requests time in ms:  25.964000000000002
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5213
+MS1+MS2+MS1: Total process+classify requests time in ms:  25.939
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9152
+MS1+MS2+MS1: Total process+classify requests time in ms:  47.286
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9003
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.83
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9916
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.041000000000004
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10486
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.441
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9831
+MS1+MS2+MS1: Total process+classify requests time in ms:  53.258
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10309
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.322
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4802
+MS1+MS2+MS1: Total process+classify requests time in ms:  24.871000000000002
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5259
+MS1+MS2+MS1: Total process+classify requests time in ms:  25.655
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5273
+MS1+MS2+MS1: Total process+classify requests time in ms:  29.51
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4718
+MS1+MS2+MS1: Total process+classify requests time in ms:  26.943
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5015
+MS1+MS2+MS1: Total process+classify requests time in ms:  26.071
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4912
+MS1+MS2+MS1: Total process+classify requests time in ms:  25.068
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4827
+MS1+MS2+MS1: Total process+classify requests time in ms:  25.482000000000003
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5851
+MS1+MS2+MS1: Total process+classify requests time in ms:  27.387999999999998
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4765
+MS1+MS2+MS1: Total process+classify requests time in ms:  35.294
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10208
+MS1+MS2+MS1: Total process+classify requests time in ms:  53.097
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  11054
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.145
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10225
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.333
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10169
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.752
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  8950
+MS1+MS2+MS1: Total process+classify requests time in ms:  50.56
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10075
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.791999999999994
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10277
+MS1+MS2+MS1: Total process+classify requests time in ms:  50.969
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10068
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.839999999999996
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10182
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.706
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4746
+MS1+MS2+MS1: Total process+classify requests time in ms:  25.012
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4936
+MS1+MS2+MS1: Total process+classify requests time in ms:  26.192
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4787
+MS1+MS2+MS1: Total process+classify requests time in ms:  27.089
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4757
+MS1+MS2+MS1: Total process+classify requests time in ms:  25.189
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5347
+MS1+MS2+MS1: Total process+classify requests time in ms:  47.169000000000004
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  8775
+MS1+MS2+MS1: Total process+classify requests time in ms:  50.795
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  11601
+MS1+MS2+MS1: Total process+classify requests time in ms:  53.897
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  7782
+MS1+MS2+MS1: Total process+classify requests time in ms:  48.861000000000004
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9676
+MS1+MS2+MS1: Total process+classify requests time in ms:  49.783
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9580
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.382999999999996
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10149
+MS1+MS2+MS1: Total process+classify requests time in ms:  53.295
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4686
+MS1+MS2+MS1: Total process+classify requests time in ms:  24.444
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4689
+MS1+MS2+MS1: Total process+classify requests time in ms:  24.903000000000002
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4818
+MS1+MS2+MS1: Total process+classify requests time in ms:  25.023
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5137
+MS1+MS2+MS1: Total process+classify requests time in ms:  26.262
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  7530
+MS1+MS2+MS1: Total process+classify requests time in ms:  47.619
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10359
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.413000000000004
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9009
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.131
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9042
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.074
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  8551
+MS1+MS2+MS1: Total process+classify requests time in ms:  50.45
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10308
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.369
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10220
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.155
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9632
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.982
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9407
+MS1+MS2+MS1: Total process+classify requests time in ms:  50.821999999999996
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9763
+MS1+MS2+MS1: Total process+classify requests time in ms:  36.138999999999996
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4893
+MS1+MS2+MS1: Total process+classify requests time in ms:  26.083
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5010
+MS1+MS2+MS1: Total process+classify requests time in ms:  25.912000000000003
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5678
+MS1+MS2+MS1: Total process+classify requests time in ms:  26.918999999999997
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  12516
+MS1+MS2+MS1: Total process+classify requests time in ms:  55.407
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9517
+MS1+MS2+MS1: Total process+classify requests time in ms:  50.566
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  7277
+MS1+MS2+MS1: Total process+classify requests time in ms:  47.122
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10589
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.346
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10779
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.106
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  8864
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.016
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10127
+MS1+MS2+MS1: Total process+classify requests time in ms:  53.184000000000005
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5127
+MS1+MS2+MS1: Total process+classify requests time in ms:  43.268
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  8923
+MS1+MS2+MS1: Total process+classify requests time in ms:  48.638
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  8211
+MS1+MS2+MS1: Total process+classify requests time in ms:  48.364999999999995
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10481
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.101
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9689
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.906
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9081
+MS1+MS2+MS1: Total process+classify requests time in ms:  50.767
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10381
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.807
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9888
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.382999999999996
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9985
+MS1+MS2+MS1: Total process+classify requests time in ms:  57.777
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10079
+MS1+MS2+MS1: Total process+classify requests time in ms:  50.842999999999996
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  11087
+MS1+MS2+MS1: Total process+classify requests time in ms:  45.451
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5125
+MS1+MS2+MS1: Total process+classify requests time in ms:  27.046
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4637
+MS1+MS2+MS1: Total process+classify requests time in ms:  24.697
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5440
+MS1+MS2+MS1: Total process+classify requests time in ms:  27.67
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  8917
+MS1+MS2+MS1: Total process+classify requests time in ms:  50.478
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10248
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.900999999999996
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  8412
+MS1+MS2+MS1: Total process+classify requests time in ms:  50.292
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10361
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.414
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10214
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.646
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10043
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.876
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9881
+MS1+MS2+MS1: Total process+classify requests time in ms:  50.496
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  11268
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.607
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  21888
+MS1+MS2+MS1: Total process+classify requests time in ms:  195.625
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  13860
+MS1+MS2+MS1: Total process+classify requests time in ms:  57.647999999999996
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  15769
+MS1+MS2+MS1: Total process+classify requests time in ms:  45.701
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  7776
+MS1+MS2+MS1: Total process+classify requests time in ms:  38.816
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  12798
+MS1+MS2+MS1: Total process+classify requests time in ms:  60.373000000000005
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  7759
+MS1+MS2+MS1: Total process+classify requests time in ms:  36.096000000000004
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  6671
+MS1+MS2+MS1: Total process+classify requests time in ms:  35.603
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  6161
+MS1+MS2+MS1: Total process+classify requests time in ms:  31.731
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  6332
+MS1+MS2+MS1: Total process+classify requests time in ms:  30.602
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5450
+MS1+MS2+MS1: Total process+classify requests time in ms:  31.111
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10585
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.187999999999995
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10455
+MS1+MS2+MS1: Total process+classify requests time in ms:  50.769
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  6549
+MS1+MS2+MS1: Total process+classify requests time in ms:  43.437000000000005
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9220
+MS1+MS2+MS1: Total process+classify requests time in ms:  57.705
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10041
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.971000000000004
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10307
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.949000000000005
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9863
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.137
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9303
+MS1+MS2+MS1: Total process+classify requests time in ms:  40.983
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4926
+MS1+MS2+MS1: Total process+classify requests time in ms:  27.542
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4869
+MS1+MS2+MS1: Total process+classify requests time in ms:  25.0
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4886
+MS1+MS2+MS1: Total process+classify requests time in ms:  24.98
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4687
+MS1+MS2+MS1: Total process+classify requests time in ms:  24.622999999999998
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4823
+MS1+MS2+MS1: Total process+classify requests time in ms:  25.520999999999997
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  8215
+MS1+MS2+MS1: Total process+classify requests time in ms:  49.577000000000005
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9985
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.019999999999996
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10559
+MS1+MS2+MS1: Total process+classify requests time in ms:  53.184000000000005
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  6119
+MS1+MS2+MS1: Total process+classify requests time in ms:  32.493
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4813
+MS1+MS2+MS1: Total process+classify requests time in ms:  24.861
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4784
+MS1+MS2+MS1: Total process+classify requests time in ms:  26.056
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5287
+MS1+MS2+MS1: Total process+classify requests time in ms:  26.206
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4858
+MS1+MS2+MS1: Total process+classify requests time in ms:  24.638
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10389
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.109
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10037
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.227000000000004
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  7679
+MS1+MS2+MS1: Total process+classify requests time in ms:  50.992999999999995
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9595
+MS1+MS2+MS1: Total process+classify requests time in ms:  50.467999999999996
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10304
+MS1+MS2+MS1: Total process+classify requests time in ms:  54.184999999999995
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10373
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.61
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  11018
+MS1+MS2+MS1: Total process+classify requests time in ms:  54.894999999999996
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  8210
+MS1+MS2+MS1: Total process+classify requests time in ms:  44.775000000000006
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4799
+MS1+MS2+MS1: Total process+classify requests time in ms:  24.674000000000003
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4733
+MS1+MS2+MS1: Total process+classify requests time in ms:  24.999
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4931
+MS1+MS2+MS1: Total process+classify requests time in ms:  25.478
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4843
+MS1+MS2+MS1: Total process+classify requests time in ms:  26.229
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5035
+MS1+MS2+MS1: Total process+classify requests time in ms:  26.433999999999997
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  11223
+MS1+MS2+MS1: Total process+classify requests time in ms:  47.629
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10622
+MS1+MS2+MS1: Total process+classify requests time in ms:  56.674
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4819
+MS1+MS2+MS1: Total process+classify requests time in ms:  25.823
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5474
+MS1+MS2+MS1: Total process+classify requests time in ms:  27.016
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4885
+MS1+MS2+MS1: Total process+classify requests time in ms:  24.643
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9800
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.336
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10045
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.498000000000005
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9439
+MS1+MS2+MS1: Total process+classify requests time in ms:  48.75
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10028
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.711
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9098
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.863
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10361
+MS1+MS2+MS1: Total process+classify requests time in ms:  54.142
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10988
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.815
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9556
+MS1+MS2+MS1: Total process+classify requests time in ms:  50.715
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  7785
+MS1+MS2+MS1: Total process+classify requests time in ms:  48.317
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9629
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.06
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4822
+MS1+MS2+MS1: Total process+classify requests time in ms:  24.54
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4711
+MS1+MS2+MS1: Total process+classify requests time in ms:  24.69
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4724
+MS1+MS2+MS1: Total process+classify requests time in ms:  24.675
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10458
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.301
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9833
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.134
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9424
+MS1+MS2+MS1: Total process+classify requests time in ms:  49.775
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10134
+MS1+MS2+MS1: Total process+classify requests time in ms:  54.436
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4556
+MS1+MS2+MS1: Total process+classify requests time in ms:  25.46
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5232
+MS1+MS2+MS1: Total process+classify requests time in ms:  26.056
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  7938
+MS1+MS2+MS1: Total process+classify requests time in ms:  46.632
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10282
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.206
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  8656
+MS1+MS2+MS1: Total process+classify requests time in ms:  50.116
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9746
+MS1+MS2+MS1: Total process+classify requests time in ms:  54.224000000000004
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10915
+MS1+MS2+MS1: Total process+classify requests time in ms:  55.58
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9384
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.549
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  15956
+MS1+MS2+MS1: Total process+classify requests time in ms:  58.437999999999995
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9543
+MS1+MS2+MS1: Total process+classify requests time in ms:  50.972
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  8836
+MS1+MS2+MS1: Total process+classify requests time in ms:  49.237
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10204
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.89
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4720
+MS1+MS2+MS1: Total process+classify requests time in ms:  24.848
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4791
+MS1+MS2+MS1: Total process+classify requests time in ms:  26.22
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4840
+MS1+MS2+MS1: Total process+classify requests time in ms:  25.303
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5121
+MS1+MS2+MS1: Total process+classify requests time in ms:  26.585
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9162
+MS1+MS2+MS1: Total process+classify requests time in ms:  45.824
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9578
+MS1+MS2+MS1: Total process+classify requests time in ms:  50.435
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9650
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.878
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9777
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.402
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9645
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.882999999999996
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9476
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.082
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9444
+MS1+MS2+MS1: Total process+classify requests time in ms:  57.315
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10280
+MS1+MS2+MS1: Total process+classify requests time in ms:  49.817
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  8695
+MS1+MS2+MS1: Total process+classify requests time in ms:  50.178
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10026
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.007
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10097
+MS1+MS2+MS1: Total process+classify requests time in ms:  50.755
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4642
+MS1+MS2+MS1: Total process+classify requests time in ms:  24.688000000000002
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4930
+MS1+MS2+MS1: Total process+classify requests time in ms:  25.343999999999998
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9802
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.757999999999996
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9997
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.905
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9385
+MS1+MS2+MS1: Total process+classify requests time in ms:  50.236999999999995
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9910
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.713
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10818
+MS1+MS2+MS1: Total process+classify requests time in ms:  53.035
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9240
+MS1+MS2+MS1: Total process+classify requests time in ms:  54.385000000000005
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  7943
+MS1+MS2+MS1: Total process+classify requests time in ms:  49.774
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10094
+MS1+MS2+MS1: Total process+classify requests time in ms:  55.922
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10006
+MS1+MS2+MS1: Total process+classify requests time in ms:  65.734
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10562
+MS1+MS2+MS1: Total process+classify requests time in ms:  50.811
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4751
+MS1+MS2+MS1: Total process+classify requests time in ms:  24.367
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4949
+MS1+MS2+MS1: Total process+classify requests time in ms:  26.359
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4832
+MS1+MS2+MS1: Total process+classify requests time in ms:  25.072
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5360
+MS1+MS2+MS1: Total process+classify requests time in ms:  26.128999999999998
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  12739
+MS1+MS2+MS1: Total process+classify requests time in ms:  54.212999999999994
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9059
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.431
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  8541
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.73500000000001
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9850
+MS1+MS2+MS1: Total process+classify requests time in ms:  50.213
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9269
+MS1+MS2+MS1: Total process+classify requests time in ms:  47.442
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9718
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.87
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9204
+MS1+MS2+MS1: Total process+classify requests time in ms:  55.363
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  12975
+MS1+MS2+MS1: Total process+classify requests time in ms:  56.539
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10620
+MS1+MS2+MS1: Total process+classify requests time in ms:  55.186
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  8409
+MS1+MS2+MS1: Total process+classify requests time in ms:  49.842999999999996
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5007
+MS1+MS2+MS1: Total process+classify requests time in ms:  27.559
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4771
+MS1+MS2+MS1: Total process+classify requests time in ms:  25.500999999999998
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4951
+MS1+MS2+MS1: Total process+classify requests time in ms:  26.288
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4909
+MS1+MS2+MS1: Total process+classify requests time in ms:  26.113
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  6702
+MS1+MS2+MS1: Total process+classify requests time in ms:  54.205000000000005
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9435
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.661
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  12060
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.511
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9011
+MS1+MS2+MS1: Total process+classify requests time in ms:  50.476
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  8036
+MS1+MS2+MS1: Total process+classify requests time in ms:  48.476
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10233
+MS1+MS2+MS1: Total process+classify requests time in ms:  53.102999999999994
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9795
+MS1+MS2+MS1: Total process+classify requests time in ms:  53.006
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10783
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.867000000000004
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9951
+MS1+MS2+MS1: Total process+classify requests time in ms:  54.382
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5049
+MS1+MS2+MS1: Total process+classify requests time in ms:  26.861
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4690
+MS1+MS2+MS1: Total process+classify requests time in ms:  24.549000000000003
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5055
+MS1+MS2+MS1: Total process+classify requests time in ms:  27.031
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4731
+MS1+MS2+MS1: Total process+classify requests time in ms:  24.724
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4839
+MS1+MS2+MS1: Total process+classify requests time in ms:  27.512999999999998
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  8406
+MS1+MS2+MS1: Total process+classify requests time in ms:  49.073
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9588
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.841
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9038
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.394999999999996
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10251
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.81
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10434
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.63
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  7891
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.624
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9805
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.876
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  6170
+MS1+MS2+MS1: Total process+classify requests time in ms:  27.488
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5427
+MS1+MS2+MS1: Total process+classify requests time in ms:  25.935
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4846
+MS1+MS2+MS1: Total process+classify requests time in ms:  24.639000000000003
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4776
+MS1+MS2+MS1: Total process+classify requests time in ms:  25.105
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4797
+MS1+MS2+MS1: Total process+classify requests time in ms:  25.087000000000003
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4658
+MS1+MS2+MS1: Total process+classify requests time in ms:  24.801
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10326
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.436
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10691
+MS1+MS2+MS1: Total process+classify requests time in ms:  57.974
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10191
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.211
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9881
+MS1+MS2+MS1: Total process+classify requests time in ms:  60.297999999999995
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9049
+MS1+MS2+MS1: Total process+classify requests time in ms:  50.945
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9541
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.852999999999994
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9634
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.302
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9895
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.943000000000005
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  8506
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.457
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4848
+MS1+MS2+MS1: Total process+classify requests time in ms:  24.989
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5130
+MS1+MS2+MS1: Total process+classify requests time in ms:  29.552
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10449
+MS1+MS2+MS1: Total process+classify requests time in ms:  53.32
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9673
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.479
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9940
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.723
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9908
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.849
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4736
+MS1+MS2+MS1: Total process+classify requests time in ms:  24.76
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5112
+MS1+MS2+MS1: Total process+classify requests time in ms:  26.241
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4851
+MS1+MS2+MS1: Total process+classify requests time in ms:  24.912
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4717
+MS1+MS2+MS1: Total process+classify requests time in ms:  24.613
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9971
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.464999999999996
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10505
+MS1+MS2+MS1: Total process+classify requests time in ms:  49.165
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9841
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.359
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  14054
+MS1+MS2+MS1: Total process+classify requests time in ms:  64.643
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9759
+MS1+MS2+MS1: Total process+classify requests time in ms:  50.954
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9698
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.599
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  8658
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.353
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10701
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.234
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9837
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.212
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10597
+MS1+MS2+MS1: Total process+classify requests time in ms:  54.986
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10308
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.047000000000004
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10549
+MS1+MS2+MS1: Total process+classify requests time in ms:  40.641999999999996
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5076
+MS1+MS2+MS1: Total process+classify requests time in ms:  25.057
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5621
+MS1+MS2+MS1: Total process+classify requests time in ms:  25.703
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4933
+MS1+MS2+MS1: Total process+classify requests time in ms:  26.493
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5051
+MS1+MS2+MS1: Total process+classify requests time in ms:  26.803
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5447
+MS1+MS2+MS1: Total process+classify requests time in ms:  28.174999999999997
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5027
+MS1+MS2+MS1: Total process+classify requests time in ms:  28.127
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  7941
+MS1+MS2+MS1: Total process+classify requests time in ms:  45.987
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10022
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.835
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9952
+MS1+MS2+MS1: Total process+classify requests time in ms:  53.903
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10526
+MS1+MS2+MS1: Total process+classify requests time in ms:  50.927
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  7844
+MS1+MS2+MS1: Total process+classify requests time in ms:  54.029
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9830
+MS1+MS2+MS1: Total process+classify requests time in ms:  54.596
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10367
+MS1+MS2+MS1: Total process+classify requests time in ms:  54.372
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9209
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.742
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10113
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.571
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5837
+MS1+MS2+MS1: Total process+classify requests time in ms:  27.827
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4982
+MS1+MS2+MS1: Total process+classify requests time in ms:  26.201999999999998
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4615
+MS1+MS2+MS1: Total process+classify requests time in ms:  25.476
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4760
+MS1+MS2+MS1: Total process+classify requests time in ms:  24.754
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4804
+MS1+MS2+MS1: Total process+classify requests time in ms:  25.857000000000003
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  5172
+MS1+MS2+MS1: Total process+classify requests time in ms:  24.951
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9713
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.86000000000001
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9738
+MS1+MS2+MS1: Total process+classify requests time in ms:  50.797000000000004
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9606
+MS1+MS2+MS1: Total process+classify requests time in ms:  49.475
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  7471
+MS1+MS2+MS1: Total process+classify requests time in ms:  46.14
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10146
+MS1+MS2+MS1: Total process+classify requests time in ms:  50.208000000000006
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9099
+MS1+MS2+MS1: Total process+classify requests time in ms:  50.89
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9533
+MS1+MS2+MS1: Total process+classify requests time in ms:  52.302
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10140
+MS1+MS2+MS1: Total process+classify requests time in ms:  53.714
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9624
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.594
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  11880
+MS1+MS2+MS1: Total process+classify requests time in ms:  41.296
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4688
+MS1+MS2+MS1: Total process+classify requests time in ms:  26.919999999999998
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4618
+MS1+MS2+MS1: Total process+classify requests time in ms:  24.558
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4769
+MS1+MS2+MS1: Total process+classify requests time in ms:  25.821
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  4680
+MS1+MS2+MS1: Total process+classify requests time in ms:  25.107
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9465
+MS1+MS2+MS1: Total process+classify requests time in ms:  51.876
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9254
+MS1+MS2+MS1: Total process+classify requests time in ms:  47.659
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  9540
+MS1+MS2+MS1: Total process+classify requests time in ms:  50.632000000000005
+MS1: Image Resize + Normalize + Convert into a flat array time in microseconds:  10780
+MS1+MS2+MS1: Total process+classify requests time in ms:  89.82900000000001
