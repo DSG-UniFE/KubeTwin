@@ -20,7 +20,10 @@ module KUBETWIN
     # generate the next request
     def generate(current_time)
 
-      generation_time = current_time + @rg_rv.next
+      #while (nr = @rg_rv.next) <= 1E-2; end
+      rs = Array.new(1000) { @rg_rv.next }
+      nr = rs.sum() / rs.length
+      generation_time = current_time + nr
       workflow_type_id = @w_rv.rand(1..@workflow_types)
       customer_id = @c_rv.rand(1..@num_customers)
 

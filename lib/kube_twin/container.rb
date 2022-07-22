@@ -50,25 +50,6 @@ module KUBETWIN
       # node info
       @node = opts[:node]
 
-
-
-      # retrieving image info here
-      # @service_n_cycles = image_info[:service_n_cycles]
-
-      # we do no longer have image info here, just the
-      # service time distribution
-      # snd = image_info[:service_time_distribution]
-      # snd = st_distribution
-=begin
-      @service_time = if st_distribution[:seed]
-                            orig_std_conf = snd
-                            std_conf = orig_std_conf.dup
-                            std_conf[:args] = orig_std_conf[:args].merge(seed: opts[:seed])
-                            ERV::RandomVariable.new(std_conf)
-                          else
-                            ERV::RandomVariable.new(st_distribution)
-      end
-=end
       # seed should alreay be here
       @service_time = ERV::RandomVariable.new(st_distribution)
       @busy           = false
@@ -100,7 +81,7 @@ module KUBETWIN
       r.arrival_at_container = time
       while (st = @service_time.next) <= 1E-6; end
       # add concurrent execution
-      pod_executing = @node.pod_id_list.length
+      #pod_executing = @node.pod_id_list.length
       #st *= Math::log(pod_executing) if pod_executing > 2
       
       ri = RequestInfo.new(r, st, time)
@@ -111,6 +92,8 @@ module KUBETWIN
           raise 'Inconsistent ordering in request_queue!' if y[1] < x[1]
         end
       end
+
+      puts "#{containerId} #{@request_queue.length} #{st}}" if @request_queue.length > 1
 
       try_servicing_new_request(sim, time) unless @busy
     end
