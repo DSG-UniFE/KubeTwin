@@ -31,10 +31,10 @@ module KUBETWIN
       @evaluator     = opts[:evaluator]
       @benchmark = File.open("requests_log_#{Time.now.to_i}.csv", 'w')
       @benchmark << "rid,ttr\n"
-      @benchmark_ms1 = File.open("ms1_log_#{Time.now.to_i}.csv", 'w')
-      @benchmark_ms1 << "rid,ttr\n"
-      @benchmark_ms2 = File.open("ms2_log_#{Time.now.to_i}.csv", 'w')
-      @benchmark_ms2 << "rid,ttr\n"
+      #@benchmark_ms1 = File.open("ms1_log_#{Time.now.to_i}.csv", 'w')
+      #@benchmark_ms1 << "rid,ttr\n"
+      #@benchmark_ms2 = File.open("ms2_log_#{Time.now.to_i}.csv", 'w')
+      #@benchmark_ms2 << "rid,ttr\n"
     end
 
 
@@ -416,13 +416,6 @@ module KUBETWIN
             component_name = workflow[:component_sequence][req.worked_step][:name]
             per_component_stats[component_name].record_request(req, now)
 
-            if component_name == "MS1"
-              @benchmark_ms1 << "#{req.rid},#{req.ttr_step(@current_time)}\n"
-            else
-              @benchmark_ms2 << "#{req.rid},#{req.ttr_step(@current_time)}\n"
-            end
-
-
             # check if there are other steps left to complete the workflow
             if req.next_step < workflow[:component_sequence].size
 
@@ -712,7 +705,10 @@ module KUBETWIN
         per_workflow_and_customer_stats[1][1].shorter_than.each_key do |t|
           puts "#{(per_workflow_and_customer_stats[1][1].shorter_than[t] / per_workflow_and_customer_stats[1][1].closed.to_f) * 100}% #{t}s"
         end
-      -stats.mean
+      #-stats.mean
+      file_name = @benchmark.path
+      @benchmark.close
+      File.expand_path(file_name)
     end
   end
 end

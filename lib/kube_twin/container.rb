@@ -93,7 +93,7 @@ module KUBETWIN
         end
       end
 
-      puts "#{containerId} #{@request_queue.length} #{st}}" if @request_queue.length > 1
+      # puts "#{containerId} #{@request_queue.length} #{st}}" if @request_queue.length > 1
 
       try_servicing_new_request(sim, time) unless @busy
     end
