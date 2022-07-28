@@ -682,6 +682,7 @@ module KUBETWIN
          #puts "Allocation -- #{c.name} Pods: #{pods}"
       end
 
+=begin
      puts "====== Evaluating new allocation ======\n" +
           # "costs: #{costs}\n" +
            "stats: #{stats.to_s}\n" +
@@ -689,6 +690,7 @@ module KUBETWIN
            "component_stats: #{per_component_stats.to_s}\n" +
            "allocation_map: #{allocation_map}\n" +
            "=======================================\n"
+=end
       # debug info here
 
       # we want to minimize the cost, so we define fitness as the opposite of
@@ -701,10 +703,11 @@ module KUBETWIN
       #    per_workflow_and_customer_stats[1][1].closed.to_f
       # puts "Res: #{res}"
       # res
-      puts "Percentage of requests within ms"
-        per_workflow_and_customer_stats[1][1].shorter_than.each_key do |t|
-          puts "#{(per_workflow_and_customer_stats[1][1].shorter_than[t] / per_workflow_and_customer_stats[1][1].closed.to_f) * 100}% #{t}s"
-        end
+
+      #puts "Percentage of requests within ms"
+      #per_workflow_and_customer_stats[1][1].shorter_than.each_key do |t|
+      #  puts "#{(per_workflow_and_customer_stats[1][1].shorter_than[t] / per_workflow_and_customer_stats[1][1].closed.to_f) * 100}% #{t}s"
+      #end
       #-stats.mean
       file_name = @benchmark.path
       @benchmark.close

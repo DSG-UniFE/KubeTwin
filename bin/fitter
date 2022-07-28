@@ -68,9 +68,20 @@ k8s_ttr = k8s_log.by_col[1] # get the ttr column
 microservice_types = sim_conf.microservice_types
 
 def encode_replicas_set(x, n_ms)
-  mean = x[0]
-  sd = x[1]
-  config = { distribution: :gaussian, args: { mean: mean, sd:  sd, seed: 12345} }
+=begin
+  w_0 = x[0]
+  m_0 = x[1]
+  sd_0 = x[2]
+  w_1 = x[3]
+  m_1 = x[4]
+  sd_1 = x[5]
+  w_2 = x[6]
+  m_2 = x[7]
+  sd_2 = x[8]
+=end
+  config = { distribution: :mixture, args: 
+    ERV::GaussianMixtureHelper.RawParametersToMixtureArgs(*x)
+  } 
   return config
 end
 
@@ -107,10 +118,10 @@ solver_conf = {
   swarm_size: 40,
   logger: ga_logger,
   constraints: {
-    min: [ 1E-5.to_f ] * 2, #ndevice * n_sc
-    max: [ 1.to_f ] * 2,
+    min: [ 1E-5.to_f ] * 9,
+    max: [ 1.to_f ] * 9,
   },
-  exit_condition: lambda {|gen, best | gen >= 20 },
+  exit_condition: lambda {|gen, best | gen >= 50 },
   log_level: :info,
 }
 
