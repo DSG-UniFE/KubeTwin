@@ -107,7 +107,7 @@ solver_conf = {
   swarm_size: 40,
   logger: ga_logger,
   constraints: {
-    min: [ 0.to_f ] * 2, #ndevice * n_sc
+    min: [ 1E-5.to_f ] * 2, #ndevice * n_sc
     max: [ 1.to_f ] * 2,
   },
   exit_condition: lambda {|gen, best | gen >= 20 },
