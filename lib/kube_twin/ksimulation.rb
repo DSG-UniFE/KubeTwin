@@ -339,7 +339,7 @@ module KUBETWIN
             new_event(Event::ET_REQUEST_ARRIVAL, [new_req, pod], arrival_time, nil)
 
             # schedule generation of next request
-            if @current_time > warmup_threshold
+            if @current_time < warmup_threshold
               req_attrs = rg.generate(@current_time)   
               new_event(Event::ET_REQUEST_GENERATION, req_attrs, req_attrs[:generation_time], nil)
             end
