@@ -339,7 +339,7 @@ module KUBETWIN
             new_event(Event::ET_REQUEST_ARRIVAL, [new_req, pod], arrival_time, nil)
 
             # schedule generation of next request
-            if @current_time < cooldown_treshold
+            if @current_time > warmup_threshold
               req_attrs = rg.generate(@current_time)   
               new_event(Event::ET_REQUEST_GENERATION, req_attrs, req_attrs[:generation_time], nil)
             end
@@ -495,6 +495,12 @@ module KUBETWIN
               # collect request statistics in per_workflow_and_customer_stats
               per_workflow_and_customer_stats[req.workflow_type_id][req.customer_id].record_request(req, @current_time)
               @benchmark << "#{req.rid},#{req.ttr(@current_time)}\n"
+            end
+
+            # schedule generation of next request
+            if @current_time < cooldown_treshold
+              req_attrs = rg.generate(@current_time)   
+              new_event(Event::ET_REQUEST_GENERATION, req_attrs, req_attrs[:generation_time], nil)
             end
 
           when Event::ET_HPA_CONTROL
@@ -681,7 +687,7 @@ module KUBETWIN
          allocation_map[c.name] = {tier: c.tier, pods: pods}
          #puts "Allocation -- #{c.name} Pods: #{pods}"
       end
-
+=begin
      puts "====== Evaluating new allocation ======\n" +
           # "costs: #{costs}\n" +
            "stats: #{stats.to_s}\n" +
@@ -690,6 +696,7 @@ module KUBETWIN
            "allocation_map: #{allocation_map}\n" +
            "=======================================\n"
       # debug info here
+=end
 
       # we want to minimize the cost, so we define fitness as the opposite of
       # the sum of all costs incurred
