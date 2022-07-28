@@ -21,8 +21,9 @@ module KUBETWIN
     def generate(current_time)
 
       #while (nr = @rg_rv.next) <= 1E-2; end
-      rs = Array.new(1000) { @rg_rv.next }
-      nr = rs.sum() / rs.length
+      #rs = Array.new(1000) { @rg_rv.next }
+      #nr = rs.sum() / rs.length
+      nr = @rg_rv.next
       generation_time = current_time + nr
       workflow_type_id = @w_rv.rand(1..@workflow_types)
       customer_id = @c_rv.rand(1..@num_customers)
