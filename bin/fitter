@@ -104,7 +104,7 @@ to_optimize = lambda do |component_allocation|
     File.delete(benchmark)
 
     puts "#{ks}, #{res}"
-    res
+    -res
 end
 
 
