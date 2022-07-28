@@ -100,10 +100,10 @@ to_optimize = lambda do |component_allocation|
     sim_ttr = sim_log.by_col[1]
     ks = stats.kstest(sim_ttr, k8s_ttr)
     
-    if ks.statistic > 0
+    if ks.pvalue > 0.to_f
       res = ks.pvalue
     else 
-      res = 0
+      res = -Float::INFINITY
     end
     
     File.delete(benchmark)
