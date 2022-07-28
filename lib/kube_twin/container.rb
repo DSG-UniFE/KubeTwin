@@ -79,7 +79,11 @@ module KUBETWIN
 
       # improve this code in the future
       r.arrival_at_container = time
-      while (st = @service_time.next) <= 1E-6; end
+      
+      # this does not work when optimizing
+      # while (st = @service_time.next) <= 1E-6; end
+      
+      st = @service_time.next
       # add concurrent execution
       #pod_executing = @node.pod_id_list.length
       #st *= Math::log(pod_executing) if pod_executing > 2

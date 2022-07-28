@@ -38,21 +38,12 @@ if File.expand_path(__FILE__) == File.expand_path($0)
     end
 end
 
-=begin
-if File.expand_path(__FILE__) == File.expand_path($1)
-  # make sure both required arguments were given
-  case ARGV.size
-  when 0 then
-    do_abort("Missing dataset from application!")
-  end
-
-  # make sure simulator config file exists
-  unless File.exists? ARGV[1]
-    do_abort("Invalid dataset!")
-  end
+unless File.exists? ARGV[1]
+  do_abort("Invalid dataset log")
 end
-=end
 
+
+# pycall import
 pyfrom :scipy, import: :stats
 
 
@@ -61,19 +52,18 @@ pyfrom :scipy, import: :stats
 $logger = Logger.new(STDOUT)
 $logger.level = Logger::INFO
 time = Time.now.strftime('%Y%m%d%H%M%S')
+
 GA_LOG = "ga_log_oracle_#{time}.log"
 File.delete(GA_LOG) if File.exist?(GA_LOG)
 ga_logger = Logger.new(GA_LOG)
 ga_logger.level = Logger::INFO
 
 sim_conf = KUBETWIN::Configuration.load_from_file(ARGV[0])
-
 msc = sim_conf.microservice_types
-$start_time = sim_conf.start_time
 
-
+# open the log only once
 k8s_log = CSV.parse(File.read(ARGV[1]), headers: true)
-k8s_ttr = k8s_log.by_col[1]
+k8s_ttr = k8s_log.by_col[1] # get the ttr column
 
 microservice_types = sim_conf.microservice_types
 
