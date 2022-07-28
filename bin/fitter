@@ -69,12 +69,13 @@ microservice_types = sim_conf.microservice_types
 
 def encode_replicas_set(x, n_ms)
   w_3 = 1 - x[0] - x[3]
-  x.insert(6, w_3)
-  puts "#{x}"
+  y = x.clone
+  y.insert(6, w_3)
+  puts "#{y}"
 
   return nil if w_3 < 0 # reject negative probabilities  
   config = { distribution: :mixture, args: 
-    ERV::GaussianMixtureHelper.RawParametersToMixtureArgs(*x)
+    ERV::GaussianMixtureHelper.RawParametersToMixtureArgs(*y)
   }
 
   return config
@@ -91,7 +92,6 @@ to_optimize = lambda do |component_allocation|
     processing_time = encode_replicas_set(component_allocation, msc.keys.length)
     
     if processing_time.nil?
-
       res = 1E-195
     else
       microservice_types['MS1'][:service_time_distribution][:mec] = processing_time
@@ -104,11 +104,10 @@ to_optimize = lambda do |component_allocation|
       sim_ttr = sim_log.by_col[1]
       ks = stats.kstest(sim_ttr, k8s_ttr)
       File.delete(benchmark)
+      res = ks.pvalue.to_f 
       puts "#{ks}, #{res}"
     end
 
-
-    res = ks.pvalue.to_f unless res == 1E-195
 
     puts "#{res}"
     res
