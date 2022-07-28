@@ -68,17 +68,10 @@ k8s_ttr = k8s_log.by_col[1] # get the ttr column
 microservice_types = sim_conf.microservice_types
 
 def encode_replicas_set(x, n_ms)
-=begin
-  w_0 = x[0]
-  m_0 = x[1]
-  sd_0 = x[2]
-  w_1 = x[3]
-  m_1 = x[4]
-  sd_1 = x[5]
-  w_2 = x[6]
-  m_2 = x[7]
-  sd_2 = x[8]
-=end
+  w_3 = 1 - x[0] - x[3]
+  x.insert(6, w_3)
+  puts "#{x}"
+  return nil if w_3 < 0 # reject negative probabilities  
   config = { distribution: :mixture, args: 
     ERV::GaussianMixtureHelper.RawParametersToMixtureArgs(*x)
   } 
@@ -91,6 +84,7 @@ to_optimize = lambda do |component_allocation|
     conf = KUBETWIN::Configuration.load_from_file(ARGV[0])
     msc = sim_conf.microservice_types
     processing_time = encode_replicas_set(component_allocation, msc.keys.length)
+    return -Float::INFINITY if processing_time.nil?
     microservice_types['MS1'][:service_time_distribution][:mec] = processing_time
     # create a simulator and launch it
     $logger.debug component_allocation
@@ -118,8 +112,8 @@ solver_conf = {
   swarm_size: 40,
   logger: ga_logger,
   constraints: {
-    min: [ 1E-5.to_f ] * 9,
-    max: [ 1.to_f ] * 9,
+    min: [0.0, 1E-5, 1E-5, 0.0, 1E-5, 1E-5, 1E-5, 1E-5],
+    max: [ 1.to_f ] * 8,
   },
   exit_condition: lambda {|gen, best | gen >= 50 },
   log_level: :info,
