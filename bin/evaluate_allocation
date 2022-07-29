@@ -88,13 +88,12 @@ else
   sim_log = CSV.parse(File.read(benchmark), headers: true)
   sim_ttr = sim_log.by_col[1]
   if sim_ttr.length < (k8s_ttr.length / 2)
-    res = 1E+195
     puts "Not enough requests"
   else
     ks = stats.kstest(sim_ttr, k8s_ttr)
     res = ks.statistic.to_f 
     puts "#{ks}, #{res}"
-    puts "Sim: requests: #{k8s_ttr.length}}"
+    puts "Sim: requests: #{sim_ttr.length}}"
   end
 end
 
