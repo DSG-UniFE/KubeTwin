@@ -67,6 +67,8 @@ k8s_ttr = k8s_log.by_col[1] # get the ttr column
 
 microservice_types = sim_conf.microservice_types
 
+$seed = 12345
+
 def encode_replicas_set(x, n_ms)
   w_3 = 1 - x[0] - x[3]
   y = x.clone
@@ -75,7 +77,7 @@ def encode_replicas_set(x, n_ms)
 
   return nil if w_3 < 0 # reject negative probabilities  
   config = { distribution: :mixture, args: 
-    ERV::GaussianMixtureHelper.RawParametersToMixtureArgs(*y)
+    ERV::GaussianMixtureHelper.RawParametersToMixtureArgsSeed(*y, $seed)
   }
 
   return config

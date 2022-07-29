@@ -15,6 +15,12 @@ module ERV
         { distribution: :gaussian, weight: a * c, args: { mean: b, sd: c } }
       end
     end
+    def self.RawParametersToMixtureArgsSeed(*args, seed)
+      raise ArgumentError, "Arguments must be a multiple of 3!" if (args.count % 3) != 0
+      args.each_slice(3).map do |(a,b,c)|
+        { distribution: :gaussian, weight: a * c, args: { mean: b, sd: c, seed: seed} }
+      end
+    end
   end
 end
 
