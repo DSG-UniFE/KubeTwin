@@ -127,7 +127,7 @@ solver_conf = {
     min: [0.0, 1E-5, 1E-5, 0.0, 1E-5, 1E-5, 0.0, 1E-5, 1E-5, 1E-5, 1E-5],
     max: [ 1.to_f ] * 11,
   },
-  exit_condition: lambda {|gen, best | gen > 500 },
+  exit_condition: lambda {|gen, best | gen >= 500 },
   log_level: :info,
 }
 
