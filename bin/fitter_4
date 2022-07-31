@@ -70,12 +70,12 @@ microservice_types = sim_conf.microservice_types
 $seed = 12345
 
 def encode_replicas_set(x, n_ms)
-  w_3 = 1 - x[0] - x[3]
+  w_4 = 1 - x[0] - x[3] - x[6]
   y = x.clone
-  y.insert(6, w_3)
+  y.insert(9, w_4)
   #puts "#{y}"
 
-  return nil if w_3 < 0 # reject negative probabilities  
+  return nil if w_4 < 0 # reject negative probabilities  
   config = { distribution: :mixture, args: 
     ERV::GaussianMixtureHelper.RawParametersToMixtureArgsSeed(*y, $seed)
   }
@@ -124,10 +124,10 @@ solver_conf = {
   swarm_size: 40,
   logger: ga_logger,
   constraints: {
-    min: [0.0, 1E-5, 1E-5, 0.0, 1E-5, 1E-5, 1E-5, 1E-5],
-    max: [ 1.to_f ] * 8,
+    min: [0.0, 1E-5, 1E-5, 0.0, 1E-5, 1E-5, 0.0, 1E-5, 1E-5, 1E-5, 1E-5],
+    max: [ 1.to_f ] * 11,
   },
-  exit_condition: lambda {|gen, best | gen > 250 },
+  exit_condition: lambda {|gen, best | gen > 500 },
   log_level: :info,
 }
 
