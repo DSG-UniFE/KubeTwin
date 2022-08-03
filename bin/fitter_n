@@ -136,7 +136,7 @@ solver_conf = {
     min: [0.0, 1E-5, 1E-5] * ($n-1) + [1E-5, 1E-5],
     max: [ 1.to_f ] * $params,
   },
-  exit_condition: lambda {|gen, best | gen > 10 },
+  exit_condition: lambda {|gen, best | gen >= 500 },
   log_level: :info,
 }
 
