@@ -96,7 +96,6 @@ def encode_replicas_set(x, n_ms)
   return config
 end
 
-
 to_optimize = lambda do |component_allocation|
 
     res = 0
@@ -126,11 +125,9 @@ to_optimize = lambda do |component_allocation|
       File.delete(benchmark)
     end
 
-
     puts "#{res}"
     -res
 end
-
 
 solver_conf = {
   swarm_size: 40,
@@ -139,7 +136,7 @@ solver_conf = {
     min: [0.0, 1E-5, 1E-5] * ($n-1) + [1E-5, 1E-5],
     max: [ 1.to_f ] * $params,
   },
-  exit_condition: lambda {|gen, best | gen >= 500 },
+  exit_condition: lambda {|gen, best | gen > 10 },
   log_level: :info,
 }
 
@@ -147,6 +144,40 @@ solver = MHL::QuantumPSOSolver.new(solver_conf)
 best = solver.solve(to_optimize, {concurrent: false})
 
 puts best
+
+# TODO remove code repetition
+bench = lambda do |component_allocation|
+
+  res = 0
+  # load simulation configuration
+  conf = KUBETWIN::Configuration.load_from_file(ARGV[0])
+  msc = sim_conf.microservice_types
+  processing_time = encode_replicas_set(component_allocation, msc.keys.length)
+
+  microservice_types['MS1'][:service_time_distribution][:mec] = processing_time
+ 
+  # create a simulator and launch it
+  sim = KUBETWIN::KSimulation.new(configuration: conf,
+                              evaluator: KUBETWIN::Evaluator.new(conf))
+ 
+  benchmark = sim.evaluate_allocation(nil, nil, microservice_types)
+  sim_log = CSV.parse(File.read(benchmark), headers: true)
+  sim_ttr = sim_log.by_col[1]
+ 
+  if sim_ttr.length < (k8s_ttr.length / 2)
+    res = 1E+195
+  else
+    ks = stats.kstest(sim_ttr, k8s_ttr)
+    res = ks.statistic.to_f 
+    puts "#{ks}, #{res}"
+  end
+  puts "#{res}"
+  -res
+end
+
+puts "Saving simulation benchmark for best configuration"
+
+bench.call(best[:position])
 
 puts "exiting"
 exit 0
