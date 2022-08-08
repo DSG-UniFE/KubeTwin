@@ -50,7 +50,7 @@ $n = ARGV[2].to_i
 
 raise "GMM components should be greater than 3" if $n < 3
 
-$params = $n * 3 -1 # weight mu sigma for each component
+$params = $n * 3 - 1 # weight mu sigma for each component
 # - 1 --> array indexes start from 0
 
 puts "n #{$n} params #{$params}"
@@ -75,25 +75,62 @@ msc = sim_conf.microservice_types
 k8s_log = CSV.parse(File.read(ARGV[1]), headers: true)
 k8s_ttr = k8s_log.by_col[1] # get the ttr column
 
-microservice_types = sim_conf.microservice_types
+$microservice_types = sim_conf.microservice_types
+$n_ms = $microservice_types.length
+
+puts "Number of microservices #{$n_ms}"
 
 $seed = 12345
 
 def encode_replicas_set(x, n_ms)
 
-  w_last = 1
-  (0..($params-3)).select {|pi| % 3 == 0}.each do |p| 
-    w_last -= x[p]
+  # for each micro-servce
+  config = {}
+
+  #puts "x:#{x}"
+
+  x.each_slice($params).to_a.each_with_index do |ms, msi|
+
+    #puts "Microservice: #{msi}"
+    #puts "Microservice: #{ms}"
+    
+    #msi_istart = msi
+    #msi_iend = msi * $params - $n # n is the number of component for the GMM
+
+    # [0.15, 15, 30, 0.35, 20, 22, 30, 15] # n = 3 components
+    # weights = 0.15, 0.35 
+
+    # get last weight parameter
+
+    w_last = 1
+    (0..($params - 3)).select {|pi| pi % 3 == 0}.each do |p| 
+      #puts "#{ms[p]}"
+      w_last -= ms[p]
+    end
+
+    # puts "w_last #{w_last}"
+
+    return nil if w_last < 0 # reject negative probabilities  
+
+
+    #puts "ms gmm parameters: #{ms}"
+
+    y = ms.clone
+    y.insert($params - 3, w_last)
+
+    #puts "y gmm parameters: #{y}"
+
+    #puts $microservice_types
+    microservice_name = $microservice_types.keys[msi]
+    #puts "msn #{microservice_name}"
+    config[microservice_name] = { distribution: :mixture, args: 
+      ERV::GaussianMixtureHelper.RawParametersToMixtureArgsSeed(*y, $seed)
+    }
+    
+    #puts config
   end
-  y = x.clone
-  y.insert($params - 3, w_last)
 
-  return nil if w_last < 0 # reject negative probabilities  
-  config = { distribution: :mixture, args: 
-    ERV::GaussianMixtureHelper.RawParametersToMixtureArgsSeed(*y, $seed)
-  }
-
-  return config
+  config
 end
 
 to_optimize = lambda do |component_allocation|
@@ -108,11 +145,19 @@ to_optimize = lambda do |component_allocation|
     if processing_time.nil?
       res = 1E+195
     else
-      microservice_types['MS1'][:service_time_distribution][:mec] = processing_time
-      # create a simulator and launch it
+
+      processing_time.each do |ms_name, ms_time_dist|
+        # puts msc
+        msc[ms_name][:service_time_distribution][:mec] = ms_time_dist
+        # create a simulator and launch it
+      end
+
       sim = KUBETWIN::KSimulation.new(configuration: conf,
                                   evaluator: KUBETWIN::Evaluator.new(conf))
-      benchmark = sim.evaluate_allocation(nil, nil, microservice_types)
+      benchmark = sim.evaluate_allocation(nil, nil, msc)
+
+      # evaluate bench here
+
       sim_log = CSV.parse(File.read(benchmark), headers: true)
       sim_ttr = sim_log.by_col[1]
       if sim_ttr.length < (k8s_ttr.length / 2)
@@ -133,10 +178,10 @@ solver_conf = {
   swarm_size: 40,
   logger: ga_logger,
   constraints: {
-    min: [0.0, 1E-5, 1E-5] * ($n-1) + [1E-5, 1E-5],
-    max: [ 1.to_f ] * $params,
+    min: ([0.0, 1E-5, 1E-5] * ($n-1) + [1E-5, 1E-5]) * $n_ms,
+    max: ([ 1.to_f ] * $params) * $n_ms,
   },
-  exit_condition: lambda {|gen, best | gen >= 500 },
+  exit_condition: lambda {|gen, best | gen >= 1 },
   log_level: :info,
 }
 
@@ -145,6 +190,7 @@ best = solver.solve(to_optimize, {concurrent: false})
 
 puts best
 
+=begin
 # TODO remove code repetition
 bench = lambda do |component_allocation|
 
@@ -178,6 +224,7 @@ end
 puts "Saving simulation benchmark for best configuration"
 
 bench.call(best[:position])
+=end
 
 puts "exiting"
 exit 0
