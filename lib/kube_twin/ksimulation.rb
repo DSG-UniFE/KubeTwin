@@ -418,7 +418,7 @@ module KUBETWIN
 
             if component_name == "MS1"
               @benchmark_ms1 << "#{req.rid},#{req.ttr_step(@current_time)}\n"
-            else
+            elsif component_name == "MS2"
               @benchmark_ms2 << "#{req.rid},#{req.ttr_step(@current_time)}\n"
             end
 
