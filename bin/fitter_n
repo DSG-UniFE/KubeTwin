@@ -107,7 +107,7 @@ def encode_replicas_set(x, n_ms)
   x.each_slice($params).to_a.each_with_index do |ms, msi|
 
     #puts "Microservice: #{msi}"
-    #puts "Microservice: #{ms}"
+    puts "Microservice: #{ms}"
     
     #msi_istart = msi
     #msi_iend = msi * $params - $n # n is the number of component for the GMM
@@ -123,7 +123,7 @@ def encode_replicas_set(x, n_ms)
       w_last -= ms[p]
     end
 
-    #puts "w_last #{w_last}"
+    puts "w_last #{w_last}"
 
     #w_last = 0 if w_last < 0 # reject negative probabilities  
     return nil if w_last < 0
@@ -132,9 +132,11 @@ def encode_replicas_set(x, n_ms)
     #puts "ms gmm parameters: #{ms}"
 
     y = ms.clone
-    y.insert($params - 3, w_last)
+    y.insert($params - 2, w_last)
 
-    #puts "y gmm parameters: #{y}"
+    puts "y gmm parameters: #{y}"
+
+    
 
     #puts $microservice_types
     microservice_name = $microservice_types.keys[msi]
@@ -143,9 +145,10 @@ def encode_replicas_set(x, n_ms)
       ERV::GaussianMixtureHelper.RawParametersToMixtureArgsSeed(*y, $seed)
     }
     
-    # puts config
+     #puts config
   end
-
+  puts config
+  abort
   config
 end
 
@@ -209,7 +212,7 @@ to_optimize = lambda do |component_allocation|
 end
 
 solver_conf = {
-  swarm_size: 40,
+  swarm_size: 60,
   logger: ga_logger,
   constraints: {
     min: ([0.0, 1E-5, 1E-5] * ($n-1) + [1E-5, 1E-5]) * $n_ms,
