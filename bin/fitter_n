@@ -107,7 +107,7 @@ def encode_replicas_set(x, n_ms)
   x.each_slice($params).to_a.each_with_index do |ms, msi|
 
     #puts "Microservice: #{msi}"
-    puts "Microservice: #{ms}"
+    #puts "Microservice: #{ms}"
     
     #msi_istart = msi
     #msi_iend = msi * $params - $n # n is the number of component for the GMM
@@ -123,7 +123,7 @@ def encode_replicas_set(x, n_ms)
       w_last -= ms[p]
     end
 
-    puts "w_last #{w_last}"
+    #puts "w_last #{w_last}"
 
     #w_last = 0 if w_last < 0 # reject negative probabilities  
     return nil if w_last < 0
@@ -134,7 +134,7 @@ def encode_replicas_set(x, n_ms)
     y = ms.clone
     y.insert($params - 2, w_last)
 
-    puts "y gmm parameters: #{y}"
+    #puts "y gmm parameters: #{y}"
 
     
 
@@ -147,8 +147,6 @@ def encode_replicas_set(x, n_ms)
     
      #puts config
   end
-  puts config
-  abort
   config
 end
 
