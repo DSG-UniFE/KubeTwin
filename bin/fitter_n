@@ -194,6 +194,8 @@ to_optimize = lambda do |component_allocation|
         ks_ms1 = stats.kstest(sim_ms1_ttr, ms1_ttr)
         ks_ms2 = stats.kstest(sim_ms2_ttr, ms2_ttr)
 
+        # res = ks_e2e.statistic.to_f
+
         res = 0.33 * ks_e2e.statistic.to_f + 0.33 * ks_ms1.statistic.to_f + 0.33 * ks_ms2.statistic.to_f
 
         #res = 0.33 * ks_ms1.statistic.to_f + 0.33 * ks_ms2.statistic.to_f
@@ -217,7 +219,7 @@ solver_conf = {
     max: ([1.0, 0.20, 0.20] * ($n-1) + [0.20, 0.20]) * $n_ms,
     #max: ([ 1.to_f ] * $params) * $n_ms,
   },
-  exit_condition: lambda {|gen, best | gen >= 500 },
+  exit_condition: lambda {|gen, best | gen >= 1500 },
   log_level: :info,
 }
 

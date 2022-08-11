@@ -5,3 +5,4 @@ gemspec
 
 gem 'pycall'
 gem 'mhl',   path: File.join(File.dirname(__FILE__), '..', 'ruby-mhl')
+gem 'erv',   path: File.join(File.dirname(__FILE__), '..', 'ruby-erv')
