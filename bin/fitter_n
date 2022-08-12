@@ -57,6 +57,7 @@ puts "n #{$n} params #{$params}"
 
 # pycall import
 pyfrom :scipy, import: :stats
+PyCall.import_module("numpy")
 
 # here run the optimizer on the oracle
 # load simulation configuration
@@ -77,13 +78,13 @@ k8s_ttr = k8s_log.by_col[1] # get the ttr column
 
 # ms1 ttr
 k8s_ms1 = CSV.parse(File.read(ARGV[3]), headers: true)
-ms1_ttr = k8s_ms1.by_col[0] # get the ttr column
+ms1_ttr = k8s_ms1.by_col[0].map(&:to_f) # get the ttr column
 puts "MS1: #{ms1_ttr.length} #{ms1_ttr.max} #{ms1_ttr.min}"
 
 
 # ms2 ttr
 k8s_ms2 = CSV.parse(File.read(ARGV[4]), headers: true)
-ms2_ttr = k8s_ms2.by_col[0] # get the ttr column
+ms2_ttr = k8s_ms2.by_col[0].map(&:to_f) # get the ttr column
 # ms2_ttr = ms2_ttr.select{|e| ! e.nil?}.collect {|e| e * 1E3}
 puts "MS2: #{ms2_ttr.length} #{ms2_ttr.max} #{ms2_ttr.min}"
 
@@ -181,24 +182,34 @@ to_optimize = lambda do |component_allocation|
       sim_ttr = sim_log.by_col[1]
 
       ms1_log = CSV.parse(File.read(bms1), headers: true)
-      sim_ms1_ttr = ms1_log.by_col[1]
+      sim_ms1_ttr = ms1_log.by_col[1].map(&:to_f)
 
       ms2_log = CSV.parse(File.read(bms2), headers: true)
-      sim_ms2_ttr = ms2_log.by_col[1]
+      sim_ms2_ttr = ms2_log.by_col[1].map(&:to_f)
 
       if sim_ttr.length < (k8s_ttr.length / 2) ||  sim_ttr.length > (k8s_ttr.length * 3 / 2.to_f)
         res = 1E+195
         # puts "#{sim_ttr.length}"
       else
         ks_e2e = stats.kstest(sim_ttr, k8s_ttr)
-        ks_ms1 = stats.kstest(sim_ms1_ttr, ms1_ttr)
-        ks_ms2 = stats.kstest(sim_ms2_ttr, ms2_ttr)
 
-        res = 0.33 * ks_e2e.statistic.to_f + 0.33 * ks_ms1.statistic.to_f + 0.33 * ks_ms2.statistic.to_f
-
-        #res = 0.33 * ks_ms1.statistic.to_f + 0.33 * ks_ms2.statistic.to_f
-
-        puts "sim: #{ks_e2e.statistic.to_f}, ms1: #{ks_ms1.statistic.to_f}, ms2: #{ks_ms2.statistic.to_f}, reqs: #{sim_ttr.length}, res: #{res}"
+        #ks_ms1 = stats.kstest(sim_ms1_ttr, ms1_ttr)
+        #ks_ms2 = stats.kstest(sim_ms2_ttr, ms2_ttr)
+        
+        
+        tt_ms1 = stats.ttest_ind(ms1_ttr, sim_ms1_ttr)
+        tt_ms2 = stats.ttest_ind(ms2_ttr, sim_ms2_ttr)
+  
+        # add a penalty if ms1 and ms2 do not pass the validation test
+  
+        penalty = 0
+        penalty += 1 if tt_ms1.pvalue.to_f < 0.05 # ms1
+        penalty += 1 if tt_ms2.pvalue.to_f < 0.05 # ms2
+  
+        res = ks_e2e.statistic.to_f + penalty
+  
+        #res = 0.33 * ks_e2e.statistic.to_f + 0.33 * ks_ms1.statistic.to_f + 0.33 * ks_ms2.statistic.to_f
+        puts "sim: #{ks_e2e}, ms1: #{tt_ms1}, ms2: #{tt_ms1}, reqs: #{sim_ttr.length}, res: #{res}"
       end
       File.delete(benchmark)
       File.delete(bms1)
@@ -210,7 +221,7 @@ to_optimize = lambda do |component_allocation|
 end
 
 solver_conf = {
-  swarm_size: 60,
+  swarm_size: 40,
   logger: ga_logger,
   constraints: {
     min: ([0.0, 1E-5, 1E-5] * ($n-1) + [1E-5, 1E-5]) * $n_ms,
@@ -268,13 +279,22 @@ to_bench = lambda do |component_allocation|
       # puts "#{sim_ttr.length}"
     else
       ks_e2e = stats.kstest(sim_ttr, k8s_ttr)
-      ks_ms1 = stats.kstest(sim_ms1_ttr, ms1_ttr)
-      ks_ms2 = stats.kstest(sim_ms2_ttr, ms2_ttr)
 
-      #res = ks_e2e.statistic.to_f
+      #ks_ms1 = stats.kstest(sim_ms1_ttr, ms1_ttr)
+      #ks_ms2 = stats.kstest(sim_ms2_ttr, ms2_ttr)
+      tt_ms1 = stats.ttest_ind(sim_ms1_ttr, ms1_ttr)
+      tt_ms2 = stats.ttest_ind(sim_ms2_ttr, ms2_ttr)
+
+      # add a penalty if ms1 and ms2 do not pass the validation test
+
+      penalty = 0
+      penalty += 1 if tt_ms1.pvalue.to_f < 0.05 # ms1
+      penalty += 1 if tt_ms2.pvalue.to_f < 0.05 # ms2
+
+      res = ks_e2e.statistic.to_f + penalty
 
       #res = 0.33 * ks_e2e.statistic.to_f + 0.33 * ks_ms1.statistic.to_f + 0.33 * ks_ms2.statistic.to_f
-      puts "sim: #{ks_e2e}, ms1: #{ks_ms1}, ms2: #{ks_ms2}, reqs: #{sim_ttr.length}, res: #{res}"
+      puts "sim: #{ks_e2e}, ms1: #{tt_ms1}, ms2: #{tt_ms1}, reqs: #{sim_ttr.length}, res: #{res}"
     end
     #File.delete(benchmark)
     #File.delete(bms1)
