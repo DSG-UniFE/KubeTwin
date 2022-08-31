@@ -48,7 +48,8 @@ end
 
 $n = ARGV[2].to_i
 
-raise "GMM components should be greater than 3" if $n < 3
+# GMM with at least 3 components
+#raise "GMM components should be greater than 3" if $n < 3
 
 $params = $n * 3 - 1 # weight mu sigma for each component
 # - 1 --> array indexes start from 0
@@ -109,7 +110,6 @@ def encode_service_time_conf(x, n_ms)
 
     #puts "Microservice: #{msi}"
     #puts "Microservice: #{ms}"
-    
     #msi_istart = msi
     #msi_iend = msi * $params - $n # n is the number of component for the GMM
 
@@ -201,30 +201,36 @@ to_optimize = lambda do |component_allocation|
         # so we do not want to apply a K-S validation
   
         penalty = 0
-        penalty += 1 if tt_ms1.pvalue.to_f < 0.05 # ms1
-        penalty += 1 if tt_ms2.pvalue.to_f < 0.05 # ms2
-  
+        penalty += 1E3 if tt_ms1.pvalue.to_f < 0.05 # ms1
+        penalty += 1E3 if tt_ms2.pvalue.to_f < 0.05 # ms2
+        #penalty += 1E3 if ks_ms1.pvalue.to_f < 0.05 # ms1
+        #penalty += 1E3 if ks_ms2.pvalue.to_f < 0.05 # ms2
+
+        # penalty += 50 if ks_e2e.pvalue.to_f < 0.05
+
         res = ks_e2e.statistic.to_f + penalty
   
         #res = 0.33 * ks_e2e.statistic.to_f + 0.33 * ks_ms1.statistic.to_f + 0.33 * ks_ms2.statistic.to_f
-        puts "sim: #{ks_e2e}, ms1: #{tt_ms1}, ms2: #{tt_ms1}, reqs: #{sim_ttr.length}, res: #{res}"
+        
+        puts "sim: #{ks_e2e}, ms1: #{tt_ms1}, ms2: #{tt_ms1}, reqs: #{sim_ttr.length}, res: #{res}" if penalty == 0
+        #puts "sim: #{ks_e2e}, ms1: #{ks_ms1}, ms2: #{ks_ms1}, reqs: #{sim_ttr.length}, res: #{res}" if penalty == 0
       end
       File.delete(benchmark)
       File.delete(bms1)
       File.delete(bms2)
     end
 
-    # puts "#{res}"
+    puts "#{res}"
     -res
 end
 
 solver_conf = {
   swarm_size: 40,
+  #alpha: 0.6,
   logger: ga_logger,
   constraints: {
     min: ([0.0, 1E-5, 1E-5] * ($n-1) + [1E-5, 1E-5]) * $n_ms,
-    max: ([1.0, 0.20, 0.20] * ($n-1) + [0.20, 0.20]) * $n_ms,
-    #max: ([ 1.to_f ] * $params) * $n_ms,
+    max: ([1.0, 0.1, 0.1] * ($n-1) + [0.1, 0.1]) * $n_ms,
   },
   exit_condition: lambda {|gen, best | gen >= 500 },
   log_level: :info,
@@ -280,12 +286,15 @@ to_bench = lambda do |component_allocation|
       tt_ms2 = stats.ttest_ind(sim_ms2_ttr, ms2_ttr)
 
       penalty = 0
-      penalty += 1 if tt_ms1.pvalue.to_f < 0.05 # ms1
-      penalty += 1 if tt_ms2.pvalue.to_f < 0.05 # ms2
+      penalty += 100 if tt_ms1.pvalue.to_f < 0.05 # ms1
+      penalty += 100 if tt_ms2.pvalue.to_f < 0.05 # ms2
+
+      penalty += 50 if ks_e2e.pvalue.to_f < 0.05
+
 
       res = ks_e2e.statistic.to_f + penalty
       #res = 0.33 * ks_e2e.statistic.to_f + 0.33 * ks_ms1.statistic.to_f + 0.33 * ks_ms2.statistic.to_f
-      puts "sim: #{ks_e2e}, ms1: #{tt_ms1}, ms2: #{tt_ms1}, reqs: #{sim_ttr.length}, res: #{res}"
+      puts "sim: #{ks_e2e}, ms1: #{tt_ms1}, ms2: #{tt_ms2}, reqs: #{sim_ttr.length}, res: #{res}"
     end
   end
 
