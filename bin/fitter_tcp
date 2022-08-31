@@ -166,6 +166,8 @@ fitting_function = lambda do |component_allocation|
 
       #res = 0.33 * ks_e2e.statistic.to_f + 0.33 * ks_ms1.statistic.to_f + 0.33 * ks_ms2.statistic.to_f
       
+      puts "sim: #{ks_e2e} res: #{res}" if penalty == 0
+
       #puts "sim: #{ks_e2e}, ms1: #{tt_ms1}, ms2: #{tt_ms1}, reqs: #{sim_ttr.length}, res: #{res}" if penalty == 0
       #puts "sim: #{ks_e2e}, ms1: #{ks_ms1}, ms2: #{ks_ms1}, reqs: #{sim_ttr.length}, res: #{res}" if penalty == 0
     end
@@ -183,9 +185,9 @@ server = TCPServer.new 5678
 while session = server.accept
   conf = session.gets
   econf = eval(conf)
-  puts "#{econf}"
+  #puts "#{econf}"
   res = fitting_function.call(econf)
-  puts "#{res}"
+  #puts "#{res}"
   session.puts "#{res}"
   session.close
 end

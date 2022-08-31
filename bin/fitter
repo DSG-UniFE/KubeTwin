@@ -102,7 +102,7 @@ to_optimize = lambda do |component_allocation|
       sim = KUBETWIN::KSimulation.new(configuration: conf,
                                   evaluator: KUBETWIN::Evaluator.new(conf))
       benchmark = sim.evaluate_allocation(nil, nil, microservice_types)
-      sim_log = CSV.parse(File.read(benchmark), headers: true)
+      sim_log = CSV.parse(File.read(benchmark[0]), headers: true)
       sim_ttr = sim_log.by_col[1]
       if sim_ttr.length < (k8s_ttr.length / 2)
         res = 1E+195
@@ -111,7 +111,9 @@ to_optimize = lambda do |component_allocation|
         res = ks.statistic.to_f 
         puts "#{ks}, #{res}"
       end
-      File.delete(benchmark)
+      File.delete(benchmark[0])
+      File.delete(benchmark[1])
+      File.delete(benchmark[2])
     end
 
 
