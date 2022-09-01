@@ -209,6 +209,7 @@ optimize_ms1_ms2 = lambda do |component_allocation|
 
       if sim_ttr.length < (k8s_ttr.length / 2) ||  sim_ttr.length > (k8s_ttr.length * 3 / 2.to_f)
         res = 1E+195
+      else
 
         tt_ms1 = stats.ttest_ind(ms1_ttr, sim_ms1_ttr)
         tt_ms2 = stats.ttest_ind(ms2_ttr, sim_ms2_ttr)
@@ -216,13 +217,15 @@ optimize_ms1_ms2 = lambda do |component_allocation|
         # add a penalty if ms1 and ms2 do not pass the validation test
         # here the t-test was chosen because the metrics are not accurate
         # so we do not want to apply a K-S validation
-  
+
         penalty = 0
         penalty += 1E3 if tt_ms1.pvalue.to_f < 0.05 # ms1
         penalty += 1E3 if tt_ms2.pvalue.to_f < 0.05 # ms2
-
-        # res = ks_e2e.statistic.to_f + penalty
-        res = penalty
+        if penalty > 0
+          res = penalty
+        else
+          res = - tt_ms1.pvalue.to_f * 1E2 - tt_ms2.pvalue.to_f * 1E2
+        end
   
         #res = 0.33 * ks_e2e.statistic.to_f + 0.33 * ks_ms1.statistic.to_f + 0.33 * ks_ms2.statistic.to_f
         
@@ -248,7 +251,7 @@ solver_conf = {
     min: ([0.0, 1E-5, 1E-5] * ($n-1) + [1E-5, 1E-5]) * $n_ms,
     max: ([1.0, 0.1, 0.1] * ($n-1) + [0.1, 0.1]) * $n_ms,
   },
-  exit_condition: lambda {|gen, best | gen >= 100.0 },
+  exit_condition: lambda {|gen, best | gen >= 50 },
   log_level: :info,
 }
 
