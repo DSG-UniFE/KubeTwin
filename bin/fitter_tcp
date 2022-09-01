@@ -13,7 +13,7 @@ include PyCall::Import
 $n = 3
 
 $params = $n * 3 - 1 # weight mu sigma for each component
-SIM_FILE = "examples/sm-c1-1000-gv.conf"
+SIM_FILE = "examples/v-2mss-q.conf"
 K8S_LOG = "req_logs_august.csv"
 MS1_LOG = "ms1-960-red.txt"
 MS2_LOG = "ms2-960-red.txt"
@@ -80,7 +80,7 @@ def encode_service_time_conf(x, n_ms)
     end
     #puts "w_last #{w_last}"
 
-    # w_last = 0 if w_last < 0 # reject negative probabilities  
+    #w_last = 0 if w_last < 0 # reject negative probabilities  
     # or normalize the sum of tha absolute values to 1?
     return nil if w_last < 0
 
@@ -114,6 +114,7 @@ fitting_function = lambda do |component_allocation|
   
   if processing_time.nil?
     res = 1000
+    # puts "nil processing time"
   else
 
     processing_time.each do |ms_name, ms_time_dist|
@@ -134,11 +135,11 @@ fitting_function = lambda do |component_allocation|
     sim_log = CSV.parse(File.read(benchmark), headers: true)
     sim_ttr = sim_log.by_col[1].map(&:to_f)
 
-    #ms1_log = CSV.parse(File.read(bms1), headers: true)
-    #sim_ms1_ttr = ms1_log.by_col[1].map(&:to_f)
+    ms1_log = CSV.parse(File.read(bms1), headers: true)
+    sim_ms1_ttr = ms1_log.by_col[1].map(&:to_f)
 
-    #ms2_log = CSV.parse(File.read(bms2), headers: true)
-    #sim_ms2_ttr = ms2_log.by_col[1].map(&:to_f)
+    ms2_log = CSV.parse(File.read(bms2), headers: true)
+    sim_ms2_ttr = ms2_log.by_col[1].map(&:to_f)
 
     if sim_ttr.length < (k8s_ttr.length / 2) ||  sim_ttr.length > (k8s_ttr.length * 3 / 2.to_f)
       res = 1000
@@ -146,8 +147,8 @@ fitting_function = lambda do |component_allocation|
     else
       ks_e2e = stats.kstest(sim_ttr, k8s_ttr)
   
-      # tt_ms1 = stats.ttest_ind(ms1_ttr, sim_ms1_ttr)
-      # tt_ms2 = stats.ttest_ind(ms2_ttr, sim_ms2_ttr)
+      tt_ms1 = stats.ttest_ind(ms1_ttr, sim_ms1_ttr)
+      tt_ms2 = stats.ttest_ind(ms2_ttr, sim_ms2_ttr)
 
       # add a penalty if ms1 and ms2 do not pass the validation test
       # here the t-test was chosen because the metrics are not accurate
@@ -155,8 +156,8 @@ fitting_function = lambda do |component_allocation|
 
       penalty = 0
 
-      #penalty += 1E3 if tt_ms1.pvalue.to_f < 0.05 # ms1
-      #penalty += 1E3 if tt_ms2.pvalue.to_f < 0.05 # ms2
+      penalty += 1E3 if tt_ms1.pvalue.to_f < 0.05 # ms1
+      penalty += 1E3 if tt_ms2.pvalue.to_f < 0.05 # ms2
       #penalty += 1E3 if ks_ms1.pvalue.to_f < 0.05 # ms1
       #penalty += 1E3 if ks_ms2.pvalue.to_f < 0.05 # ms2
 
