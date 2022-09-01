@@ -64,7 +64,8 @@ PyCall.import_module("numpy")
 # load simulation configuration
 time = Time.now.strftime('%Y%m%d%H%M%S')
 
-GA_LOG = "fitter_log_#{time}_#{$n}.log"
+GA_LOG = "fitter_log_ms1_ms2_#{time}_#{$n}.log"
+
 
 File.delete(GA_LOG) if File.exist?(GA_LOG)
 ga_logger = Logger.new(GA_LOG)
@@ -211,25 +212,11 @@ optimize_ms1_ms2 = lambda do |component_allocation|
         res = 1E+195
       else
 
-        tt_ms1 = stats.ttest_ind(ms1_ttr, sim_ms1_ttr)
-        tt_ms2 = stats.ttest_ind(ms2_ttr, sim_ms2_ttr)
-  
-        # add a penalty if ms1 and ms2 do not pass the validation test
-        # here the t-test was chosen because the metrics are not accurate
-        # so we do not want to apply a K-S validation
+        ks_ms1 = stats.kstest(sim_ms1_ttr, ms1_ttr)
+        ks_ms2 = stats.kstest(sim_ms2_ttr, ms2_ttr)
 
-        penalty = 0
-        penalty += 1E3 if tt_ms1.pvalue.to_f < 0.05 # ms1
-        penalty += 1E3 if tt_ms2.pvalue.to_f < 0.05 # ms2
-        if penalty > 0
-          res = penalty
-        else
-          res = - tt_ms1.pvalue.to_f * 1E2 - tt_ms2.pvalue.to_f * 1E2
-        end
+        res = 0.5 * ks_ms1.statistic.to_f + 0.5 * ks_ms2.statistic.to_f
   
-        #res = 0.33 * ks_e2e.statistic.to_f + 0.33 * ks_ms1.statistic.to_f + 0.33 * ks_ms2.statistic.to_f
-        
-        # puts "sim: #{ks_e2e}, ms1: #{tt_ms1}, ms2: #{tt_ms1}, reqs: #{sim_ttr.length}, res: #{res}" if penalty == 0
         #puts "sim: #{ks_e2e}, ms1: #{ks_ms1}, ms2: #{ks_ms1}, reqs: #{sim_ttr.length}, res: #{res}" if penalty == 0
       end
       File.delete(benchmark)
@@ -251,7 +238,7 @@ solver_conf = {
     min: ([0.0, 1E-5, 1E-5] * ($n-1) + [1E-5, 1E-5]) * $n_ms,
     max: ([1.0, 0.1, 0.1] * ($n-1) + [0.1, 0.1]) * $n_ms,
   },
-  exit_condition: lambda {|gen, best | gen >= 50 },
+  exit_condition: lambda {|gen, best | gen >= 80 },
   log_level: :info,
 }
 
@@ -305,7 +292,6 @@ optimize_e2e = lambda do |component_allocation|
   -res
 end
 
-
 e2e_conf = {
   swarm_size: 40,
   #alpha: 0.6,
@@ -314,7 +300,7 @@ e2e_conf = {
     min: ([0.0, 1E-5, 1E-5] * ($n-1) + [1E-5, 1E-5]),
     max: ([1.0, 0.05, 0.05] * ($n-1) + [0.5, 0.05]),
   },
-  exit_condition: lambda {|gen, best | gen >= 200 },
+  exit_condition: lambda {|gen, best | (gen >= 120 || best[:height] >= 0.050)},
   log_level: :info,
 }
 
@@ -322,6 +308,11 @@ solver_e2e = MHL::QuantumPSOSolver.new(e2e_conf)
 best_e2e = solver_e2e.solve(optimize_e2e, {concurrent: false})
 
 puts best_e2e
+
+# merge configuration here
+all_conf = best_e2e[:position] + $best[:position][$params..]
+
+puts "Best: #{all_conf}"
 
 to_bench = lambda do |component_allocation|
 
@@ -382,7 +373,7 @@ to_bench = lambda do |component_allocation|
   -res
 end
 
-to_bench.call(best_e2e[:position])
+to_bench.call(all_conf)
 
 puts "exiting"
 exit 0
