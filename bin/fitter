@@ -113,7 +113,7 @@ to_optimize = lambda do |component_allocation|
       end
       File.delete(benchmark[0])
       File.delete(benchmark[1])
-      File.delete(benchmark[2])
+      File.delete(benchmark[2]) 
     end
 
 

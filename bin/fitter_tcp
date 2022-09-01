@@ -184,11 +184,15 @@ server = TCPServer.new 5678
 
 while session = server.accept
   conf = session.gets
-  econf = eval(conf)
-  #puts "#{econf}"
-  res = fitting_function.call(econf)
-  #puts "#{res}"
-  session.puts "#{res}"
+  while conf != nil
+    econf = eval(conf)
+    #puts "#{econf}"
+    res = fitting_function.call(econf)
+    #puts "#{res}"
+    session.puts "#{res}"
+    conf = session.gets
+  end
+  # close the session here
   session.close
 end
 
