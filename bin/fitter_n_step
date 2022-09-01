@@ -248,7 +248,7 @@ solver_conf = {
     min: ([0.0, 1E-5, 1E-5] * ($n-1) + [1E-5, 1E-5]) * $n_ms,
     max: ([1.0, 0.1, 0.1] * ($n-1) + [0.1, 0.1]) * $n_ms,
   },
-  exit_condition: lambda {|gen, best | best[:height] == 0.0 },
+  exit_condition: lambda {|gen, best | gen >= 100.0 },
   log_level: :info,
 }
 

@@ -96,10 +96,9 @@ def encode_service_time_conf(x, n_ms)
     #puts "msn #{microservice_name}"
     config[microservice_name] = { distribution: :mixture, args: 
       ERV::GaussianMixtureHelper.RawParametersToMixtureArgsSeed(*y, $seed)
-    }
-    
-    #puts config
+    }    
   end
+  puts config
   config
 end
 

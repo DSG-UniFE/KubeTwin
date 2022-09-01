@@ -201,18 +201,22 @@ to_optimize = lambda do |component_allocation|
         # so we do not want to apply a K-S validation
   
         penalty = 0
-        penalty += 1E3 if tt_ms1.pvalue.to_f < 0.05 # ms1
-        penalty += 1E3 if tt_ms2.pvalue.to_f < 0.05 # ms2
+        #penalty += 1E3 if tt_ms1.pvalue.to_f < 0.05 # ms1
+        #penalty += 1E3 if tt_ms2.pvalue.to_f < 0.05 # ms2
+        
+        penalty += 0.05 / tt_ms1.pvalue.to_f if tt_ms1.pvalue.to_f < 0.05 # ms1
+        penalty += 0.05 / tt_ms2.pvalue.to_f if tt_ms2.pvalue.to_f < 0.05 # ms2
+        
         #penalty += 1E3 if ks_ms1.pvalue.to_f < 0.05 # ms1
         #penalty += 1E3 if ks_ms2.pvalue.to_f < 0.05 # ms2
 
         # penalty += 50 if ks_e2e.pvalue.to_f < 0.05
 
         res = ks_e2e.statistic.to_f + penalty
-  
+          
         #res = 0.33 * ks_e2e.statistic.to_f + 0.33 * ks_ms1.statistic.to_f + 0.33 * ks_ms2.statistic.to_f
         
-        puts "sim: #{ks_e2e}, ms1: #{tt_ms1}, ms2: #{tt_ms1}, reqs: #{sim_ttr.length}, res: #{res}" if penalty == 0
+        puts "sim: #{ks_e2e}, ms1: #{tt_ms1}, ms2: #{tt_ms1}, reqs: #{sim_ttr.length}, res: #{res}" #if penalty == 0
         #puts "sim: #{ks_e2e}, ms1: #{ks_ms1}, ms2: #{ks_ms1}, reqs: #{sim_ttr.length}, res: #{res}" if penalty == 0
       end
       File.delete(benchmark)
@@ -220,7 +224,7 @@ to_optimize = lambda do |component_allocation|
       File.delete(bms2)
     end
 
-    puts "#{res}"
+    # puts "#{res}"
     -res
 end
 
