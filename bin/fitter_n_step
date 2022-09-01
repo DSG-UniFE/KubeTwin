@@ -231,14 +231,14 @@ end
 
 
 solver_conf = {
-  swarm_size: 40,
-  #alpha: 0.6,
+  swarm_size: 80,
+  #alpha: 0.2,
   logger: ga_logger,
   constraints: {
     min: ([0.0, 1E-5, 1E-5] * ($n-1) + [1E-5, 1E-5]) * $n_ms,
-    max: ([1.0, 0.1, 0.1] * ($n-1) + [0.1, 0.1]) * $n_ms,
+    max: ([1.0, 0.08, 0.08] * ($n-1) + [0.08, 0.08]) * $n_ms,
   },
-  exit_condition: lambda {|gen, best | gen >= 80 },
+  exit_condition: lambda {|gen, best | gen >= 100 },
   log_level: :info,
 }
 
