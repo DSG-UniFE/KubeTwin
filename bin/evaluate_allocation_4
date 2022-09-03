@@ -130,7 +130,7 @@ end
 res = 0
 
 
-component_allocation = [0.0008265701236908648, 0.0016218975326823277, 0.00022492086080002843, 0.0001469800285616201, 0.002042391261112779, 1.0e-05, 0.00937374423474558, 0.00011064382475793867, 0.02614550768158809, 0.035242859108980264, 0.004053918871825929, 0.026045671070400914, 0.000561561038240109, 0.02061265556605741, 0.0015357580207123263, 0.003157913429635669, 2.1551204150587556e-05, 0.001275517177418091, 0.009983699539898043, 0.008112298798064372, 0.026666546169414503, 0.030581800316968347, 0.026826583605140536, 0.0010328911338680462]
+component_allocation = [0.004375775751112234, 0.01694239810248317, 0.004848208981353798, 0.0, 0.0008831691147375399, 0.00018869742083791585, 0.006870134421170484, 0.0003834920445621647, 0.0004764648499209277, 0.002773296331258049, 0.015795386284149077, 0.9708538843937962, 0.006132351312868196, 0.0007973822145049604, 0.0003822044210690078, 0.010049741010373444, 0.00910249058451181, 0.014295421204126274, 0.04852444898063998, 0.0014154260374048219, 0.0032654502143393336, 0.0031410671871937783, 0.026641974378798394, 0.0018005926732105341]
 
 # load simulation configuration
 conf = KUBETWIN::Configuration.load_from_file(ARGV[0])
@@ -170,21 +170,17 @@ unless sim_ttr.length < (k8s_ttr.length / 2) ||  sim_ttr.length > (k8s_ttr.lengt
 
   ks_e2e = stats.kstest(sim_ttr, k8s_ttr)
 
-  #ks_ms1 = stats.kstest(sim_ms1_ttr, ms1_ttr)
-  #ks_ms2 = stats.kstest(sim_ms2_ttr, ms2_ttr)
-  tt_ms1 = stats.ttest_ind(sim_ms1_ttr, ms1_ttr)
-  tt_ms2 = stats.ttest_ind(sim_ms2_ttr, ms2_ttr)
+  ks_ms1 = stats.kstest(sim_ms1_ttr, ms1_ttr)
+  ks_ms2 = stats.kstest(sim_ms2_ttr, ms2_ttr)
+  #tt_ms1 = stats.ttest_ind(sim_ms1_ttr, ms1_ttr)
+  #tt_ms2 = stats.ttest_ind(sim_ms2_ttr, ms2_ttr)
 
   # add a penalty if ms1 and ms2 do not pass the validation test
 
-  penalty = 0
-  penalty += 1 if tt_ms1.pvalue.to_f < 0.05 # ms1
-  penalty += 1 if tt_ms2.pvalue.to_f < 0.05 # ms2
-
-  res = ks_e2e.statistic.to_f + penalty
+  res = ks_e2e.statistic.to_f
 
   #res = 0.33 * ks_e2e.statistic.to_f + 0.33 * ks_ms1.statistic.to_f + 0.33 * ks_ms2.statistic.to_f
-  puts "sim: #{ks_e2e}, ms1: #{tt_ms1}, ms2: #{tt_ms1}, reqs: #{sim_ttr.length}, res: #{res}"
+  puts "sim: #{ks_e2e}, ms1: #{ks_ms1}, ms2: #{ks_ms2}, reqs: #{sim_ttr.length}, res: #{res}"
 end
 
 puts "exiting"
