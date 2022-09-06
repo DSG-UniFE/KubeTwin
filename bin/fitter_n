@@ -63,8 +63,12 @@ PyCall.import_module("numpy")
 # here run the optimizer on the oracle
 # load simulation configuration
 time = Time.now.strftime('%Y%m%d%H%M%S')
+results_dirname = "#{time}_results"
+# create directory if it does not exist
 
-GA_LOG = "fitter_log_#{time}_#{$n}.log"
+Dir.mkdir(results_dirname) unless File.exist?(results_dirname)
+
+GA_LOG = "#{results_dirname}/fitter_log_#{time}_#{$n}.log"
 
 File.delete(GA_LOG) if File.exist?(GA_LOG)
 ga_logger = Logger.new(GA_LOG)
@@ -166,10 +170,9 @@ to_optimize = lambda do |component_allocation|
         # create a simulator and launch it
       end
 
-      #puts msc
-
       sim = KUBETWIN::KSimulation.new(configuration: conf,
-                                  evaluator: KUBETWIN::Evaluator.new(conf))
+                                      evaluator: KUBETWIN::Evaluator.new(conf),
+                                      results_dir: results_dirname)
       benchmark, bms1, bms2 = sim.evaluate_allocation(nil, nil, msc)
 
       # evaluate bench here
@@ -249,9 +252,7 @@ puts best
 
 
 to_bench = lambda do |component_allocation|
-
   res = 0
-  # load simulation configuration
   conf = KUBETWIN::Configuration.load_from_file(ARGV[0])
   msc = sim_conf.microservice_types
   processing_time = encode_service_time_conf(component_allocation, msc.keys.length)
@@ -263,8 +264,6 @@ to_bench = lambda do |component_allocation|
     processing_time.each do |ms_name, ms_time_dist|
       msc[ms_name][:service_time_distribution][:mec] = ms_time_dist
     end
-
-    #puts msc
 
     sim = KUBETWIN::KSimulation.new(configuration: conf,
                                 evaluator: KUBETWIN::Evaluator.new(conf))
@@ -286,21 +285,14 @@ to_bench = lambda do |component_allocation|
     else
       ks_e2e = stats.kstest(sim_ttr, k8s_ttr)
 
-      #ks_ms1 = stats.kstest(sim_ms1_ttr, ms1_ttr)
-      #ks_ms2 = stats.kstest(sim_ms2_ttr, ms2_ttr)
-      tt_ms1 = stats.ttest_ind(sim_ms1_ttr, ms1_ttr)
-      tt_ms2 = stats.ttest_ind(sim_ms2_ttr, ms2_ttr)
-
-      penalty = 0
-      penalty += 100 if tt_ms1.pvalue.to_f < 0.05 # ms1
-      penalty += 100 if tt_ms2.pvalue.to_f < 0.05 # ms2
-
-      penalty += 50 if ks_e2e.pvalue.to_f < 0.05
+      ks_ms1 = stats.kstest(sim_ms1_ttr, ms1_ttr)
+      ks_ms2 = stats.kstest(sim_ms2_ttr, ms2_ttr)
 
 
-      res = ks_e2e.statistic.to_f + penalty
+      res = ks_e2e.statistic.to_f
+
       #res = 0.33 * ks_e2e.statistic.to_f + 0.33 * ks_ms1.statistic.to_f + 0.33 * ks_ms2.statistic.to_f
-      puts "sim: #{ks_e2e}, ms1: #{tt_ms1}, ms2: #{tt_ms2}, reqs: #{sim_ttr.length}, res: #{res}"
+      puts "sim: #{ks_e2e}, ms1: #{ks_ms1}, ms2: #{ks_ms2}, #reqs: #{sim_ttr.length}"
     end
   end
 
