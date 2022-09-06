@@ -78,16 +78,15 @@ k8s_ttr = k8s_log.by_col[1].map(&:to_f) # get the ttr column
 # ms1 ttr
 k8s_ms1 = CSV.parse(File.read(ARGV[3]), headers: true)
 ms1_ttr = k8s_ms1.by_col[0].map(&:to_f) # get the ttr column
-puts "MS1: #{ms1_ttr.length} #{ms1_ttr.max} #{ms1_ttr.min}"
-
+puts "MS1: max: #{ms1_ttr.max} min: #{ms1_ttr.min}"
 
 # ms2 ttr
 k8s_ms2 = CSV.parse(File.read(ARGV[4]), headers: true)
 ms2_ttr = k8s_ms2.by_col[0].map(&:to_f) # get the ttr column
 # ms2_ttr = ms2_ttr.select{|e| ! e.nil?}.collect {|e| e * 1E3}
-puts "MS2: #{ms2_ttr.length} #{ms2_ttr.max} #{ms2_ttr.min}"
+puts "MS2: max: #{ms2_ttr.max} min: #{ms2_ttr.min}"
 
-puts "TTR: #{k8s_ttr.length} #{k8s_ttr.max} #{k8s_ttr.min}"
+puts "TTR: max: #{k8s_ttr.max} min: #{k8s_ttr.min}"
 
 
 $microservice_types = sim_conf.microservice_types
@@ -130,7 +129,11 @@ end
 res = 0
 
 
-component_allocation = [0.0003138116511152047, 0.00040691230048639103, 0.002636370069019782, 0.006842291013568254, 0.020938111714329855, 0.0007976938271173265, 0.006427926043198232, 1.9958481677823422e-05, 0.0, 0.0004929477091255329, 0.00011770615769744054, 0.0, 0.00013661622369770372, 0.007576155352230724, 0.006036271215897667, 0.0007308300857939441, 0.12276232334148096, 0.02688268125519587, 0.0022470927317622506, 0.11699625571735726, 0.036728463403970235, 8.362726943426035e-05, 0.0005260280721610505, 1.0e-05]
+component_allocation = [0.0028035939798280282, 0.0003046838355632043, 0.032219961792159864, 0.3164411432141649,
+  0.006931715743823993, 0.0005525703535023133, 0.005338296614761553, 5.796748287059224e-05, 0.0888808059650571,
+  0.00012645001426985636, 1.0e-05, 0.08821701880723878, 0.00012077548501628314, 1.4548566319725487e-05, 
+  0.006047654850616008, 0.0007382894470761619, 0.0013736642665748541, 0.00047939570331290805, 0.09101992048236172, 
+  0.3457791760298413, 0.026647814800546947, 0.002085136248703964, 0.004398108471132782, 1.1814084356003262e-05]
 
 # load simulation configuration
 conf = KUBETWIN::Configuration.load_from_file(ARGV[0])
@@ -168,8 +171,11 @@ sim_ms2_ttr = ms2_log.by_col[1].map(&:to_f)
 
 unless sim_ttr.length < (k8s_ttr.length / 2) ||  sim_ttr.length > (k8s_ttr.length * 3 / 2.to_f)
 
-  ks_e2e = stats.kstest(sim_ttr, k8s_ttr)
+  puts 'Simulated model'
+  puts "MS1 - mean:#{sim_ms1_ttr.sum / sim_ms1_ttr.length} min: #{sim_ms1_ttr.min} max: #{sim_ms1_ttr.max}"
+  puts "MS2 - mean:#{sim_ms2_ttr.sum / sim_ms2_ttr.length} min: #{sim_ms2_ttr.min} max: #{sim_ms2_ttr.max}"
 
+  ks_e2e = stats.kstest(sim_ttr, k8s_ttr)
   ks_ms1 = stats.kstest(sim_ms1_ttr, ms1_ttr)
   ks_ms2 = stats.kstest(sim_ms2_ttr, ms2_ttr)
   #tt_ms1 = stats.ttest_ind(sim_ms1_ttr, ms1_ttr)
@@ -178,8 +184,6 @@ unless sim_ttr.length < (k8s_ttr.length / 2) ||  sim_ttr.length > (k8s_ttr.lengt
   # add a penalty if ms1 and ms2 do not pass the validation test
 
   res = ks_e2e.statistic.to_f
-
-  #res = 0.33 * ks_e2e.statistic.to_f + 0.33 * ks_ms1.statistic.to_f + 0.33 * ks_ms2.statistic.to_f
   puts "sim: #{ks_e2e}, ms1: #{ks_ms1}, ms2: #{ks_ms2}, reqs: #{sim_ttr.length}, res: #{res}"
 end
 

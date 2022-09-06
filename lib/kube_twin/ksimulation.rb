@@ -29,12 +29,13 @@ module KUBETWIN
     def initialize(opts = {})
       @configuration = opts[:configuration]
       @evaluator     = opts[:evaluator]
-      @results_dir   = opts[:results_dir]
-      @benchmark = File.open("#{@results_dir}/requests_log_#{Time.now.to_i}.csv", 'w')
+      @results_dir   = opts[:results_dir]    
+      @results_dir += '/' unless @results_dir.nil?
+      @benchmark = File.open("#{@results_dir}requests_log_#{Time.now.to_i}.csv", 'w')
       @benchmark << "rid,ttr\n"
-      @benchmark_ms1 = File.open("#{@results_dir}/ms1_log_#{Time.now.to_i}.csv", 'w')
+      @benchmark_ms1 = File.open("#{@results_dir}ms1_log_#{Time.now.to_i}.csv", 'w')
       @benchmark_ms1 << "rid,ttr\n"
-      @benchmark_ms2 = File.open("#{@results_dir}/ms2_log_#{Time.now.to_i}.csv", 'w')
+      @benchmark_ms2 = File.open("#{@results_dir}ms2_log_#{Time.now.to_i}.csv", 'w')
       @benchmark_ms2 << "rid,ttr\n"
     end
 
