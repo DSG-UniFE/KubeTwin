@@ -214,13 +214,15 @@ end
 
 solver_conf = {
   #num_swarms: 6,
-  swarm_size: 50,
+  genotype_space_type: :real,
+  population_size: 128,
   logger: :stdout,
-  constraints: {
-    min: 
-    ([0.0, 0.0, 0.0] * ($n-1) + [0.0, 0.0]) * ($n_ms-1),
-    max: 
-    ([1.0, 1.0, 1.0] * ($n-1) + [1.0, 1.0]) * ($n_ms-1),
+  genotype_space_conf: {
+    dimensions: 8 * 3,
+    recombination_type: :intermediate,
+    random_func: lambda { Array.new(8 * 3) { rand(0.0..1.0) } },
+    #prova a rimuovere con binary
+    constraints: Array.new(8 * 3){{from: 0.0, to: 1.0}}
   },
   exit_condition: lambda {|gen, best | gen >= 1500 },
   log_level: :info,
@@ -250,7 +252,7 @@ max:
 =end
 
 #solver = MHL::MultiSwarmQPSOSolver.new(solver_conf)
-solver = MHL::QuantumPSOSolver.new(solver_conf)
+solver = MHL::GeneticAlgorithmSolver.new(solver_conf)
 best = solver.solve(to_optimize, {concurrent: false})
 
 puts best
