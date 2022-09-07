@@ -232,16 +232,16 @@ to_optimize = lambda do |component_allocation|
 end
 
 solver_conf = {
-  num_swarms: 6,
+  #num_swarms: 6,
   swarm_size: 50,
-  logger: ga_logger,
+  logger: :stdout,
   constraints: {
     min: 
-    ([0.0, 0.0, 0.0] * ($n-1) + [0.0, 0.0]) * ($n_ms-1),
+    ([0.0, 1E-5, 1E-5] * ($n-1) + [1E-5, 1E-5]) * ($n_ms-1),
     max: 
     ([1.0, 1.0, 1.0] * ($n-1) + [1.0, 1.0]) * ($n_ms-1),
   },
-  exit_condition: lambda {|gen, best | gen >= 150 },
+  exit_condition: lambda {|gen, best | gen >= 500 },
   log_level: :info,
 }
 
@@ -268,7 +268,8 @@ max:
 },
 =end
 
-solver = MHL::MultiSwarmQPSOSolver.new(solver_conf)
+#solver = MHL::MultiSwarmQPSOSolver.new(solver_conf)
+solver = MHL::QuantumPSOSolver.new(solver_conf)
 best = solver.solve(to_optimize, {concurrent: false})
 
 puts best
