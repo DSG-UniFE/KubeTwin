@@ -80,9 +80,11 @@ module KUBETWIN
       # improve this code in the future
       r.arrival_at_container = time
 
-      while (st = @service_time.next) <= 1E-6; end
-      
-      #st = @service_time.next
+      # while (st = @service_time.next) <= 1E-6; end
+      # remove truncation --- just to make the optimizer runnings
+      st = @service_time.next
+      st = 1E-6 if st < 1E-6
+
       # add concurrent execution
       #pod_executing = @node.pod_id_list.length
       #st *= Math::log(pod_executing) if pod_executing > 2
