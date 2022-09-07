@@ -195,8 +195,9 @@ to_optimize = lambda do |component_allocation|
         ks_ms1 = stats.kstest(sim_ms1_ttr, ms1_ttr)
         ks_ms2 = stats.kstest(sim_ms2_ttr, ms2_ttr)
 
-        #es = 0.33 * ks_e2e.statistic.to_f + 0.33 * ks_ms1.statistic.to_f + 0.33 * ks_ms2.statistic.to_f
-        res = ks_e2e.statistic.to_f + ks_ms1.statistic.to_f +  ks_ms2.statistic.to_f
+        # 0.33 we assign an equal weight to each component 
+        # minimizing the ks-test would reduce the statistical distance between the two    
+        res = 0.33 * ks_e2e.statistic.to_f + 0.33 * ks_ms1.statistic.to_f + 0.33 * ks_ms2.statistic.to_f
       rescue
         penalty += 100
       end
@@ -294,9 +295,10 @@ to_bench = lambda do |component_allocation|
       ks_ms2 = stats.kstest(sim_ms2_ttr, ms2_ttr)
 
 
-      res = ks_e2e.statistic.to_f
+      res = ks_e2e.statistic.to_f + ks_ms1.statistic.to_f + ks_ms2.statistic.to_f
 
       #res = 0.33 * ks_e2e.statistic.to_f + 0.33 * ks_ms1.statistic.to_f + 0.33 * ks_ms2.statistic.to_f
+
       puts "sim: #{ks_e2e}, ms1: #{ks_ms1}, ms2: #{ks_ms2}, #reqs: #{sim_ttr.length}"
     end
   end
