@@ -50,10 +50,9 @@ $n = ARGV[2].to_i
 
 # GMM with at least 3 components
 #raise "GMM components should be greater than 3" if $n < 3
-
 $params = $n * 3 - 1 # weight mu sigma for each component
-# - 1 --> array indexes start from 0
 
+# - 1 --> array indexes start from 0
 puts "n #{$n} params #{$params}"
 
 # pycall import
@@ -90,63 +89,42 @@ puts "MS1: #{ms1_ttr.length} #{ms1_ttr.max} #{ms1_ttr.min}"
 # ms2 ttr
 k8s_ms2 = CSV.parse(File.read(ARGV[4]), headers: true)
 ms2_ttr = k8s_ms2.by_col[0].map(&:to_f) # get the ttr column
-# ms2_ttr = ms2_ttr.select{|e| ! e.nil?}.collect {|e| e * 1E3}
 puts "MS2: #{ms2_ttr.length} #{ms2_ttr.max} #{ms2_ttr.min}"
-
 puts "TTR: #{k8s_ttr.length} #{k8s_ttr.max} #{k8s_ttr.min}"
-
 
 $microservice_types = sim_conf.microservice_types
 $n_ms = $microservice_types.length
-
 puts "Number of microservices #{$n_ms}"
 
 $seed = 12345
 
 def encode_service_time_conf(x, n_ms)
 
-  # for each micro-servce
   config = {}
 
   #puts "x:#{x}"
-
   x.each_slice($params).to_a.each_with_index do |ms, msi|
-
-    #puts "Microservice: #{msi}"
-    #puts "Microservice: #{ms}"
-    #msi_istart = msi
-    #msi_iend = msi * $params - $n # n is the number of component for the GMM
-
     # [0.15, 15, 30, 0.35, 20, 22, 30, 15] # n = 3 components
     # weights = 0.15, 0.35 
 
     # get last weight parameter
-
     w_last = 1
     (0..($params - 3)).select {|pi| pi % 3 == 0}.each do |p| 
       w_last -= ms[p]
     end
-    #puts "w_last #{w_last}"
-
     # w_last = 0 if w_last < 0 # reject negative probabilities  
     # or normalize the sum of tha absolute values to 1?
     return nil if w_last < 0
 
-    #puts "ms gmm parameters: #{ms}"
-    # clone the component allocation
     y = ms.clone
     y.insert($params - 2, w_last)
-    # add w_last in its position
-    #puts "y gmm parameters: #{y}"
-
-    #puts $microservice_types
+    
     microservice_name = $microservice_types.keys[msi]
-    #puts "msn #{microservice_name}"
+
     config[microservice_name] = { distribution: :mixture, args: 
       ERV::GaussianMixtureHelper.RawParametersToMixtureArgsSeed(*y, $seed)
     }
-    
-     #puts config
+      
   end
   config
 end
@@ -194,7 +172,6 @@ to_optimize = lambda do |component_allocation|
 
         ks_ms1 = stats.kstest(sim_ms1_ttr, ms1_ttr)
         ks_ms2 = stats.kstest(sim_ms2_ttr, ms2_ttr)
-        
 
         # tt_ms1 = stats.ttest_ind(ms1_ttr, sim_ms1_ttr)
         # tt_ms2 = stats.ttest_ind(ms2_ttr, sim_ms2_ttr)
@@ -212,10 +189,6 @@ to_optimize = lambda do |component_allocation|
         
         #penalty += 1E3 if ks_ms1.pvalue.to_f < 0.05 # ms1
         #penalty += 1E3 if ks_ms2.pvalue.to_f < 0.05 # ms2
-
-        # penalty += 50 if ks_e2e.pvalue.to_f < 0.05
-
-        # res = ks_e2e.statistic.to_f + penalty
           
         res = 0.33 * ks_e2e.statistic.to_f + 0.33 * ks_ms1.statistic.to_f + 0.33 * ks_ms2.statistic.to_f
         
@@ -271,10 +244,11 @@ max:
 #solver = MHL::MultiSwarmQPSOSolver.new(solver_conf)
 solver = MHL::QuantumPSOSolver.new(solver_conf)
 best = solver.solve(to_optimize, {concurrent: false})
-
 puts best
 
 
+
+# CODE DUPLICATION HERE __ JUST TO ADD SOME PRINTS
 to_bench = lambda do |component_allocation|
   res = 0
   conf = KUBETWIN::Configuration.load_from_file(ARGV[0])
@@ -314,8 +288,7 @@ to_bench = lambda do |component_allocation|
 
 
       res = ks_e2e.statistic.to_f
-
-      #res = 0.33 * ks_e2e.statistic.to_f + 0.33 * ks_ms1.statistic.to_f + 0.33 * ks_ms2.statistic.to_f
+      
       puts "sim: #{ks_e2e}, ms1: #{ks_ms1}, ms2: #{ks_ms2}, #reqs: #{sim_ttr.length}"
     end
   end
