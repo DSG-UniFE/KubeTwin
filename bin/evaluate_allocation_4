@@ -96,25 +96,37 @@ puts "Number of microservices #{$n_ms}"
 
 $seed = 12345
 
-def encode_replicas_set(x, n_ms)
+def encode_service_time_conf(x, n_ms)
+
   # for each micro-servce
   config = {}
 
+  #puts "x:#{x}"
+
   x.each_slice($params).to_a.each_with_index do |ms, msi|
+
+    #puts "Microservice: #{msi}"
+    #puts "Microservice: #{ms}"
+    #msi_istart = msi
+    #msi_iend = msi * $params - $n # n is the number of component for the GMM
 
     w_last = 1
     (0..($params - 3)).select {|pi| pi % 3 == 0}.each do |p| 
-      #puts "#{ms[p]}"
       w_last -= ms[p]
     end
 
-    #puts "w_last #{w_last}"
+    # w_last = 0 if w_last < 0 # reject negative probabilities  
+    # or normalize the sum of tha absolute values to 1?
+    return nil if w_last < 0
 
-    w_last = 0 if w_last < 0 # reject negative probabilities  
-    #return nil if w_last < 0
-
+    #puts "ms gmm parameters: #{ms}"
+    # clone the component allocation
     y = ms.clone
     y.insert($params - 2, w_last)
+    # add w_last in its position
+    #puts "y gmm parameters: #{y}"
+
+    #puts $microservice_types
     microservice_name = $microservice_types.keys[msi]
     #puts "msn #{microservice_name}"
     config[microservice_name] = { distribution: :mixture, args: 
@@ -126,17 +138,18 @@ def encode_replicas_set(x, n_ms)
   config
 end
 
+
 res = 0
 
 
 component_allocation = 
-[0.0, 1.0e-05, 0.021670443079624072, 0.1570274677492626, 0.007259176804988939, 0.0013804656098967978, 0.0450425938227796, 1.0e-05, 0.003494595616963837, 0.003129359901659287, 0.005136655537816977, 0.006062647285411555, 0.018914295691384225, 0.011942651396219254, 0.005906363254514079, 0.0005383200054504406, 0.022826761706098642, 0.005773938407999646, 4.861116820184194e-05, 0.001983325576127882, 0.0048611595377492526, 0.0371535634052039, 0.026391578717690673, 0.0015363251920121267]
+[0.004226792692725739, 0.021269823094957983, 0.010939133045965584, 0.19945064289985634, 0.00649792928262739, 0.001013741877896245, 0.0048742653328895475, 1.0e-05, 0.0019969156916502077, 0.020488197406720993, 0.0001052303033019805, 0.0012854098371261448, 0.0018531931139184657, 0.015050721669347615, 0.006033563986403702, 0.0007234588978425779, 0.007849032735758269, 0.04041633964099989, 0.01559341745616441, 0.7464452311031102, 0.025746231599144482, 0.0011205157275963628, 0.02796713644326968, 0.00301431021609591]
 
 # load simulation configuration
 conf = KUBETWIN::Configuration.load_from_file(ARGV[0])
 msc = sim_conf.microservice_types
 
-processing_time = encode_replicas_set(component_allocation, msc.keys.length)
+processing_time = encode_service_time_conf(component_allocation, msc.keys.length)
 
 if processing_time.nil?
   res = 1E+195
