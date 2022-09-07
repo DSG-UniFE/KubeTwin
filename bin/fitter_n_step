@@ -224,7 +224,7 @@ optimize_ms1_ms2 = lambda do |component_allocation|
       File.delete(bms2)
     end
 
-    puts "#{res}"
+    #puts "#{res}"
     -res
 end
 
@@ -238,7 +238,8 @@ solver_conf = {
     min: ([0.0, 1E-5, 1E-5] * ($n-1) + [1E-5, 1E-5]) * $n_ms,
     max: ([1.0, 0.08, 0.08] * ($n-1) + [0.08, 0.08]) * $n_ms,
   },
-  exit_condition: lambda {|gen, best | gen >= 100 },
+  # before was 80
+  exit_condition: lambda {|gen, best | gen >= 150 },
   log_level: :info,
 }
 
