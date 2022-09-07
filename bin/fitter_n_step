@@ -235,10 +235,10 @@ solver_conf = {
   #alpha: 0.2,
   logger: ga_logger,
   constraints: {
-    min: ([0.0, 0.0, 0.0] * ($n-1) + [0.0, 0.0]) * $n_ms,
-    max: ([1.0, 1.0, 1.0] * ($n-1) + [1.0, 1.0]) * $n_ms,
+    min: ([0.0, 1E-5, 1E-5] * ($n-1) + [1E-5, 1E-5]) * $n_ms,
+    max: ([1.0, 0.08, 0.08] * ($n-1) + [0.08, 0.08]) * $n_ms,
   },
-  exit_condition: lambda {|gen, best | gen >= 250 },
+  exit_condition: lambda {|gen, best | gen >= 100 },
   log_level: :info,
 }
 
@@ -297,8 +297,8 @@ e2e_conf = {
   #alpha: 0.6,
   logger: ga_logger,
   constraints: {
-    min: ([0.0, 0.0, 0.0] * ($n-1) + [0.0, 0.0]),
-    max: ([1.0, 1.0, 1.0] * ($n-1) + [1.0, 1.0]),
+    min: ([0.0, 1E-5, 1E-5] * ($n-1) + [1E-5, 1E-5]),
+    max: ([1.0, 0.05, 0.05] * ($n-1) + [0.5, 0.05]),
   },
   exit_condition: lambda {|gen, best | (gen >= 120 || best[:height] >= 0.050)},
   log_level: :info,
