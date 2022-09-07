@@ -190,14 +190,15 @@ to_optimize = lambda do |component_allocation|
         penalty += 100
       end
 
-      #begin
+      begin
         ks_e2e = stats.kstest(sim_ttr, k8s_ttr)
         ks_ms1 = stats.kstest(sim_ms1_ttr, ms1_ttr)
         ks_ms2 = stats.kstest(sim_ms2_ttr, ms2_ttr)
+
         res = 0.33 * ks_e2e.statistic.to_f + 0.33 * ks_ms1.statistic.to_f + 0.33 * ks_ms2.statistic.to_f
-      #rescue
+      rescue
         penalty += 100
-      #end
+      end
 
       File.delete(benchmark)
       File.delete(bms1)
@@ -216,11 +217,11 @@ solver_conf = {
   logger: :stdout,
   constraints: {
     min: 
-    ([0.0, 1E-5, 1E-5] * ($n-1) + [1E-5, 1E-5]) * ($n_ms-1),
+    ([0.0, 0.0, 0.0] * ($n-1) + [0.0, 0.0]) * ($n_ms-1),
     max: 
     ([1.0, 1.0, 1.0] * ($n-1) + [1.0, 1.0]) * ($n_ms-1),
   },
-  exit_condition: lambda {|gen, best | gen >= 500 },
+  exit_condition: lambda {|gen, best | gen >= 1500 },
   log_level: :info,
 }
 
