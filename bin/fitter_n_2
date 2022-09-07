@@ -164,13 +164,12 @@ to_optimize = lambda do |component_allocation|
     if processing_time.nil?
       penalty += 1E3
     else
-
       processing_time.each do |ms_name, ms_time_dist|
         # puts msc
         msc[ms_name][:service_time_distribution][:mec] = ms_time_dist
         # create a simulator and launch it
       end
-
+        
       sim = KUBETWIN::KSimulation.new(configuration: conf,
                                       evaluator: KUBETWIN::Evaluator.new(conf),
                                       results_dir: results_dirname)
@@ -191,21 +190,22 @@ to_optimize = lambda do |component_allocation|
         penalty += 100
       end
 
-      begin
+      #begin
         ks_e2e = stats.kstest(sim_ttr, k8s_ttr)
         ks_ms1 = stats.kstest(sim_ms1_ttr, ms1_ttr)
         ks_ms2 = stats.kstest(sim_ms2_ttr, ms2_ttr)
         res = 0.33 * ks_e2e.statistic.to_f + 0.33 * ks_ms1.statistic.to_f + 0.33 * ks_ms2.statistic.to_f
-      rescue
+      #rescue
         penalty += 100
-      end
-
-      res += penalty
+      #end
 
       File.delete(benchmark)
       File.delete(bms1)
       File.delete(bms2)
     end
+
+    res += penalty
+
     # puts "#{res}"
     -res
 end
