@@ -22,14 +22,16 @@ module KUBETWIN
   class KSimulation
 
     UNFEASIBLE_ALLOCATION_EVALUATION = { unfeasible_configuration: -Float::INFINITY }.freeze
-
     attr_reader :start_time
 
+    DEFAULT_NUM_REQS = 1000
 
     def initialize(opts = {})
       @configuration = opts[:configuration]
       @evaluator     = opts[:evaluator]
-      @results_dir   = opts[:results_dir]    
+      @results_dir   = opts[:results_dir]
+      @num_reqs      = opts[:num_reqs]
+      @num_reqs = DEFAULT_NUM_REQS if @num_reqs.nil?
       @results_dir += '/' unless @results_dir.nil?
       @benchmark = File.open("#{@results_dir}requests_log_#{Time.now.to_i}.csv", 'w')
       @benchmark << "rid,ttr\n"
@@ -506,8 +508,9 @@ module KUBETWIN
             end
 
             # schedule generation of next request
-            if @current_time < cooldown_treshold && stats.n < 1000
-              req_attrs = rg.generate(@current_time)   
+            # here we want also to cut the number of requests
+            if @current_time < cooldown_treshold && stats.n < @num_reqs
+              req_attrs = rg.generate(@current_time)
               new_event(Event::ET_REQUEST_GENERATION, req_attrs, req_attrs[:generation_time], nil)
             end
 
