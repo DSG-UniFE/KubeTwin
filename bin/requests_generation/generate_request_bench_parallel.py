@@ -51,8 +51,7 @@ if __name__ == '__main__':
     # It looks like we have to call close before join()
     # check if we can reuse the pool without closing it
 
-    pool = Pool(processes=20)
-    
+    pool = Pool(processes=int(rps))
     print(f'Target rps: {rps}')
 
     i = 0
@@ -65,8 +64,9 @@ if __name__ == '__main__':
     # here, we want to verify how many rps we sent
     # even if they are still in progress
     elapsed_time = time.time() - start
-    done_rps = elapsed_time / nreqs
-    print(f'Sent RPS: {rps}')
+    done_rps = nreqs / elapsed_time
+    
+    print(f'Sent RPS: {done_rps}')
 
     # wait for requests to be over
     pool.close()
