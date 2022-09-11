@@ -78,15 +78,15 @@ k8s_ttr = k8s_log.by_col[1].map(&:to_f) # get the ttr column
 # ms1 ttr
 k8s_ms1 = CSV.parse(File.read(ARGV[3]), headers: true)
 ms1_ttr = k8s_ms1.by_col[0].map(&:to_f) # get the ttr column
-puts "MS1: max: #{ms1_ttr.max} min: #{ms1_ttr.min}"
+puts "MS1: max: #{ms1_ttr.max} min: #{ms1_ttr.min} #{ms1_ttr.sum / ms1_ttr.length}"
 
 # ms2 ttr
 k8s_ms2 = CSV.parse(File.read(ARGV[4]), headers: true)
 ms2_ttr = k8s_ms2.by_col[0].map(&:to_f) # get the ttr column
 # ms2_ttr = ms2_ttr.select{|e| ! e.nil?}.collect {|e| e * 1E3}
-puts "MS2: max: #{ms2_ttr.max} min: #{ms2_ttr.min}"
+puts "MS2: max: #{ms2_ttr.max} min: #{ms2_ttr.min} #{ms2_ttr.sum / ms2_ttr.length}"
 
-puts "TTR: max: #{k8s_ttr.max} min: #{k8s_ttr.min}"
+puts "TTR: max: #{k8s_ttr.max} min: #{k8s_ttr.min} mean: #{k8s_ttr.sum / k8s_ttr.length}"
 
 
 $microservice_types = sim_conf.microservice_types
@@ -143,8 +143,13 @@ res = 0
 
 
 component_allocation = 
+[0.04932829667868047, 0.007390945404034557, 0.0008308023633286156, 0.02458540130926296, 0.00322296141816395, 0.0012528021985325549, 
+  0.006833316316521813, 0.001451463764516268, 0.010227124178935856, 0.00030469215059061893, 0.001067224375498713, 0.007435011420957829, 
+  0.015664717202479386, 0.01193071603509299, 0.0059312816229835155, 0.0005747817708497177, 0.3915737944063387, 0.02552249166978343, 
+  0.0007087773452109161, 0.3464275625267521, 0.026882998142091424, 0.002089216796529277, 0.04129928418197162, 0.00044897345444040444]
+=begin
 [0.004226792692725739, 0.021269823094957983, 0.010939133045965584, 0.19945064289985634, 0.00649792928262739, 0.001013741877896245, 0.0048742653328895475, 1.0e-05, 0.0019969156916502077, 0.020488197406720993, 0.0001052303033019805, 0.0012854098371261448, 0.0018531931139184657, 0.015050721669347615, 0.006033563986403702, 0.0007234588978425779, 0.007849032735758269, 0.04041633964099989, 0.01559341745616441, 0.7464452311031102, 0.025746231599144482, 0.0011205157275963628, 0.02796713644326968, 0.00301431021609591]
-
+=end
 # load simulation configuration
 conf = KUBETWIN::Configuration.load_from_file(ARGV[0])
 msc = sim_conf.microservice_types
