@@ -178,8 +178,15 @@ to_optimize = lambda do |component_allocation|
         # puts "wilcoxon #{w_e2e}"
         ev = k8s_ttr.length * (k8s_ttr.length + sim_ttr.length - 1) / 2.0
         #puts ev
-        
-        res = (w_e2e.statistic.to_f - ev).abs
+
+        if w_e2e.pvalue.to_f > 0.05
+          puts "W statistic: #{w_e2e.statistic.to_f} pvalue: #{w_e2e.pvalue.to_f} ev: #{ev} #{(w_e2e.statistic.to_f - ev).abs}" 
+          # penalty += 1E7 if sim_ttr.min < k8s_ttr.min / 2 || sim_ttr.max > k8s_ttr.max / 2
+          res = (w_e2e.statistic.to_f - ev).abs
+        else
+          penalty += 1E8
+        end
+
 
         #penalty += 10 if ks_e2e.pvalue.to_f < 0.05
 
@@ -211,11 +218,11 @@ solver_conf = {
   swarm_size: 50,
   logger: :stdout,
   constraints: {
-    min: ([0.0, 1E-5, 1E-5] * ($n-1) + [1E-5, 1E-5]) * $n_ms,
+    min: ([0.0, 1E-3, 1E-3] * ($n-1) + [1E-3, 1E-3]) * $n_ms,
     max: #([1.0, 0.05, 0.05] * ($n-1) + [0.05, 0.05]) + if we model k8s time
     ([1.0, 0.10, 0.10] * ($n-1) + [0.10, 0.10]) *$n_ms, # * ($n_ms -1)for k8s_time
   },
-  exit_condition: lambda {|gen, best | gen >= 300 },
+  exit_condition: lambda {|gen, best | gen >= 500 },
   log_level: :info,
 }
 
