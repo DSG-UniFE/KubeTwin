@@ -141,7 +141,7 @@ to_optimize = lambda do |component_allocation|
     processing_time = encode_service_time_conf(component_allocation, msc.keys.length)
     
     if processing_time.nil?
-      penalty += 1E8
+      penalty += Float::INFINITY
     else
       processing_time.each do |ms_name, ms_time_dist|
         # puts msc
@@ -166,42 +166,52 @@ to_optimize = lambda do |component_allocation|
       sim_ms2_ttr = ms2_log.by_col[1].map(&:to_f)
 
       if sim_ttr.length < (k8s_ttr.length / 2) ||  sim_ttr.length > (k8s_ttr.length * 3 / 2.to_f)
-        penalty += 1E8
-      end
+        penalty += Float::INFINITY
+      else
+        begin
+          ks_e2e = stats.kstest(sim_ttr, k8s_ttr)
+          #ks_ms1 = stats.kstest(sim_ms1_ttr, ms1_ttr)
+          #ks_ms2 = stats.kstest(sim_ms2_ttr, ms2_ttr)
 
-      begin
-        ks_e2e = stats.kstest(sim_ttr, k8s_ttr)
-        #ks_ms1 = stats.kstest(sim_ms1_ttr, ms1_ttr)
-        #ks_ms2 = stats.kstest(sim_ms2_ttr, ms2_ttr)
-        
-        w_e2e = stats.wilcoxon(k8s_ttr, sim_ttr)
-        # puts "wilcoxon #{w_e2e}"
-        ev = k8s_ttr.length * (k8s_ttr.length + sim_ttr.length - 1) / 2.0
-        #puts ev
+          if k8s_ttr.length != sim_ttr.length
+            pop_data = [k8s_ttr.length, sim_ttr.length].min
+          else
+            pop_data = k8s_ttr.length
+          end
+          w_e2e = stats.wilcoxon(k8s_ttr[0, pop_data], sim_ttr[0, pop_data])
 
-        if w_e2e.pvalue.to_f > 0.05
-          puts "W statistic: #{w_e2e.statistic.to_f} pvalue: #{w_e2e.pvalue.to_f} ev: #{ev} #{(w_e2e.statistic.to_f - ev).abs}" 
-          # penalty += 1E7 if sim_ttr.min < k8s_ttr.min / 2 || sim_ttr.max > k8s_ttr.max / 2
+          ev = k8s_ttr.length * (k8s_ttr.length + sim_ttr.length - 1) / 2.0
+
+          if w_e2e.pvalue.to_f >= 0.05
+            puts "W statistic: #{w_e2e.statistic.to_f} pvalue: #{w_e2e.pvalue.to_f} ev: #{ev} #{(w_e2e.statistic.to_f - ev).abs}" 
+          end
+
           res = (w_e2e.statistic.to_f - ev).abs
-        else
-          penalty += 1E8
+
+          ev_ms1 = ms1_ttr.length * (ms1_ttr.length + sim_ms1_ttr.length - 1) / 2.0
+          ev_ms2 = ms2_ttr.length * (ms2_ttr.length + sim_ms2_ttr.length - 1) / 2.0
+
+
+          w_ms1 = stats.wilcoxon(ms1_ttr[0, pop_data], sim_ms1_ttr[0, pop_data])
+          w_ms2 = stats.wilcoxon(ms2_ttr[0, pop_data], sim_ms2_ttr[0, pop_data])
+
+          res += (w_ms1.statistic.to_f - ev_ms1).abs + (w_ms2.statistic.to_f - ev_ms2).abs
+
+          #penalty += 10 if ks_e2e.pvalue.to_f < 0.05
+
+          #penalty += 10 if ks_ms1.pvalue.to_f < 0.05
+
+          #penalty += 10 if ks_ms2.pvalue.to_f < 0.05
+
+          # 0.33 we assign an equal weight to each component 
+          # minimizing the ks-test would reduce the statistical distance between the two    
+
+          #res = 0.33 * ks_e2e.statistic.to_f + 0.33 * ks_ms1.statistic.to_f + 0.33 * ks_ms2.statistic.to_f
+        rescue => e
+          puts("Rescued execption #{e}")
+          penalty += Float::INFINITY
         end
-
-
-        #penalty += 10 if ks_e2e.pvalue.to_f < 0.05
-
-        #penalty += 10 if ks_ms1.pvalue.to_f < 0.05
-
-        #penalty += 10 if ks_ms2.pvalue.to_f < 0.05
-
-        # 0.33 we assign an equal weight to each component 
-        # minimizing the ks-test would reduce the statistical distance between the two    
-
-        #res = 0.33 * ks_e2e.statistic.to_f + 0.33 * ks_ms1.statistic.to_f + 0.33 * ks_ms2.statistic.to_f
-      rescue
-        penalty += 1E8
       end
-
       File.delete(benchmark)
       File.delete(bms1)
       File.delete(bms2)
@@ -225,15 +235,6 @@ solver_conf = {
   exit_condition: lambda {|gen, best | gen >= 500 },
   log_level: :info,
 }
-
-=begin
-# backup configuration
-    min: 
-    ([0.0, 0.0, 0.0] * ($n-1) + [0.0, 0.0]) * ($n_ms-1),
-    max: 
-    ([1.0, 1.0, 1.0] * ($n-1) + [1.0, 1.0]) * ($n_ms-1),
-  },
-=end
 
 #solver = MHL::MultiSwarmQPSOSolver.new(solver_conf)
 
