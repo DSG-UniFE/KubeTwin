@@ -159,54 +159,55 @@ to_optimize = lambda do |component_allocation|
       sim_log = CSV.parse(File.read(benchmark), headers: true)
       sim_ttr = sim_log.by_col[1].map(&:to_f)
 
-      ms1_log = CSV.parse(File.read(bms1), headers: true)
-      sim_ms1_ttr = ms1_log.by_col[1].map(&:to_f)
+      #ms1_log = CSV.parse(File.read(bms1), headers: true)
+      #sim_ms1_ttr = ms1_log.by_col[1].map(&:to_f)
 
-      ms2_log = CSV.parse(File.read(bms2), headers: true)
-      sim_ms2_ttr = ms2_log.by_col[1].map(&:to_f)
+      #ms2_log = CSV.parse(File.read(bms2), headers: true)
+      #sim_ms2_ttr = ms2_log.by_col[1].map(&:to_f)
 
-      if sim_ttr.length < (k8s_ttr.length / 2) ||  sim_ttr.length > (k8s_ttr.length * 3 / 2.to_f)
+      #if sim_ttr.length < (k8s_ttr.length / 2) ||  sim_ttr.length > (k8s_ttr.length * 3 / 2.to_f)
+      if sim_ttr.length != k8s_ttr.length
         penalty += Float::INFINITY
       else
         begin
-          ks_e2e = stats.kstest(sim_ttr, k8s_ttr)
-          #ks_ms1 = stats.kstest(sim_ms1_ttr, ms1_ttr)
-          #ks_ms2 = stats.kstest(sim_ms2_ttr, ms2_ttr)
 
+=begin
           if k8s_ttr.length != sim_ttr.length
             pop_data = [k8s_ttr.length, sim_ttr.length].min
           else
             pop_data = k8s_ttr.length
           end
-          w_e2e = stats.wilcoxon(k8s_ttr[0, pop_data], sim_ttr[0, pop_data])
+=end
+#[0, pop_data]
+
+          w_e2e = stats.wilcoxon(k8s_ttr, sim_ttr)
 
           ev = k8s_ttr.length * (k8s_ttr.length + sim_ttr.length - 1) / 2.0
 
           if w_e2e.pvalue.to_f >= 0.05
-            puts "W statistic: #{w_e2e.statistic.to_f} pvalue: #{w_e2e.pvalue.to_f} ev: #{ev} #{(w_e2e.statistic.to_f - ev).abs}" 
+            puts "Reqs: #{sim_ttr.length} W statistic: #{w_e2e.statistic.to_f} pvalue: #{w_e2e.pvalue.to_f} ev: #{ev} #{(w_e2e.statistic.to_f - ev).abs}" 
+            res = (w_e2e.statistic.to_f - ev).abs
+          else 
+            penalty += Float::INFINITY
           end
 
-          res = (w_e2e.statistic.to_f - ev).abs
 
+=begin
+          # W for ms1 and ms2?
           ev_ms1 = ms1_ttr.length * (ms1_ttr.length + sim_ms1_ttr.length - 1) / 2.0
           ev_ms2 = ms2_ttr.length * (ms2_ttr.length + sim_ms2_ttr.length - 1) / 2.0
-
-
           w_ms1 = stats.wilcoxon(ms1_ttr[0, pop_data], sim_ms1_ttr[0, pop_data])
           w_ms2 = stats.wilcoxon(ms2_ttr[0, pop_data], sim_ms2_ttr[0, pop_data])
-
+          # just some print here
+          if w_ms1.pvalue.to_f >= 0.05
+            puts "WMS1 statistic: #{w_ms1.statistic.to_f} pvalue: #{w_ms1.pvalue.to_f} ev: #{ev} #{(w_ms1.statistic.to_f - ev_ms1s).abs}" 
+          end
+          if w_ms2.pvalue.to_f >= 0.05
+            puts "WMS2 statistic: #{w_ms2.statistic.to_f} pvalue: #{w_ms2.pvalue.to_f} ev: #{ev} #{(w_ms2.statistic.to_f - ev_ms2).abs}" 
+          end
+          # missing weights
           res += (w_ms1.statistic.to_f - ev_ms1).abs + (w_ms2.statistic.to_f - ev_ms2).abs
-
-          #penalty += 10 if ks_e2e.pvalue.to_f < 0.05
-
-          #penalty += 10 if ks_ms1.pvalue.to_f < 0.05
-
-          #penalty += 10 if ks_ms2.pvalue.to_f < 0.05
-
-          # 0.33 we assign an equal weight to each component 
-          # minimizing the ks-test would reduce the statistical distance between the two    
-
-          #res = 0.33 * ks_e2e.statistic.to_f + 0.33 * ks_ms1.statistic.to_f + 0.33 * ks_ms2.statistic.to_f
+=end
         rescue => e
           puts("Rescued execption #{e}")
           penalty += Float::INFINITY
