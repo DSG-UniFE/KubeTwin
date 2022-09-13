@@ -46,7 +46,6 @@ if __name__ == '__main__':
     res_name = res_file.name
     res_file.close()
 
-
     # create Pool
     # It looks like we have to call close before join()
     # check if we can reuse the pool without closing it

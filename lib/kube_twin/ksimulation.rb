@@ -699,7 +699,7 @@ module KUBETWIN
          #puts "Allocation -- #{c.name} Pods: #{pods}"
       end
 
-=begin
+
      puts "====== Evaluating new allocation ======\n" +
           # "costs: #{costs}\n" +
            "stats: #{stats.to_s}\n" +
@@ -708,7 +708,7 @@ module KUBETWIN
            "allocation_map: #{allocation_map}\n" +
            "=======================================\n"
       # debug info here
-=end
+
       # we want to minimize the cost, so we define fitness as the opposite of
       # the sum of all costs incurred
       # -costs.values.inject(0.0){|s,x| s += x }

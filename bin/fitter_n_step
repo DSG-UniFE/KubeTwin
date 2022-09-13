@@ -231,7 +231,8 @@ end
 
 
 solver_conf = {
-  swarm_size: 80,
+  num_swarms: 6,
+  swarm_size: 40,
   #alpha: 0.2,
   logger: ga_logger,
   constraints: {
@@ -243,7 +244,7 @@ solver_conf = {
   log_level: :info,
 }
 
-solver = MHL::QuantumPSOSolver.new(solver_conf)
+solver = MHL::MultiSwarmQPSOSolver.new(solver_conf)
 $best = solver.solve(optimize_ms1_ms2, {concurrent: false})
 
 puts $best
@@ -294,6 +295,7 @@ optimize_e2e = lambda do |component_allocation|
 end
 
 e2e_conf = {
+  num_swarms: 6,
   swarm_size: 40,
   #alpha: 0.6,
   logger: ga_logger,
@@ -305,7 +307,7 @@ e2e_conf = {
   log_level: :info,
 }
 
-solver_e2e = MHL::QuantumPSOSolver.new(e2e_conf)
+solver_e2e = MHL::MultiSwarmQPSOSolver.new(e2e_conf)
 best_e2e = solver_e2e.solve(optimize_e2e, {concurrent: false})
 
 puts best_e2e

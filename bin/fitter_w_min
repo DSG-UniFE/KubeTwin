@@ -193,7 +193,7 @@ to_optimize = lambda do |component_allocation|
           #  penalty += Float::INFINITY
           end
 
-          res = (w_e2e.statistic.to_f - ev).abs
+          #res = (w_e2e.statistic.to_f - ev).abs
 
           # W for ms1 and ms2?
           ev_ms1 = ms1_ttr.length * (ms1_ttr.length + sim_ms1_ttr.length - 1) / 2.0
