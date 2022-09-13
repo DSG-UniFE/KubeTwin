@@ -195,23 +195,24 @@ to_optimize = lambda do |component_allocation|
 
           res = (w_e2e.statistic.to_f - ev).abs
 
-
-=begin
           # W for ms1 and ms2?
           ev_ms1 = ms1_ttr.length * (ms1_ttr.length + sim_ms1_ttr.length - 1) / 2.0
           ev_ms2 = ms2_ttr.length * (ms2_ttr.length + sim_ms2_ttr.length - 1) / 2.0
+
+          # historical data on ms1 and ms2 is lower than 1000
+          pop_data = [ms1_ttr.length, sim_ms1_ttr.length].min
           w_ms1 = stats.wilcoxon(ms1_ttr[0, pop_data], sim_ms1_ttr[0, pop_data])
           w_ms2 = stats.wilcoxon(ms2_ttr[0, pop_data], sim_ms2_ttr[0, pop_data])
+
           # just some print here
           if w_ms1.pvalue.to_f >= 0.05
-            puts "WMS1 statistic: #{w_ms1.statistic.to_f} pvalue: #{w_ms1.pvalue.to_f} ev: #{ev} #{(w_ms1.statistic.to_f - ev_ms1s).abs}" 
+            puts "WMS1 statistic: #{w_ms1.statistic.to_f} pvalue: #{w_ms1.pvalue.to_f} ev: #{ev} #{(w_ms1.statistic.to_f - ev_ms1).abs}" 
           end
           if w_ms2.pvalue.to_f >= 0.05
             puts "WMS2 statistic: #{w_ms2.statistic.to_f} pvalue: #{w_ms2.pvalue.to_f} ev: #{ev} #{(w_ms2.statistic.to_f - ev_ms2).abs}" 
           end
           # missing weights
           res += (w_ms1.statistic.to_f - ev_ms1).abs + (w_ms2.statistic.to_f - ev_ms2).abs
-=end
         rescue => e
           puts("Rescued execption #{e}")
           penalty += Float::INFINITY
@@ -236,7 +237,7 @@ solver_conf = {
     max: #([1.0, 0.05, 0.05] * ($n-1) + [0.05, 0.05]) + if we model k8s time
     ([1.0, 0.10, 0.10] * ($n-1) + [0.10, 0.10]) *$n_ms, # * ($n_ms -1)for k8s_time
   },
-  exit_condition: lambda {|gen, best | gen >= 800 },
+  exit_condition: lambda {|gen, best | gen >= 250  },
   log_level: :info,
 }
 
