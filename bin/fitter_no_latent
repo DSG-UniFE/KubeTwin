@@ -1,0 +1,370 @@
+#!/usr/bin/env ruby
+
+begin
+  require 'kube_twin'
+  require 'mhl'
+  require 'logger'
+  require 'pycall'
+  require 'pycall/import'
+  include PyCall::Import
+  require 'csv'
+rescue LoadError
+  require 'rubygems'
+  require 'kube_twin'
+  require 'mhl'
+end
+
+def do_abort(message)
+    abort <<-EOS.gsub(/^\s+\|/, '')
+      |#{message}
+      |
+      |Usage:
+      |    #{File.basename(__FILE__)} simulator_config_file testbed_file n
+      |
+    EOS
+  end
+
+if ARGV.length < 3
+  do_abort("Uncompleted parameters")
+end
+  
+  
+if File.expand_path(__FILE__) == File.expand_path($0)
+    # make sure both required arguments were given
+    case ARGV.size
+    when 0 then
+      do_abort("Missing simulator configuration files!")
+    end
+  
+    # make sure simulator config file exists
+    unless File.exists? ARGV[0]
+      do_abort("Invalid simulator configuration file!")
+    end
+end
+
+unless File.exists? ARGV[1]
+  do_abort("Invalid dataset log")
+end
+
+$n = ARGV[2].to_i
+
+# GMM with at least 3 components
+#raise "GMM components should be greater than 3" if $n < 3
+
+$params = $n * 3 - 1 # weight mu sigma for each component
+# - 1 --> array indexes start from 0
+
+puts "n #{$n} params #{$params}"
+
+# pycall import
+pyfrom :scipy, import: :stats
+PyCall.import_module("numpy")
+
+# here run the optimizer on the oracle
+# load simulation configuration
+time = Time.now.strftime('%Y%m%d%H%M%S')
+
+GA_LOG = "fitter_log_ms1_ms2_#{time}_#{$n}.log"
+
+
+File.delete(GA_LOG) if File.exist?(GA_LOG)
+ga_logger = Logger.new(GA_LOG)
+ga_logger.level = Logger::INFO
+
+sim_conf = KUBETWIN::Configuration.load_from_file(ARGV[0])
+msc = sim_conf.microservice_types
+
+# open the log only once
+k8s_log = CSV.parse(File.read(ARGV[1]), headers: true)
+k8s_ttr = k8s_log.by_col[1].map(&:to_f) # get the ttr column
+
+# ms1 ttr
+k8s_ms1 = CSV.parse(File.read(ARGV[3]), headers: true)
+ms1_ttr = k8s_ms1.by_col[0].map(&:to_f) # get the ttr column
+puts "MS1: #{ms1_ttr.length} #{ms1_ttr.max} #{ms1_ttr.min}"
+
+
+# ms2 ttr
+k8s_ms2 = CSV.parse(File.read(ARGV[4]), headers: true)
+ms2_ttr = k8s_ms2.by_col[0].map(&:to_f) # get the ttr column
+# ms2_ttr = ms2_ttr.select{|e| ! e.nil?}.collect {|e| e * 1E3}
+puts "MS2: #{ms2_ttr.length} #{ms2_ttr.max} #{ms2_ttr.min}"
+
+puts "TTR: #{k8s_ttr.length} #{k8s_ttr.max} #{k8s_ttr.min}"
+
+
+$microservice_types = sim_conf.microservice_types
+$n_ms = $microservice_types.length
+
+puts "Number of microservices #{$n_ms}"
+
+$seed = 12345
+
+def encode_service_time_conf(x, n_ms)
+
+  # for each micro-servce
+  config = {}
+
+  #puts "x:#{x}"
+
+  x.each_slice($params).to_a.each_with_index do |ms, msi|
+
+    #puts "Microservice: #{msi}"
+    #puts "Microservice: #{ms}"
+    #msi_istart = msi
+    #msi_iend = msi * $params - $n # n is the number of component for the GMM
+
+    w_last = 1
+    (0..($params - 3)).select {|pi| pi % 3 == 0}.each do |p| 
+      w_last -= ms[p]
+    end
+
+    # w_last = 0 if w_last < 0 # reject negative probabilities  
+    # or normalize the sum of tha absolute values to 1?
+    return nil if w_last < 0
+
+    #puts "ms gmm parameters: #{ms}"
+    # clone the component allocation
+    y = ms.clone
+    y.insert($params - 2, w_last)
+    # add w_last in its position
+    #puts "y gmm parameters: #{y}"
+
+    #puts $microservice_types
+    microservice_name = $microservice_types.keys[msi]
+    #puts "msn #{microservice_name}"
+    config[microservice_name] = { distribution: :mixture, args: 
+      ERV::GaussianMixtureHelper.RawParametersToMixtureArgsSeed(*y, $seed)
+    }
+    
+     #puts config
+  end
+  config
+end
+
+
+def encode_ms1_conf(x, partial_conf, n_ms)
+
+  p_conf = encode_service_time_conf(partial_conf, n_ms)
+  # then Kubernetes internal times
+  y = x.clone
+  y = y[0..$params]
+
+  w_last = 1
+  (0..($params - 3)).select {|pi| pi % 3 == 0}.each do |p| 
+    w_last -= y[p]
+  end
+
+  y.insert($params - 2, w_last)
+
+  #puts "#{w_last}\n#{x}\n#{y}"
+
+  return nil if w_last < 0
+  
+  microservice_name = $microservice_types.keys.first # ms1 is the first
+
+  p_conf[microservice_name] = { distribution: :mixture, args: 
+    ERV::GaussianMixtureHelper.RawParametersToMixtureArgsSeed(*y, $seed)
+  }
+
+  p_conf
+end
+
+
+optimize_ms1 = lambda do |component_allocation|
+    res = 0
+    conf = KUBETWIN::Configuration.load_from_file(ARGV[0])
+    msc = sim_conf.microservice_types
+    processing_time = encode_service_time_conf(component_allocation, msc.keys.length)
+    
+    if processing_time.nil?
+      res = 1E+195
+    else
+      processing_time.each do |ms_name, ms_time_dist|
+        # puts msc
+        msc[ms_name][:service_time_distribution][:mec] = ms_time_dist
+        # create a simulator and launch it
+      end
+
+      sim = KUBETWIN::KSimulation.new(configuration: conf,
+                                  evaluator: KUBETWIN::Evaluator.new(conf))
+      benchmark, bms1, bms2 = sim.evaluate_allocation(nil, nil, msc)
+
+      # evaluate bench here
+      sim_log = CSV.parse(File.read(benchmark), headers: true)
+      sim_ttr = sim_log.by_col[1].map(&:to_f)
+      
+      ms1_log = CSV.parse(File.read(bms1), headers: true)
+      sim_ms1_ttr = ms1_log.by_col[1].map(&:to_f)
+
+      if sim_ttr.length < (k8s_ttr.length / 2) ||  sim_ttr.length > (k8s_ttr.length * 3 / 2.to_f)
+        res = 1E+195
+      else
+
+        ks_ms1 = stats.kstest(sim_ms1_ttr, ms1_ttr)
+
+        res = ks_ms1.statistic.to_f
+  
+      end
+      File.delete(benchmark)
+      File.delete(bms1)
+      File.delete(bms2)
+    end
+
+    #puts "#{res}"
+    -res
+end
+
+
+
+solver_conf = {
+  num_swarms: 6,
+  swarm_size: 40,
+  #alpha: 0.2,
+  logger: ga_logger,
+  constraints: {
+    min: ([0.0, 1E-5, 1E-5] * ($n-1) + [1E-5, 1E-5]) * $n_ms,
+    max: ([1.0, 0.10, 0.10] * ($n-1) + [0.10, 0.10]) * $n_ms,
+  },
+  # before was 80
+  exit_condition: lambda {|gen, best | gen >= 150 },
+  log_level: :info,
+}
+
+solver = MHL::QuantumPSOSolver.new(solver_conf)
+$best = solver.solve(optimize_ms1_ms2, {concurrent: false})
+
+puts $best
+
+optimize_ms2 = lambda do |component_allocation|
+
+  res = 0
+
+  # load simulation configuration
+  conf = KUBETWIN::Configuration.load_from_file(ARGV[0])
+  msc = sim_conf.microservice_types
+  processing_time = encode_ms1_conf(component_allocation, $best[:position], msc.keys.length)
+  
+  if processing_time.nil?
+    res = 1E+195
+  else
+
+    processing_time.each do |ms_name, ms_time_dist|
+      # puts msc
+      msc[ms_name][:service_time_distribution][:mec] = ms_time_dist
+      # create a simulator and launch it
+    end
+
+    #puts msc
+
+    sim = KUBETWIN::KSimulation.new(configuration: conf,
+                                evaluator: KUBETWIN::Evaluator.new(conf))
+    benchmark, bms1, bms2 = sim.evaluate_allocation(nil, nil, msc)
+
+    # evaluate bench here
+
+    sim_log = CSV.parse(File.read(benchmark), headers: true)
+    sim_ttr = sim_log.by_col[1].map(&:to_f)
+
+    if sim_ttr.length < (k8s_ttr.length / 2) ||  sim_ttr.length > (k8s_ttr.length * 3 / 2.to_f)
+      res = 1E+195
+    else
+      ks_e2e = stats.kstest(sim_ttr, k8s_ttr)
+      res = ks_e2e.statistic.to_f 
+      puts "sim: #{ks_e2e}"
+    end
+    File.delete(benchmark)
+    File.delete(bms1)
+    File.delete(bms2)
+  end
+  # puts "#{res}"
+  -res
+end
+
+e2e_conf = {
+  num_swarms: 6,
+  swarm_size: 40,
+  #alpha: 0.6,
+  logger: ga_logger,
+  constraints: {
+    min: ([0.0, 1E-5, 1E-5] * ($n-1) + [1E-5, 1E-5]),
+    max: ([1.0, 0.10, 0.10] * ($n-1) + [0.10, 0.10])
+  },
+  exit_condition: lambda {|gen, best | (gen >= 120 || best[:height] >= 0.050)},
+  log_level: :info,
+}
+
+solver_e2e = MHL::QuantumPSOSolver.new(e2e_conf)
+best_e2e = solver_e2e.solve(optimize_e2e, {concurrent: false})
+
+puts best_e2e
+
+# merge configuration here
+all_conf = best_e2e[:position] + $best[:position][$params..]
+
+puts "Best: #{all_conf}"
+
+to_bench = lambda do |component_allocation|
+
+  res = 0
+  # load simulation configuration
+  conf = KUBETWIN::Configuration.load_from_file(ARGV[0])
+  msc = sim_conf.microservice_types
+  processing_time = encode_service_time_conf(component_allocation, msc.keys.length)
+  
+  if processing_time.nil?
+    res = 1E+195
+  else
+
+    processing_time.each do |ms_name, ms_time_dist|
+      msc[ms_name][:service_time_distribution][:mec] = ms_time_dist
+    end
+
+    #puts msc
+
+    sim = KUBETWIN::KSimulation.new(configuration: conf,
+                                evaluator: KUBETWIN::Evaluator.new(conf))
+    benchmark, bms1, bms2 = sim.evaluate_allocation(nil, nil, msc)
+
+    # evaluate bench here
+
+    sim_log = CSV.parse(File.read(benchmark), headers: true)
+    sim_ttr = sim_log.by_col[1].map(&:to_f)
+
+    ms1_log = CSV.parse(File.read(bms1), headers: true)
+    sim_ms1_ttr = ms1_log.by_col[1].map(&:to_f)
+
+    ms2_log = CSV.parse(File.read(bms2), headers: true)
+    sim_ms2_ttr = ms2_log.by_col[1].map(&:to_f)
+
+    if sim_ttr.length < (k8s_ttr.length / 2) ||  sim_ttr.length > (k8s_ttr.length * 3 / 2.to_f)
+      res = 1E+195
+    else
+      ks_e2e = stats.kstest(sim_ttr, k8s_ttr)
+
+      #ks_ms1 = stats.kstest(sim_ms1_ttr, ms1_ttr)
+      #ks_ms2 = stats.kstest(sim_ms2_ttr, ms2_ttr)
+      tt_ms1 = stats.ttest_ind(sim_ms1_ttr, ms1_ttr)
+      tt_ms2 = stats.ttest_ind(sim_ms2_ttr, ms2_ttr)
+
+      penalty = 0
+      penalty += 100 if tt_ms1.pvalue.to_f < 0.05 # ms1
+      penalty += 100 if tt_ms2.pvalue.to_f < 0.05 # ms2
+
+      penalty += 50 if ks_e2e.pvalue.to_f < 0.05
+
+
+      res = ks_e2e.statistic.to_f + penalty
+      #res = 0.33 * ks_e2e.statistic.to_f + 0.33 * ks_ms1.statistic.to_f + 0.33 * ks_ms2.statistic.to_f
+      puts "sim: #{ks_e2e}, ms1: #{tt_ms1}, ms2: #{tt_ms2}, reqs: #{sim_ttr.length}, res: #{res}"
+    end
+  end
+
+  -res
+end
+
+to_bench.call(all_conf)
+
+puts "exiting"
+exit 0
+
