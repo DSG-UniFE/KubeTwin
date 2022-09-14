@@ -60,12 +60,11 @@ puts "n #{$n} params #{$params}"
 pyfrom :scipy, import: :stats
 PyCall.import_module("numpy")
 
-# here run the optimizer on the oracle
 # load simulation configuration
 time = Time.now.strftime('%Y%m%d%H%M%S')
 results_dirname = "#{time}_results"
-# create directory if it does not exist
 
+# create an output directory if it does not exist
 Dir.mkdir(results_dirname) unless File.exist?(results_dirname)
 
 GA_LOG = "#{results_dirname}/fitter_log_#{time}_#{$n}.log"
@@ -86,13 +85,12 @@ k8s_ms1 = CSV.parse(File.read(ARGV[3]), headers: true)
 ms1_ttr = k8s_ms1.by_col[0].map(&:to_f) # get the ttr column
 puts "MS1: #{ms1_ttr.length} #{ms1_ttr.max} #{ms1_ttr.min}"
 
-
 # ms2 ttr
 k8s_ms2 = CSV.parse(File.read(ARGV[4]), headers: true)
 ms2_ttr = k8s_ms2.by_col[0].map(&:to_f) # get the ttr column
 # ms2_ttr = ms2_ttr.select{|e| ! e.nil?}.collect {|e| e * 1E3}
-puts "MS2: #{ms2_ttr.length} #{ms2_ttr.max} #{ms2_ttr.min}"
 
+puts "MS2: #{ms2_ttr.length} #{ms2_ttr.max} #{ms2_ttr.min}"
 puts "TTR: #{k8s_ttr.length} #{k8s_ttr.max} #{k8s_ttr.min}"
 
 
@@ -193,7 +191,7 @@ to_optimize = lambda do |component_allocation|
           #  penalty += Float::INFINITY
           end
 
-          #res = (w_e2e.statistic.to_f - ev).abs
+          res = (w_e2e.statistic.to_f - ev).abs
 
           # W for ms1 and ms2?
           ev_ms1 = ms1_ttr.length * (ms1_ttr.length + sim_ms1_ttr.length - 1) / 2.0
@@ -241,8 +239,6 @@ solver_conf = {
   log_level: :info,
 }
 
-#solver = MHL::MultiSwarmQPSOSolver.new(solver_conf)
-
 solver = MHL::QuantumPSOSolver.new(solver_conf)
 best = solver.solve(to_optimize, {concurrent: false})
 
@@ -259,10 +255,11 @@ to_bench = lambda do |component_allocation|
   if processing_time.nil?
     res = 1E+195
   else
-
     processing_time.each do |ms_name, ms_time_dist|
       msc[ms_name][:service_time_distribution][:mec] = ms_time_dist
     end
+
+    puts "#{msc}"
 
     sim = KUBETWIN::KSimulation.new(configuration: conf,
                                 evaluator: KUBETWIN::Evaluator.new(conf),
