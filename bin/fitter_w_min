@@ -180,12 +180,13 @@ to_optimize = lambda do |component_allocation|
         penalty += Float::INFINITY
       else
         begin
-
           w_e2e = stats.wilcoxon(k8s_ttr, sim_ttr)
+          # puts "#{w_e2e}"
           ev = k8s_ttr.length * (k8s_ttr.length + sim_ttr.length - 1) / 2.0
 
           if w_e2e.pvalue.to_f >= 0.05
             puts "Reqs: #{sim_ttr.length} W statistic: #{w_e2e.statistic.to_f} pvalue: #{w_e2e.pvalue.to_f} ev: #{ev} #{(w_e2e.statistic.to_f - ev).abs}" 
+            puts "Mean: #{sim_ttr.sum /  sim_ttr.length}"
             #res = (w_e2e.statistic.to_f - ev).abs
           #else 
           #  penalty += Float::INFINITY
@@ -222,7 +223,7 @@ to_optimize = lambda do |component_allocation|
     end
 
     res += penalty
-
+    #puts "#{res}"
     -res
 end
 
@@ -232,10 +233,9 @@ solver_conf = {
   logger: ga_logger,
   constraints: {
     min: ([0.0, 1E-3, 1E-3] * ($n-1) + [1E-3, 1E-3]) * $n_ms,
-    max: #([1.0, 0.05, 0.05] * ($n-1) + [0.05, 0.05]) + if we model k8s time
-    ([1.0, 0.10, 0.10] * ($n-1) + [0.10, 0.10]) *$n_ms, # * ($n_ms -1)for k8s_time
+    max: ([1.0, 0.10, 0.10] * ($n-1) + [0.10, 0.10]) *$n_ms,
   },
-  exit_condition: lambda {|gen, best | gen >= 250  },
+  exit_condition: lambda {|gen, best | gen >= 100  },
   log_level: :info,
 }
 

@@ -63,8 +63,12 @@ PyCall.import_module("numpy")
 # here run the optimizer on the oracle
 # load simulation configuration
 time = Time.now.strftime('%Y%m%d%H%M%S')
+results_dirname = "#{time}_results"
 
-GA_LOG = "fitter_log_ms1_ms2_#{time}_#{$n}.log"
+# create an output directory if it does not exist
+Dir.mkdir(results_dirname) unless File.exist?(results_dirname)
+
+GA_LOG = "#{results_dirname}/fitter_log_#{time}_#{$n}.log"
 
 
 File.delete(GA_LOG) if File.exist?(GA_LOG)
@@ -171,7 +175,7 @@ def encode_ms1_conf(x, partial_conf, n_ms)
 end
 
 
-optimize_ms1 = lambda do |component_allocation|
+optimize_ms2 = lambda do |component_allocation|
     res = 0
     conf = KUBETWIN::Configuration.load_from_file(ARGV[0])
     msc = sim_conf.microservice_types
@@ -187,31 +191,29 @@ optimize_ms1 = lambda do |component_allocation|
       end
 
       sim = KUBETWIN::KSimulation.new(configuration: conf,
-                                  evaluator: KUBETWIN::Evaluator.new(conf))
+                                  evaluator: KUBETWIN::Evaluator.new(conf),
+                                  results_dir: results_dirname)
       benchmark, bms1, bms2 = sim.evaluate_allocation(nil, nil, msc)
 
       # evaluate bench here
       sim_log = CSV.parse(File.read(benchmark), headers: true)
       sim_ttr = sim_log.by_col[1].map(&:to_f)
       
-      ms1_log = CSV.parse(File.read(bms1), headers: true)
-      sim_ms1_ttr = ms1_log.by_col[1].map(&:to_f)
+      ms2_log = CSV.parse(File.read(bms2), headers: true)
+      sim_ms2_ttr = ms2_log.by_col[1].map(&:to_f)
 
       if sim_ttr.length < (k8s_ttr.length / 2) ||  sim_ttr.length > (k8s_ttr.length * 3 / 2.to_f)
         res = 1E+195
       else
 
-        ks_ms1 = stats.kstest(sim_ms1_ttr, ms1_ttr)
-
+        ks_ms1 = stats.kstest(sim_ms2_ttr, ms2_ttr)
         res = ks_ms1.statistic.to_f
-  
       end
       File.delete(benchmark)
       File.delete(bms1)
       File.delete(bms2)
     end
 
-    #puts "#{res}"
     -res
 end
 
@@ -232,12 +234,11 @@ solver_conf = {
 }
 
 solver = MHL::QuantumPSOSolver.new(solver_conf)
-$best = solver.solve(optimize_ms1_ms2, {concurrent: false})
+$best = solver.solve(optimize_ms2, {concurrent: false})
 
 puts $best
 
-optimize_ms2 = lambda do |component_allocation|
-
+optimize_e2e_ms1 = lambda do |component_allocation|
   res = 0
 
   # load simulation configuration
@@ -258,7 +259,8 @@ optimize_ms2 = lambda do |component_allocation|
     #puts msc
 
     sim = KUBETWIN::KSimulation.new(configuration: conf,
-                                evaluator: KUBETWIN::Evaluator.new(conf))
+                                evaluator: KUBETWIN::Evaluator.new(conf),
+                                results_dir: results_dirname)
     benchmark, bms1, bms2 = sim.evaluate_allocation(nil, nil, msc)
 
     # evaluate bench here
@@ -266,11 +268,15 @@ optimize_ms2 = lambda do |component_allocation|
     sim_log = CSV.parse(File.read(benchmark), headers: true)
     sim_ttr = sim_log.by_col[1].map(&:to_f)
 
+    sim_ms1 = CSV.parse(File.read(bms1), headers: true)
+    sim_ms1_ttr = sim_ms1.by_col[1].map(&:to_f)
+
     if sim_ttr.length < (k8s_ttr.length / 2) ||  sim_ttr.length > (k8s_ttr.length * 3 / 2.to_f)
       res = 1E+195
     else
       ks_e2e = stats.kstest(sim_ttr, k8s_ttr)
-      res = ks_e2e.statistic.to_f 
+      ks_ms1 = stats.kstest(sim_ms1_ttr, ms1_ttr)
+      res = 0.5 * ks_e2e.statistic.to_f  + 0.5 * ks_ms1.statistic.to_f
       puts "sim: #{ks_e2e}"
     end
     File.delete(benchmark)
@@ -295,7 +301,7 @@ e2e_conf = {
 }
 
 solver_e2e = MHL::QuantumPSOSolver.new(e2e_conf)
-best_e2e = solver_e2e.solve(optimize_e2e, {concurrent: false})
+best_e2e = solver_e2e.solve(optimize_e2e_ms1, {concurrent: false})
 
 puts best_e2e
 
@@ -323,7 +329,8 @@ to_bench = lambda do |component_allocation|
     #puts msc
 
     sim = KUBETWIN::KSimulation.new(configuration: conf,
-                                evaluator: KUBETWIN::Evaluator.new(conf))
+                                evaluator: KUBETWIN::Evaluator.new(conf),
+                                results_dir: results_dirname)
     benchmark, bms1, bms2 = sim.evaluate_allocation(nil, nil, msc)
 
     # evaluate bench here
