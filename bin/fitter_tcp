@@ -10,7 +10,7 @@ require 'pycall'
 require 'pycall/import'
 include PyCall::Import
 
-$n = 2
+$n = 3
 
 $params = $n * 3 - 1 # weight mu sigma for each component
 SIM_FILE = "examples/sm-c1-1000-gv.conf"
@@ -183,7 +183,7 @@ while session = server.accept
   conf = session.gets
   while conf != nil
     econf = eval(conf)
-    #puts "#{econf}"
+    puts "#{econf}"
     res = fitting_function.call(econf)
     puts "#{res}"
     session.puts "#{res}"

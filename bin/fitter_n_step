@@ -244,7 +244,7 @@ solver_conf = {
   log_level: :info,
 }
 
-solver = MHL::MultiSwarmQPSOSolver.new(solver_conf)
+solver = MHL::QuantumPSOSolver.new(solver_conf)
 $best = solver.solve(optimize_ms1_ms2, {concurrent: false})
 
 puts $best
@@ -307,7 +307,7 @@ e2e_conf = {
   log_level: :info,
 }
 
-solver_e2e = MHL::MultiSwarmQPSOSolver.new(e2e_conf)
+solver_e2e = MHL::QuantumPSOSolver.new(e2e_conf)
 best_e2e = solver_e2e.solve(optimize_e2e, {concurrent: false})
 
 puts best_e2e
