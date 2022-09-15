@@ -171,13 +171,22 @@ to_optimize = lambda do |component_allocation|
         ks_ms1 = stats.kstest(sim_ms1_ttr, ms1_ttr)
         ks_ms2 = stats.kstest(sim_ms2_ttr, ms2_ttr)
         
-        pop_data = [ms1_ttr.length, sim_ms1_ttr.length].min
-        w_ms1 = stats.mannwhitneyu(ms1_ttr[0, pop_data], sim_ms1_ttr[0, pop_data])
-        w_ms2 = stats.mannwhitneyu(ms2_ttr[0, pop_data], sim_ms2_ttr[0, pop_data])
+        res = ks_e2e.statistic.to_f
+        #res = ks_e2e.statistic.to_f + ks_ms1.statistic.to_f + ks_ms2.statistic.to_f
 
-        res = 1E3 if w_ms1.pvalue.to_f < 0.05 || w_ms2.pvalue.to_f < 0.05
-        res += ks_e2e.statistic.to_f
-        
+        #pop_data = [ms1_ttr.length, sim_ms1_ttr.length].min
+        #w_ms1 = stats.mannwhitneyu(ms1_ttr[0, pop_data], sim_ms1_ttr[0, pop_data])
+        #w_ms2 = stats.mannwhitneyu(ms2_ttr[0, pop_data], sim_ms2_ttr[0, pop_data])
+        #tt_ms1 = stats.ttest_ind(sim_ms1_ttr, ms1_ttr)
+        #tt_ms2 = stats.ttest_ind(sim_ms2_ttr, ms2_ttr)
+        # add a penalty if ms1 and ms2 do not pass the validation test
+        # this constraint makes it harder to converge
+        # if tt_ms1.pvalue.to_f < 0.05 || tt_ms2.pvalue.to_f < 0.05
+        #  res = 1E+195
+        # else
+        #  res += ks_e2e.statistic.to_f
+        # end
+
         #res = 0.33 * ks_e2e.statistic.to_f + 0.33 * ks_ms1.statistic.to_f + 0.33 * ks_ms2.statistic.to_f
         
         #puts "sim: #{ks_e2e}, ms1: #{tt_ms1}, ms2: #{tt_ms1}, reqs: #{sim_ttr.length}, res: #{res}" #if penalty == 0
@@ -195,12 +204,12 @@ end
 solver_conf = {
   #num_swarms: 6,
   swarm_size: 50,
-  logger: ga_logger,
+  logger: :stdout,
   constraints: {
     min: ([0.0, 1E-3, 1E-3] * ($n-1) + [1E-3, 1E-3]) * $n_ms,
     max: ([1.0, 0.12, 0.12] * ($n-1) + [0.12, 0.12]) * $n_ms,
   },
-  exit_condition: lambda {|gen, best | gen >= 200 },
+  exit_condition: lambda {|gen, best | gen >= 100 },
   log_level: :info,
 }
 
