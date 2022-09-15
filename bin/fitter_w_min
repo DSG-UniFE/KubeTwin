@@ -58,6 +58,7 @@ puts "n #{$n} params #{$params}"
 
 # pycall import
 pyfrom :scipy, import: :stats
+pyfrom :scipy, import: :special
 PyCall.import_module("numpy")
 
 # load simulation configuration
@@ -181,6 +182,8 @@ to_optimize = lambda do |component_allocation|
       else
         begin
           w_e2e = stats.wilcoxon(k8s_ttr, sim_ttr)
+          #kl_t = special.kl_div(k8s_ttr, sim_ttr)
+          #puts "#{kl_t}"
           # puts "#{w_e2e}"
           ev = k8s_ttr.length * (k8s_ttr.length + sim_ttr.length - 1) / 2.0
 
@@ -188,8 +191,8 @@ to_optimize = lambda do |component_allocation|
             puts "Reqs: #{sim_ttr.length} W statistic: #{w_e2e.statistic.to_f} pvalue: #{w_e2e.pvalue.to_f} ev: #{ev} #{(w_e2e.statistic.to_f - ev).abs}" 
             puts "Mean: #{sim_ttr.sum /  sim_ttr.length}"
             #res = (w_e2e.statistic.to_f - ev).abs
-          #else 
-          #  penalty += Float::INFINITY
+          else 
+            penalty += 1E5
           end
 
           res = (w_e2e.statistic.to_f - ev).abs
@@ -206,9 +209,13 @@ to_optimize = lambda do |component_allocation|
           # just some print here
           if w_ms1.pvalue.to_f >= 0.05
             puts "WMS1 statistic: #{w_ms1.statistic.to_f} pvalue: #{w_ms1.pvalue.to_f} ev: #{ev} #{(w_ms1.statistic.to_f - ev_ms1).abs}" 
+          else
+            penalty += 1E5
           end
           if w_ms2.pvalue.to_f >= 0.05
             puts "WMS2 statistic: #{w_ms2.statistic.to_f} pvalue: #{w_ms2.pvalue.to_f} ev: #{ev} #{(w_ms2.statistic.to_f - ev_ms2).abs}" 
+          else
+            penalty += 1E5
           end
           # missing weights
           res += (w_ms1.statistic.to_f - ev_ms1).abs + (w_ms2.statistic.to_f - ev_ms2).abs
@@ -232,7 +239,7 @@ solver_conf = {
   swarm_size: 50,
   logger: ga_logger,
   constraints: {
-    min: ([0.0, 1E-3, 1E-3] * ($n-1) + [1E-3, 1E-3]) * $n_ms,
+    min: ([0.0, 5E-3, 5E-3] * ($n-1) + [5E-3, 5E-3]) * $n_ms,
     max: ([1.0, 0.10, 0.10] * ($n-1) + [0.10, 0.10]) *$n_ms,
   },
   exit_condition: lambda {|gen, best | gen >= 100  },
@@ -275,23 +282,22 @@ to_bench = lambda do |component_allocation|
     ms2_log = CSV.parse(File.read(bms2), headers: true)
     sim_ms2_ttr = ms2_log.by_col[1].map(&:to_f)
 
-    if sim_ttr.length < (k8s_ttr.length / 2) ||  sim_ttr.length > (k8s_ttr.length * 3 / 2.to_f)
-      res = 1E+195
-    else
-      ks_e2e = stats.kstest(sim_ttr, k8s_ttr)
+    w_e2e = stats.wilcoxon(k8s_ttr, sim_ttr)
+    ga_logger.info "TTR file #{benchmark}"
+    puts "Reqs: #{sim_ttr.length} W statistic: #{w_e2e.statistic.to_f} pvalue: #{w_e2e.pvalue.to_f}" 
+    puts "Mean: #{sim_ttr.sum /  sim_ttr.length}"
+    ga_logger.info "Reqs: #{sim_ttr.length} W statistic: #{w_e2e.statistic.to_f} pvalue: #{w_e2e.pvalue.to_f}" 
+    ga_logger.info "Mean: #{sim_ttr.sum /  sim_ttr.length}"
+    pop_data = [ms1_ttr.length, sim_ms1_ttr.length].min
+    w_ms1 = stats.wilcoxon(ms1_ttr[0, pop_data], sim_ms1_ttr[0, pop_data])
+    w_ms2 = stats.wilcoxon(ms2_ttr[0, pop_data], sim_ms2_ttr[0, pop_data])
 
-      ks_ms1 = stats.kstest(sim_ms1_ttr, ms1_ttr)
-      ks_ms2 = stats.kstest(sim_ms2_ttr, ms2_ttr)
-
-      puts "TTR: mean #{sim_ttr.sum / sim_ttr.length}"
-
-      res = ks_e2e.statistic.to_f + ks_ms1.statistic.to_f + ks_ms2.statistic.to_f
-
-      puts "sim: #{ks_e2e}, ms1: #{ks_ms1}, ms2: #{ks_ms2}, #reqs: #{sim_ttr.length}"
-    end
+    puts "WMS1 statistic: #{w_ms1.statistic.to_f} pvalue: #{w_ms1.pvalue.to_f}" 
+    puts "WMS2 statistic: #{w_ms2.statistic.to_f} pvalue: #{w_ms2.pvalue.to_f}" 
+    ga_logger.info "WMS1 statistic: #{w_ms1.statistic.to_f} pvalue: #{w_ms1.pvalue.to_f}" 
+    ga_logger.info "WMS2 statistic: #{w_ms2.statistic.to_f} pvalue: #{w_ms2.pvalue.to_f}" 
   end
-
-  -res
+  res
 end
 
 to_bench.call(best[:position])
