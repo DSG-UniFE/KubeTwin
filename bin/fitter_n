@@ -170,8 +170,15 @@ to_optimize = lambda do |component_allocation|
         ks_e2e = stats.kstest(sim_ttr, k8s_ttr)
         ks_ms1 = stats.kstest(sim_ms1_ttr, ms1_ttr)
         ks_ms2 = stats.kstest(sim_ms2_ttr, ms2_ttr)
-            
-        res = 0.33 * ks_e2e.statistic.to_f + 0.33 * ks_ms1.statistic.to_f + 0.33 * ks_ms2.statistic.to_f
+        
+        pop_data = [ms1_ttr.length, sim_ms1_ttr.length].min
+        w_ms1 = stats.mannwhitneyu(ms1_ttr[0, pop_data], sim_ms1_ttr[0, pop_data])
+        w_ms2 = stats.mannwhitneyu(ms2_ttr[0, pop_data], sim_ms2_ttr[0, pop_data])
+
+        res = 1E3 if w_ms1.pvalue.to_f < 0.05 || w_ms2.pvalue.to_f < 0.05
+        res += ks_e2e.statistic.to_f
+        
+        #res = 0.33 * ks_e2e.statistic.to_f + 0.33 * ks_ms1.statistic.to_f + 0.33 * ks_ms2.statistic.to_f
         
         #puts "sim: #{ks_e2e}, ms1: #{tt_ms1}, ms2: #{tt_ms1}, reqs: #{sim_ttr.length}, res: #{res}" #if penalty == 0
         #puts "sim: #{ks_e2e}, ms1: #{ks_ms1}, ms2: #{ks_ms1}, reqs: #{sim_ttr.length}, res: #{res}" if penalty == 0
@@ -188,7 +195,7 @@ end
 solver_conf = {
   #num_swarms: 6,
   swarm_size: 50,
-  logger: :stdout,
+  logger: ga_logger,
   constraints: {
     min: ([0.0, 1E-3, 1E-3] * ($n-1) + [1E-3, 1E-3]) * $n_ms,
     max: ([1.0, 0.12, 0.12] * ($n-1) + [0.12, 0.12]) * $n_ms,
