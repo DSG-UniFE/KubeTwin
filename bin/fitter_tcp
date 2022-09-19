@@ -63,33 +63,14 @@ def encode_service_time_conf(x, n_ms)
   #puts "x:#{x}"
 
   x.each_slice($params).to_a.each_with_index do |ms, msi|
-
-    #puts "Microservice: #{msi}"
-    #puts "Microservice: #{ms}"
-    #msi_istart = msi
-    #msi_iend = msi * $params - $n # n is the number of component for the GMM
-
-    # [0.15, 15, 30, 0.35, 20, 22, 30, 15] # n = 3 components
-    # weights = 0.15, 0.35 
-
-    # get last weight parameter
-
     w_last = 1
     (0..($params - 3)).select {|pi| pi % 3 == 0}.each do |p| 
       w_last -= ms[p]
     end
-    #puts "w_last #{w_last}"
-
-    #w_last = 0 if w_last < 0 # reject negative probabilities  
-    # or normalize the sum of tha absolute values to 1?
     return nil if w_last < 0
 
-    #puts "ms gmm parameters: #{ms}"
-    # clone the component allocation
     y = ms.clone
     y.insert($params - 2, w_last)
-    # add w_last in its position
-    #puts "y gmm parameters: #{y}"
 
     #puts $microservice_types
     microservice_name = $microservice_types.keys[msi]
@@ -112,8 +93,7 @@ fitting_function = lambda do |component_allocation|
   res  = 0.0
 
   if processing_time.nil?
-    res = 1000.0
-    # puts "nil processing time"
+    res = 1E8
   else
 
     processing_time.each do |ms_name, ms_time_dist|
@@ -143,11 +123,11 @@ fitting_function = lambda do |component_allocation|
     #puts "LOG: ms1: #{ms1_ttr.length} ms2: #{ms2_ttr.length}"
     #puts "SIM ms1: #{sim_ms1_ttr.length} ms2: #{sim_ms2_ttr.length}"
 
-    if sim_ttr.length < (k8s_ttr.length / 2) ||
-      sim_ttr.length > (k8s_ttr.length * 3 / 2.to_f) #||
+    if sim_ttr.length != k8s_ttr.length 
+      #sim_ttr.length > (k8s_ttr.length * 3 / 2.to_f) #||
       #sim_ms1_ttr.length < (k8s_ttr.length / 2)  ||
       #sim_ms2_ttr.length < (k8s_ttr.length / 2)  ||
-      res = 1000.0
+      res = 1E8
       # puts "#{sim_ttr.length}"
     else
       ks_e2e = stats.kstest(sim_ttr, k8s_ttr)
@@ -173,7 +153,7 @@ fitting_function = lambda do |component_allocation|
     File.delete(bms2)
   end
   # puts "#{res}"
-  -res
+  res
 end
 
 
