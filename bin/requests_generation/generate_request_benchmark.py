@@ -5,18 +5,18 @@ import time
 import pandas as pd
 
 if len(sys.argv) < 4:
-    sys.stderr('{} <target_rps> <#requests> <uri>'.format(sys.argv[1]))
+    sys.stderr.write('{} <target_rps> <#requests> <uri>'.format(sys.argv[1]))
     exit(1)
 
 try: 
     rps = float(sys.argv[1])
 except ValueError:
-    sys.stderr("<target_rps> must be a numeric value")
+    sys.stderr.write("<target_rps> must be a numeric value")
 
 try: 
     nreqs = int(sys.argv[2])
 except ValueError:
-    sys.stderr("<#requests> must be a numeric value")
+    sys.stderr.write("<#requests> must be a numeric value")
 
 uri = sys.argv[3]
 

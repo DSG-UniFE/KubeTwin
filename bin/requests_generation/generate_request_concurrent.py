@@ -5,7 +5,7 @@ import time
 import pandas as pd
 from multiprocessing import Pool
 
-def send_requests(uri, i, num_reqs, rps, filename):
+def send_requests(uri, i, num_reqs, rps):
 
     rv = np.random.exponential(1 / rps, size=num_reqs)
     j = 0
@@ -18,32 +18,30 @@ def send_requests(uri, i, num_reqs, rps, filename):
             results += f'{start_req_time},{req_time},{i}\n'
             sleep_time = rv[i] - req_time
             #print(f'About to sleep for {sleep_time}')
-            time.sleep(sleep_time)
+            if sleep_time > 0.0: time.sleep(sleep_time)
         j += 1
-    f = open(filename, 'a')
-    f.write(results)
-    f.close()
+    return results
 
 
 if __name__ == '__main__':
 
-    if len(sys.argv) < 4:
-        sys.stderr('{} <target_rps> <#requests> <#c> <uri>'.format(sys.argv[0]))
+    if len(sys.argv) < 5:
+        sys.stderr.write('{} <target_rps> <#requests> <#c> <uri>'.format(sys.argv[0]))
         exit(1)
     try: 
         rps = float(sys.argv[1])
     except ValueError:
-        sys.stderr("<target_rps> must be a numeric value")
+        sys.stderr.write("<target_rps> must be a numeric value")
 
     try:
         nreqs = int(sys.argv[2])
     except ValueError:
-        sys.stderr("<#requests> must be a numeric value")
+        sys.stderr.write("<#requests> must be a numeric value")
     
     try:
         c = int(sys.argv[3])
     except ValueError:
-        sys.stderr("<#c> must be a numeric value")
+        sys.stderr.write("<#c> must be a numeric value")
 
     uri = sys.argv[4]
 
@@ -57,7 +55,6 @@ if __name__ == '__main__':
     res_file.write('st,ttr,rid\n')
     # close results file
     res_name = res_file.name
-    res_file.close()
 
     # create Pool
     # It looks like we have to call close before join()
@@ -67,22 +64,24 @@ if __name__ == '__main__':
     # requests per process
     rpp = nreqs // c
 
-    print(f'Target rps: {rps} Request per process: {rpp}')
+    print(f'Target rps: {rps}, Concurrency Level: {c}, Request per process: {rpp}')
 
     i = 0
-
+    res = []
     while i < c:
-        pool.apply_async(send_requests, [uri, i, rpp, rps, res_name,])
+        res.append(pool.apply_async(send_requests, [uri, i, rpp, rps]))
         i += 1
-    # here, we want to verify how many rps we sent
-    # even if they are still in progress
-    elapsed_time = time.time() - start
-
-    # wait for requests to be over
     pool.close()
     pool.join()
-    
+
     elapsed_time = time.time() - start
+
+    for r in res:
+        r_string = r.get()
+        res_file.write(r_string)
+
+    res_file.close()
+    
     print(f'Took {elapsed_time}')
 
     ds = pd.read_csv(res_name)
