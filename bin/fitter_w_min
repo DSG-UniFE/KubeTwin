@@ -190,13 +190,15 @@ to_optimize = lambda do |component_allocation|
           if w_e2e.pvalue.to_f >= 0.05
             puts "Reqs: #{sim_ttr.length} W statistic: #{w_e2e.statistic.to_f} pvalue: #{w_e2e.pvalue.to_f} ev: #{ev} #{(w_e2e.statistic.to_f - ev).abs}" 
             puts "Mean: #{sim_ttr.sum /  sim_ttr.length}"
-          else 
-            penalty += 1E7
+          #else 
+          #  penalty += 1E7
           end
 
-          res = (w_e2e.statistic.to_f - ev).abs
+          #res = (w_e2e.statistic.to_f - ev).abs
 
-          
+          res = stats.wasserstein_distance(k8s_ttr, sim_ttr).to_f
+
+
           # print "w statistics #{w_e2e.statistic.to_f} pvalue #{w_e2e.pvalue.to_f}\n" if res < 1000.0
 
           # W for ms1 and ms2?
@@ -205,8 +207,13 @@ to_optimize = lambda do |component_allocation|
 
           # historical data on ms1 and ms2 is lower than 1000
           pop_data = [ms1_ttr.length, sim_ms1_ttr.length].min
+
           w_ms1 = stats.mannwhitneyu(ms1_ttr[0, pop_data], sim_ms1_ttr[0, pop_data])
           w_ms2 = stats.mannwhitneyu(ms2_ttr[0, pop_data], sim_ms2_ttr[0, pop_data])
+
+          wt_ms1 = stats.wasserstein_distance(ms1_ttr[0, pop_data], sim_ms1_ttr[0, pop_data]).to_f
+
+          res += wt_ms1
 
           # just some print here
           if w_ms1.pvalue.to_f >= 0.05
@@ -239,12 +246,12 @@ end
 solver_conf = {
   #num_swarms: 6,
   swarm_size: 50,
-  logger: :stdout,
+  logger: ga_logger,
   constraints: {
-    min: ([0.0, 1E-3, 1E-3] * ($n-1) + [1E-3, 1E-3]) * $n_ms,
+    min: ([0.0, 1E-4, 1E-4] * ($n-1) + [1E-4, 1E-4]) * $n_ms,
     max: ([1.0, 0.10, 0.10] * ($n-1) + [0.10, 0.10]) *$n_ms,
   },
-  exit_condition: lambda {|gen, best | gen >= 100  },
+  exit_condition: lambda {|gen, best | gen >= 350  },
   log_level: :info,
 }
 

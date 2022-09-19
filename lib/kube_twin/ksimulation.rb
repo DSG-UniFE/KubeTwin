@@ -54,7 +54,7 @@ module KUBETWIN
 
     # rss is replica set
     # css is service configuration
-    def evaluate_allocation(rss=nil, css=nil, mtt=nil)
+    def evaluate_allocation(rss=nil, css=nil, mtt=nil,lm=nil)
       # seeds
       latency_seed = @configuration.seeds[:communication_latencies]
       service_time_seed = @configuration.seeds[:service_times]
@@ -65,9 +65,10 @@ module KUBETWIN
       end
 
       # create latency manager
+      latency_models = lm.nil? ? @configuration.latency_models : lm
       latency_manager = latency_seed ?
-        LatencyManager.new(@configuration.latency_models, seed: latency_seed) :
-        LatencyManager.new(@configuration.latency_models)
+        LatencyManager.new(latency_models, seed: latency_seed) :
+        LatencyManager.new(latency_models)
 
       # setup simulation start and current time
       @current_time = @start_time = @configuration.start_time
@@ -698,8 +699,8 @@ module KUBETWIN
          allocation_map[c.name] = {tier: c.tier, pods: pods}
          #puts "Allocation -- #{c.name} Pods: #{pods}"
       end
-
-
+      #puts "#{stats.to_csv}"
+=begin
      puts "====== Evaluating new allocation ======\n" +
           # "costs: #{costs}\n" +
            "stats: #{stats.to_s}\n" +
@@ -708,7 +709,7 @@ module KUBETWIN
            "allocation_map: #{allocation_map}\n" +
            "=======================================\n"
       # debug info here
-
+=end
       # we want to minimize the cost, so we define fitness as the opposite of
       # the sum of all costs incurred
       # -costs.values.inject(0.0){|s,x| s += x }

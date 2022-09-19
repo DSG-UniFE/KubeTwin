@@ -19,6 +19,7 @@ module KUBETWIN
       @longer_than = init_counters_for_longer_than_stats(opts)
       @shorter_than = init_counters_for_shorter_than_stats(opts)
       @received = 0
+      @csv = ""
     end
 
     def request_received
@@ -29,6 +30,13 @@ module KUBETWIN
       # get new sample
       x = req.ttr(time)
       raise "TTR #{x} for request #{req.rid} invalid!" unless x > 0.0
+      steps = ""
+
+      req.steps_ttr.each do |s|
+        steps += ",#{s}"
+      end
+
+      @csv += "#{req.rid},#{x}#{steps}\n"
 
       qx = req.queuing_time
 
@@ -63,6 +71,15 @@ module KUBETWIN
       "received: #{@received}, closed: #{@n}\n" +
       "TTR: (mean: #{@mean}, variance: #{variance}, longer_than: #{@longer_than.to_s}) shorter_than: #{@shorter_than.to_s}\n" +
       "QTIME: (mean: #{@q_mean}, variance: #{q_variance})"
+    end
+
+    def to_csv
+      # call header
+      line = @csv.split().first()
+      n_step = line.split(',').length - 1
+      header = "rid,ttr" 
+      n_step.times { |i| header += ",#{i}" }
+      return "#{header}\n#{@csv}"
     end
 
     private

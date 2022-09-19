@@ -18,7 +18,8 @@ module KUBETWIN
                 :queuing_time,
                 :workflow_type_id,
                 :worked_step,
-                :step_queue_time
+                :step_queue_time,
+                :steps_ttr
 
     attr_accessor :arrival_at_container
 
@@ -51,6 +52,7 @@ module KUBETWIN
       @queuing_time = 0.0
       @working_time = 0.0
       @step_queue_time = 0.0
+      @steps_ttr = []
     end
 
     def update_queuing_time(duration)
@@ -83,7 +85,9 @@ module KUBETWIN
     end
 
     def ttr_step(time)
-      time - @arrival_at_container
+      ts = time - @arrival_at_container
+      @steps_ttr << ts # unless @steps_ttr.include? ts
+      ts
     end
 
     def to_s
