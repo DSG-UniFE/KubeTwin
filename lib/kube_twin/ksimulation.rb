@@ -267,7 +267,6 @@ module KUBETWIN
         rg = RequestGenerator.new(@configuration.request_gen[1])
         req_attrs = rg.generate(now)
       end
-      puts req_attrs
       new_event(Event::ET_REQUEST_GENERATION, req_attrs, req_attrs[:generation_time], nil)
 
       # generate first HPA check
