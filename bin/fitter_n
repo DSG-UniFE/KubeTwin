@@ -174,7 +174,7 @@ to_optimize = lambda do |component_allocation|
         # fitness function ks for inferencing e2e distribution
         # res = ks_e2e.statistic.to_f
         # fit e2e and ms2 could be a good idea?
-        res = ks_e2e.statistic.to_f + ks_ms1.statistic.to_f
+        res = ks_e2e.statistic.to_f #+ ks_ms1.statistic.to_f
         #res = ks_e2e.statistic.to_f + ks_ms1.statistic.to_f + ks_ms2.statistic.to_f
 
         #pop_data = [ms1_ttr.length, sim_ms1_ttr.length].min
