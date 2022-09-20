@@ -30,13 +30,14 @@ module KUBETWIN
       # get new sample
       x = req.ttr(time)
       raise "TTR #{x} for request #{req.rid} invalid!" unless x > 0.0
-      steps = ""
+      # commented here
+      #steps = ""
 
-      req.steps_ttr.each do |s|
-        steps += ",#{s}"
-      end
+      #req.steps_ttr.each do |s|
+      #  steps += ",#{s}"
+      #end
 
-      @csv += "#{req.rid},#{x}#{steps}\n"
+      #@csv += "#{req.rid},#{x}#{steps}\n"
 
       qx = req.queuing_time
 
