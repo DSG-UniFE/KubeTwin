@@ -259,10 +259,15 @@ module KUBETWIN
       # request_generation is csv or R
       if @configuration.request_gen.nil? 
         rg = RequestGeneratorR.new(@configuration.request_generation)
+        # this is to avoid mismatch when reproducing logs
+        req_attrs = rg.generate(now)
+        @current_time = @start_time = req_attrs[:generation_time]
+        @configuration.set_start(@current_time)
       else 
         rg = RequestGenerator.new(@configuration.request_gen[1])
+        req_attrs = rg.generate(now)
       end
-      req_attrs = rg.generate(now)
+      puts req_attrs
       new_event(Event::ET_REQUEST_GENERATION, req_attrs, req_attrs[:generation_time], nil)
 
       # generate first HPA check
@@ -319,7 +324,7 @@ module KUBETWIN
             # find first component name for requested workflow
             workflow = workflow_type_repository[req_attrs[:workflow_type_id]]
             first_component_name = workflow[:component_sequence][0][:name]
-
+            
             # first we need to resolve the component name using
             # the kubernetes DNS
             # TODO -- modeling internal service time
@@ -344,9 +349,13 @@ module KUBETWIN
             new_event(Event::ET_REQUEST_ARRIVAL, [new_req, pod], arrival_time, nil)
 
             # schedule generation of next request
-            if @current_time < warmup_threshold
-              req_attrs = rg.generate(@current_time)   
-              new_event(Event::ET_REQUEST_GENERATION, req_attrs, req_attrs[:generation_time], nil)
+            if @current_time < cooldown_treshold #warmup_threshold
+              begin
+                req_attrs = rg.generate(@current_time)
+                new_event(Event::ET_REQUEST_GENERATION, req_attrs, req_attrs[:generation_time], nil)
+              rescue
+                puts "finished processing requests"
+              end
             end
 
           when Event::ET_REQUEST_ARRIVAL
@@ -356,7 +365,7 @@ module KUBETWIN
             # do not consider warmup here
             if req.arrival_time > warmup_threshold && req.arrival_time < cooldown_treshold
 
-            # get the pod here, we do not need thr cluster
+              # get the pod here, we do not need thr cluster
             @arrived += 1
 
             #cluster = cluster_repository[req.data_center_id]
@@ -510,10 +519,11 @@ module KUBETWIN
 
             # schedule generation of next request
             # here we want also to cut the number of requests
-            if @current_time < cooldown_treshold && stats.n < @num_reqs
-              req_attrs = rg.generate(@current_time)
-              new_event(Event::ET_REQUEST_GENERATION, req_attrs, req_attrs[:generation_time], nil)
-            end
+            # for fitting
+            #if @current_time < cooldown_treshold && stats.n < @num_reqs
+            #  req_attrs = rg.generate(@current_time)
+            #  new_event(Event::ET_REQUEST_GENERATION, req_attrs, req_attrs[:generation_time], nil)
+            #end
 
           when Event::ET_HPA_CONTROL
             hname, hpa = e.data
@@ -700,7 +710,7 @@ module KUBETWIN
          #puts "Allocation -- #{c.name} Pods: #{pods}"
       end
       #puts "#{stats.to_csv}"
-=begin
+#=begin
      puts "====== Evaluating new allocation ======\n" +
           # "costs: #{costs}\n" +
            "stats: #{stats.to_s}\n" +
@@ -709,7 +719,7 @@ module KUBETWIN
            "allocation_map: #{allocation_map}\n" +
            "=======================================\n"
       # debug info here
-=end
+#=end
       # we want to minimize the cost, so we define fitness as the opposite of
       # the sum of all costs incurred
       # -costs.values.inject(0.0){|s,x| s += x }

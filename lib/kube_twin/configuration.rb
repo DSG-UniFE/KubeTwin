@@ -91,6 +91,8 @@ module KUBETWIN
       @start_time + @duration
     end
 
+
+
     def validate
       # convert datetimes and integers into floats
       @start_time      = @start_time.to_f
@@ -125,7 +127,7 @@ module KUBETWIN
       IceNine.deep_freeze(@request_generation)
       IceNine.deep_freeze(@seeds)
       #IceNine.deep_freeze(@microservice_types)
-      IceNine.deep_freeze(@start_time)
+      #IceNine.deep_freeze(@start_time)
       IceNine.deep_freeze(@warmup_duration)
       IceNine.deep_freeze(@workflow_types)
     end
@@ -145,6 +147,10 @@ module KUBETWIN
 
       # return new object
       conf
+    end
+    
+    def set_start(time)
+      @start_time = time
     end
 
   end

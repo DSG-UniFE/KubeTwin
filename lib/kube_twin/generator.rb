@@ -29,13 +29,16 @@ module KUBETWIN
     def generate(time)
       # read next line from file
       line = @file.gets
+      #puts line, @next_rid
       raise "End of input reached while reading request #{@next_rid}!" unless line
+      #reurn nil unless line
 
       # parse data
       tokens = line.split(",") # should be faster than CSV parsing
       generation_time  = tokens[0].to_f
-      workflow_type_id = tokens[1].to_i
-      customer_id      = tokens[2].to_i
+      # just to simplify data parsing
+      workflow_type_id = 1 #tokens[1].to_i
+      customer_id      = 1 #tokens[2].to_i
 
       # increase @next_rid
       @next_rid += 1
