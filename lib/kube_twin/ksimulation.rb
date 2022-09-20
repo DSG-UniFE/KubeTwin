@@ -24,7 +24,7 @@ module KUBETWIN
     UNFEASIBLE_ALLOCATION_EVALUATION = { unfeasible_configuration: -Float::INFINITY }.freeze
     attr_reader :start_time
 
-    DEFAULT_NUM_REQS = 1000
+    DEFAULT_NUM_REQS = 5000
 
     def initialize(opts = {})
       @configuration = opts[:configuration]
