@@ -52,8 +52,13 @@ pyfrom :scipy, import: :stats
 $logger = Logger.new(STDOUT)
 $logger.level = Logger::INFO
 time = Time.now.strftime('%Y%m%d%H%M%S')
+results_dirname = "#{time}_results"
+# create directory if it does not exist
 
-GA_LOG = "ga_log_oracle_#{time}.log"
+Dir.mkdir(results_dirname) unless File.exist?(results_dirname)
+
+GA_LOG = "#{results_dirname}/fitter_log_#{time}_#{$n}.log"
+
 File.delete(GA_LOG) if File.exist?(GA_LOG)
 ga_logger = Logger.new(GA_LOG)
 ga_logger.level = Logger::INFO
@@ -100,11 +105,13 @@ to_optimize = lambda do |component_allocation|
       # create a simulator and launch it
       $logger.debug component_allocation
       sim = KUBETWIN::KSimulation.new(configuration: conf,
-                                  evaluator: KUBETWIN::Evaluator.new(conf))
+                                  evaluator: KUBETWIN::Evaluator.new(conf),
+                                  results_dir: results_dirname)
+
       benchmark = sim.evaluate_allocation(nil, nil, microservice_types)
       sim_log = CSV.parse(File.read(benchmark[0]), headers: true)
       sim_ttr = sim_log.by_col[1]
-      if sim_ttr.length < (k8s_ttr.length / 2)
+      if sim_ttr.length != k8s_ttr.length
         res = 1E+195
       else
         ks = stats.kstest(sim_ttr, k8s_ttr)
@@ -115,9 +122,7 @@ to_optimize = lambda do |component_allocation|
       File.delete(benchmark[1])
       File.delete(benchmark[2]) 
     end
-
-
-    puts "#{res}"
+    #puts "#{res}"
     -res
 end
 
@@ -127,9 +132,9 @@ solver_conf = {
   logger: ga_logger,
   constraints: {
     min: [0.0, 1E-5, 1E-5, 0.0, 1E-5, 1E-5, 1E-5, 1E-5],
-    max: [ 1.to_f ] * 8,
+    max: [ 1.0, 0.4, 0.4, 1.0, 0.3, 0.3, 0.3, 0.3] 
   },
-  exit_condition: lambda {|gen, best | gen > 250 },
+  exit_condition: lambda {|gen, best | gen >= 100 },
   log_level: :info,
 }
 
@@ -137,10 +142,8 @@ solver = MHL::QuantumPSOSolver.new(solver_conf)
 best = solver.solve(to_optimize, {concurrent: false})
 
 puts best
-
-
-#ap 'Best result:'
-#ap(best, :indent => 2)
+cconf = encode_replicas_set(best[:position], 1)
+puts "conf: #{cconf}"
 
 puts "exiting"
 exit 0
