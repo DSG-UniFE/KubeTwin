@@ -175,8 +175,9 @@ to_optimize = lambda do |component_allocation|
         # res = ks_e2e.statistic.to_f
         # fit e2e and ms2 could be a good idea?
         #res = ks_e2e.statistic.to_f #+ ks_ms1.statistic.to_f
-        res = ks_e2e.statistic.to_f + ks_ms1.statistic.to_f + ks_ms2.statistic.to_f
-
+        #res = ks_e2e.statistic.to_f + ks_ms1.statistic.to_f + ks_ms2.statistic.to_f
+        res = ks_ms1.statistic.to_f + ks_ms2.statistic.to_f
+        
         #pop_data = [ms1_ttr.length, sim_ms1_ttr.length].min
         #w_ms1 = stats.mannwhitneyu(ms1_ttr[0, pop_data], sim_ms1_ttr[0, pop_data])
         #w_ms2 = stats.mannwhitneyu(ms2_ttr[0, pop_data], sim_ms2_ttr[0, pop_data])

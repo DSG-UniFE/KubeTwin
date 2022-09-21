@@ -70,7 +70,8 @@ def encode_replicas_set(x, n_ms)
 end
 
 res = 0
-component_allocation = eval(ARGV[2])
+component_allocation = 
+[0.001409989861132462, 0.013686223535158396, 0.011124094051926525, 0.0005996393428455279, 0.05319846292474652, 0.04849756806235325, 0.04898133615771222, 0.005851341620649107]
 
 # load simulation configuration
 conf = KUBETWIN::Configuration.load_from_file(ARGV[0])
@@ -81,11 +82,12 @@ if processing_time.nil?
   res = 1E+195
 else
   microservice_types['MS1'][:service_time_distribution][:mec] = processing_time
+  puts "#{processing_time}"
   # create a simulator and launch it
   sim = KUBETWIN::KSimulation.new(configuration: conf,
                               evaluator: KUBETWIN::Evaluator.new(conf))
   benchmark = sim.evaluate_allocation(nil, nil, microservice_types)
-  sim_log = CSV.parse(File.read(benchmark), headers: true)
+  sim_log = CSV.parse(File.read(benchmark[0]), headers: true)
   sim_ttr = sim_log.by_col[1]
   if sim_ttr.length < (k8s_ttr.length / 2)
     puts "Not enough requests"
