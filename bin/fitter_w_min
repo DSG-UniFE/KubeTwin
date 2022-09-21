@@ -213,8 +213,7 @@ to_optimize = lambda do |component_allocation|
 
           wt_ms1 = stats.wasserstein_distance(ms1_ttr[0, pop_data], sim_ms1_ttr[0, pop_data]).to_f
           wt_ms2 = stats.wasserstein_distance(ms2_ttr[0, pop_data], sim_ms2_ttr[0, pop_data]).to_f
-
-
+          
           res += wt_ms1 + wt_ms2
 
           # just some print here

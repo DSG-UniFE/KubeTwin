@@ -22,7 +22,7 @@ module KUBETWIN
       # NOTE: so far we support only sequential integer rids
       @next_rid = 0
 
-      setup_finalizer
+      #setup_finalizer
     end
 
 
@@ -56,9 +56,9 @@ module KUBETWIN
     private
       # After object destruction, make sure that the input file is closed or
       # the input command process is killed.
-      def setup_finalizer
-        ObjectSpace.define_finalizer(self, self.class.close_io(@file))
-      end
+      #def setup_finalizer
+      #  ObjectSpace.define_finalizer(self, self.class.close_io(@file))
+      #end
 
       # Need to make this a class method, or the deallocation won't take place. See:
       # http://www.mikeperham.com/2010/02/24/the-trouble-with-ruby-finalizers/

@@ -25,7 +25,7 @@ module KUBETWIN
       #nr = rs.sum() / rs.length
       nr = @rg_rv.next
       # nr is commentedd for fitting purposes ...
-      generation_time = current_time + 1E-2 #nr
+      generation_time = current_time + nr
       workflow_type_id = @w_rv.rand(1..@workflow_types)
       customer_id = @c_rv.rand(1..@num_customers)
 
