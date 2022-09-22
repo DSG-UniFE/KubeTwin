@@ -12,6 +12,7 @@ module KUBETWIN
       @rg_rv = ERV::RandomVariable.new(opts[:request_distribution])
       @workflow_types = opts[:workflow_types]
       @num_customers = opts[:num_customers]
+      @num_requests = opts[:num_requests]
       @w_rv = Random.new(SEED)
       @c_rv = Random.new(SEED)
       @next_rid = 0
@@ -19,7 +20,9 @@ module KUBETWIN
 
     # generate the next request
     def generate(current_time)
-
+      if @num_requests && @next_rid >= @num_requests
+        return nil
+      end
       #while (nr = @rg_rv.next) <= 1E-2; end
       #rs = Array.new(10) { @rg_rv.next }
       #nr = rs.sum() / rs.length

@@ -350,12 +350,8 @@ module KUBETWIN
 
             # schedule generation of next request
             if @current_time < cooldown_treshold #warmup_threshold
-              begin
                 req_attrs = rg.generate(@current_time)
-                new_event(Event::ET_REQUEST_GENERATION, req_attrs, req_attrs[:generation_time], nil)
-              rescue => e
-                puts "#{e}"
-              end
+                new_event(Event::ET_REQUEST_GENERATION, req_attrs, req_attrs[:generation_time], nil) if req_attrs
             end
 
           when Event::ET_REQUEST_ARRIVAL

@@ -1,0 +1,162 @@
+#!/usr/bin/env ruby
+
+begin
+  require 'kube_twin'
+  require 'mhl'
+  require 'logger'
+  require 'pycall'
+  require 'pycall/import'
+  include PyCall::Import
+  require 'csv'
+rescue LoadError
+  require 'rubygems'
+  require 'kube_twin'
+  require 'mhl'
+end
+
+def do_abort(message)
+    abort <<-EOS.gsub(/^\s+\|/, '')
+      |#{message}
+      |
+      |Usage:
+      |    #{File.basename(__FILE__)} simulator_config_file testbed_file n
+      |
+    EOS
+  end
+
+if ARGV.length < 3
+  do_abort("Uncompleted parameters")
+end
+  
+  
+if File.expand_path(__FILE__) == File.expand_path($0)
+    # make sure both required arguments were given
+    case ARGV.size
+    when 0 then
+      do_abort("Missing simulator configuration files!")
+    end
+  
+    # make sure simulator config file exists
+    unless File.exists? ARGV[0]
+      do_abort("Invalid simulator configuration file!")
+    end
+end
+
+unless File.exists? ARGV[1]
+  do_abort("Invalid dataset log")
+end
+
+$n = ARGV[2].to_i
+
+# GMM with at least 3 components
+#raise "GMM components should be greater than 3" if $n < 3
+$params = $n * 3 - 1 # weight mu sigma for each component
+
+# - 1 --> array indexes start from 0
+puts "n #{$n} params #{$params}"
+
+# pycall import
+pyfrom :scipy, import: :stats
+PyCall.import_module("numpy")
+
+# here run the optimizer on the oracle
+# load simulation configuration
+time = Time.now.strftime('%Y%m%d%H%M%S')
+results_dirname = "#{time}_results"
+# create directory if it does not exist
+
+Dir.mkdir(results_dirname) unless File.exist?(results_dirname)
+
+GA_LOG = "#{results_dirname}/fitter_log_#{time}_#{$n}.log"
+
+File.delete(GA_LOG) if File.exist?(GA_LOG)
+ga_logger = Logger.new(GA_LOG)
+ga_logger.level = Logger::INFO
+
+sim_conf = KUBETWIN::Configuration.load_from_file(ARGV[0])
+msc = sim_conf.microservice_types
+
+# open the log only once
+k8s_log = CSV.parse(File.read(ARGV[1]), headers: true)
+k8s_ttr = k8s_log.by_col[1].map(&:to_f) # get the ttr column
+
+# ms1 ttr
+k8s_ms1 = CSV.parse(File.read(ARGV[3]), headers: true)
+ms1_ttr = k8s_ms1.by_col[0].map(&:to_f) # get the ttr column
+puts "MS1: #{ms1_ttr.length} #{ms1_ttr.max} #{ms1_ttr.min}"
+
+
+# ms2 ttr
+k8s_ms2 = CSV.parse(File.read(ARGV[4]), headers: true)
+ms2_ttr = k8s_ms2.by_col[0].map(&:to_f) # get the ttr column
+puts "MS2: #{ms2_ttr.length} #{ms2_ttr.max} #{ms2_ttr.min}"
+puts "TTR: #{k8s_ttr.length} #{k8s_ttr.max} #{k8s_ttr.min}"
+
+$microservice_types = sim_conf.microservice_types
+$n_ms = $microservice_types.length
+puts "Number of microservices #{$n_ms}"
+
+$seed = 12345
+
+to_optimize = lambda do |params|
+
+    res = 0
+
+    # load simulation configuration
+    conf = KUBETWIN::Configuration.load_from_file(ARGV[0])
+    msc = sim_conf.microservice_types
+
+    mu_0_1 = params[0]
+    sigma_0_1 = params[1]
+    mu_1_1 = params[2]
+    sigma_1_1 = params[3]
+
+    latency_models = sim_conf.latency_models
+    latency_models[0][1] = {
+      distribution: :gaussian, args: {mean: mu_0_1, sd: sigma_0_1, seed: 12345}
+    }
+    latency_models[1][1] = {
+      distribution: :gaussian, args: {mean: mu_1_1, sd: sigma_1_1, seed: 12345}
+    }
+    #sim_conf.latency_models = latency_models
+
+    sim = KUBETWIN::KSimulation.new(configuration: conf,
+                                    evaluator: KUBETWIN::Evaluator.new(conf),
+                                    results_dir: results_dirname)
+
+    benchmark, bms1, bms2 = sim.evaluate_allocation(nil, nil, nil, latency_models)
+
+    # evaluate bench here
+
+    sim_log = CSV.parse(File.read(benchmark), headers: true)
+    sim_ttr = sim_log.by_col[1].map(&:to_f)
+
+    ks_e2e = stats.kstest(sim_ttr, k8s_ttr)
+    res = ks_e2e.statistic.to_f
+
+    File.delete(benchmark)
+    File.delete(bms1)
+    File.delete(bms2)
+    -res
+end
+
+solver_conf = {
+  num_swarms: 6,
+  swarm_size: 50,
+  logger: :stdout,
+  constraints: {
+    min: [1E-4.to_f,1E-4.to_f,1E-4.to_f,1E-4.to_f],
+    max: [1E-2.to_f,1E-2.to_f,1E-2.to_f,1E-2.to_f]
+  },
+  exit_condition: lambda {|gen, best | gen >= 50 },
+  log_level: :info,
+}
+
+solver = MHL::MultiSwarmQPSOSolver.new(solver_conf)
+best = solver.solve(to_optimize, {concurrent: false})
+puts best
+
+
+puts "exiting"
+exit 0
+
