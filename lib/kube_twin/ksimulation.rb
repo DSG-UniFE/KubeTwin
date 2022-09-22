@@ -419,8 +419,13 @@ module KUBETWIN
             container  = e.destination
             @processed += 1
 
+            # unless next_ms
+            container.request_finished(self, e.time) if container.wait_for.empty?
+
             # tell the old container that it can start processing another request
-            container.request_finished(self, e.time)
+            # if microservice should wait for one other
+            oc = container.free_linked_container
+            oc.request_finished(self, e.time) if oc
 
             current_cluster = cluster_repository[req.data_center_id]
             # find the next workflow
@@ -430,11 +435,13 @@ module KUBETWIN
             component_name = workflow[:component_sequence][req.worked_step][:name]
             per_component_stats[component_name].record_request(req, now)
 
+
             if component_name == "MS1"
               @benchmark_ms1 << "#{req.rid},#{req.ttr_step(@current_time)}\n"
             elsif component_name == "MS2"
               @benchmark_ms2 << "#{req.rid},#{req.ttr_step(@current_time)}\n"
             end
+            # end
 
             # check if there are other steps left to complete the workflow
             if req.next_step < workflow[:component_sequence].size
@@ -470,6 +477,11 @@ module KUBETWIN
 
               # schedule request forwarding to vm
               @forwarded += 1
+            
+              # http chained microservices
+              # if the current microservice is the one which the old was waiting for
+              # free the old container
+              pod.container.to_free(container) unless container.wait_for.empty?
 
               new_event(Event::ET_REQUEST_FORWARDING, req, forwarding_time, pod)
 

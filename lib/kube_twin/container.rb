@@ -23,7 +23,9 @@ module KUBETWIN
     attr_reader :containerId,
                 :imageId,
                 :endCode, 
+                :name,
                 :state,
+                :wait_for,
                 :service_time,
                 :served_request,
                 :total_queue_time,
@@ -40,6 +42,7 @@ module KUBETWIN
       @guaranteed = Guaranteed.new(500, 500)
       @startedTime = Time.now
       @state = CONTAINER_WAITING
+      @name = opts[:label]
 
       unless opts[:blocking].nil?
         @blocking = opts[:blocking]
@@ -49,6 +52,7 @@ module KUBETWIN
 
       # node info
       @node = opts[:node]
+      @wait_for = opts[:img_info][:wait_for].nil? ? [] : opts[:img_info][:wait_for]
 
       # seed should alreay be here
       @service_time = ERV::RandomVariable.new(st_distribution)
@@ -58,10 +62,21 @@ module KUBETWIN
       @trace = opts[:trace] ? true : false
       @working_time = 0.0
       # metric info -- first implementation
+      @containers_to_free = []
 
       @served_request = 0
       @total_queue_processing_time = 0
       @total_queue_time = 0
+    end
+
+    def to_free(container)
+      #puts "#{@name} to_free called"
+      @containers_to_free << container
+    end
+
+    def free_linked_container
+      #puts "#{@name} linked containers #{@containers_to_free.length}"
+      @containers_to_free.shift
     end
 
     def reset_metrics
