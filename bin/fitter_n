@@ -174,7 +174,7 @@ to_optimize = lambda do |component_allocation|
         # fitness function ks for inferencing e2e distribution
         # res = ks_e2e.statistic.to_f
         # fit e2e and ms2 could be a good idea?
-        res = ks_e2e.statistic.to_f #+ ks_ms1.statistic.to_f
+        #res = ks_e2e.statistic.to_f #+ ks_ms1.statistic.to_f
         #res = ks_e2e.statistic.to_f + ks_ms1.statistic.to_f + ks_ms2.statistic.to_f
 
         #pop_data = [ms1_ttr.length, sim_ms1_ttr.length].min
@@ -190,7 +190,7 @@ to_optimize = lambda do |component_allocation|
         #  res += ks_e2e.statistic.to_f
         # end
 
-        #res = 0.33 * ks_e2e.statistic.to_f + 0.33 * ks_ms1.statistic.to_f + 0.33 * ks_ms2.statistic.to_f
+        res = 0.33 * ks_e2e.statistic.to_f + 0.33 * ks_ms1.statistic.to_f + 0.33 * ks_ms2.statistic.to_f
         
         #puts "sim: #{ks_e2e}, ms1: #{tt_ms1}, ms2: #{tt_ms1}, reqs: #{sim_ttr.length}, res: #{res}" #if penalty == 0
         #puts "sim: #{ks_e2e}, ms1: #{ks_ms1}, ms2: #{ks_ms1}, reqs: #{sim_ttr.length}, res: #{res}" if penalty == 0
@@ -207,7 +207,7 @@ end
 solver_conf = {
   #num_swarms: 6,
   swarm_size: 50,
-  logger: :stdout,
+  logger: ga_logger,
   constraints: {
     min: ([0.0, 1E-4, 1E-4] * ($n-1) + [1E-4, 1E-4]) * $n_ms, # when latent microservice is there 1E-5 is a good lower bound / otherwise 1E-3 
     max: ([1.0, 0.12, 0.12] * ($n-1) + [0.12, 0.12]) * $n_ms,

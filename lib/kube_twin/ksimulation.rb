@@ -262,7 +262,7 @@ module KUBETWIN
         rg = RequestGeneratorR.new(@configuration.request_generation)
         # this is to avoid mismatch when reproducing logs
         req_attrs = rg.generate(now)
-        @current_time = @start_time = req_attrs[:generation_time]
+        @current_time = @start_time = req_attrs[:generation_time] - 2
         @configuration.set_start(@current_time)
       else 
         rg = RequestGenerator.new(@configuration.request_gen[1])
