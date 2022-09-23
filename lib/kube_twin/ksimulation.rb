@@ -341,6 +341,9 @@ module KUBETWIN
             cluster = cluster_repository[cluster_id]
             
             arrival_time = @current_time + latency_manager.sample_latency_between(customer_location_id, cluster.location_id)
+            # here we should also add the HTTP connection time (8 ms)
+            arrival_time += 0.008
+
             # generate the request here
             new_req = Request.new(**req_attrs.merge!(initial_data_center_id: cluster_id,
                                                    arrival_time: arrival_time))
