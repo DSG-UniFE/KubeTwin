@@ -30,8 +30,8 @@ module KUBETWIN
       # read next line from file
       line = @file.gets
       #puts line, @next_rid
-      raise "End of input reached while reading request #{@next_rid}!" unless line
-      #reurn nil unless line
+      #raise "End of input reached while reading request #{@next_rid}!" unless line
+      return nil unless line
 
       # parse data
       tokens = line.split(",") # should be faster than CSV parsing
