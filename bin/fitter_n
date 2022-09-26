@@ -78,7 +78,7 @@ msc = sim_conf.microservice_types
 
 # open the log only once
 k8s_log = CSV.parse(File.read(ARGV[1]), headers: true)
-k8s_ttr = k8s_log.by_col[1].map(&:to_f) # get the ttr column
+k8s_ttr = k8s_log.by_col["ttr"].map(&:to_f) # get the ttr column
 
 # ms1 ttr
 k8s_ms1 = CSV.parse(File.read(ARGV[3]), headers: true)
