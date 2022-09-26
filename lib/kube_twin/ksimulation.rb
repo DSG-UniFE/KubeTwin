@@ -259,7 +259,7 @@ module KUBETWIN
       # both R and ruby should work request_gen is written in Ruby
       # request_generation is csv or R
       if @configuration.request_gen.nil? 
-        puts "#{@configuration.request_generation}"
+        #puts "#{@configuration.request_generation}"
         rg = RequestGeneratorR.new(@configuration.request_generation)
         # this is to avoid mismatch when reproducing logs
         req_attrs = rg.generate(now)
@@ -722,7 +722,7 @@ module KUBETWIN
          #puts "Allocation -- #{c.name} Pods: #{pods}"
       end
       #puts "#{stats.to_csv}"
-#=begin
+=begin
      puts "====== Evaluating new allocation ======\n" +
           # "costs: #{costs}\n" +
            "stats: #{stats.to_s}\n" +
@@ -731,7 +731,7 @@ module KUBETWIN
            "allocation_map: #{allocation_map}\n" +
            "=======================================\n"
       # debug info here
-#=end
+=end
       # we want to minimize the cost, so we define fitness as the opposite of
       # the sum of all costs incurred
       # -costs.values.inject(0.0){|s,x| s += x }

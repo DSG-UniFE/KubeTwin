@@ -124,7 +124,7 @@ module KUBETWIN
       IceNine.deep_freeze(@evaluation)
       IceNine.deep_freeze(@kpi_customization)
       IceNine.deep_freeze(@latency_models)
-      IceNine.deep_freeze(@request_generation)
+      #IceNine.deep_freeze(@request_generation)
       IceNine.deep_freeze(@seeds)
       #IceNine.deep_freeze(@microservice_types)
       #IceNine.deep_freeze(@start_time)
@@ -153,5 +153,8 @@ module KUBETWIN
       @start_time = time
     end
 
+    def set_rgen(filename)
+      @request_generation[:filename] = filename
+    end
   end
 end
