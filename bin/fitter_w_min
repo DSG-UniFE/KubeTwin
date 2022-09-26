@@ -252,7 +252,7 @@ solver_conf = {
     min: ([0.0, 1E-4, 1E-4] * ($n-1) + [1E-4, 1E-4]) * $n_ms,
     max: ([1.0, 0.10, 0.10] * ($n-1) + [0.10, 0.10]) *$n_ms,
   },
-  exit_condition: lambda {|gen, best | gen >= 100  },
+  exit_condition: lambda {|gen, best | gen >= 200  },
   log_level: :info,
 }
 
