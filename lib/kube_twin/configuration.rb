@@ -153,8 +153,12 @@ module KUBETWIN
       @start_time = time
     end
 
-    def set_rgen(filename)
-      @request_generation[:filename] = filename
+    def set_rgen(filename,dist=nil)
+      if dist.nil?
+        @request_generation[:filename] = filename
+      else
+        @request_gen = dist
+      end
     end
   end
 end

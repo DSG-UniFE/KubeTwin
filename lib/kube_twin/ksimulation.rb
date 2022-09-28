@@ -294,7 +294,7 @@ module KUBETWIN
       current_event = 0
 
       # benchmark file
-      time = Time.now.strftime('%Y%m%d%H%M%S')
+      #time = Time.now.strftime('%Y%m%d%H%M%S')
       #@sim_bench = File.open("sim_bench_#{time}.csv", 'w')
 
       #@sim_bench << "Time,Component,Request,TTP,Pods\n"
@@ -409,6 +409,7 @@ module KUBETWIN
             per_component_stats[component_name].request_received
 
             # here we should use the delegator
+            # puts "#{now},#{pod.container.containerId},#{pod.container.request_queue.length}\n"
             pod.container.new_request(self, req, time)
 
 
@@ -436,11 +437,11 @@ module KUBETWIN
             per_component_stats[component_name].record_request(req, now)
 
 
-            if component_name == "MS1"
-              @benchmark_ms1 << "#{req.rid},#{req.ttr_step(@current_time)}\n"
-            elsif component_name == "MS2"
-              @benchmark_ms2 << "#{req.rid},#{req.ttr_step(@current_time)}\n"
-            end
+            #if component_name == "MS1"
+            #  @benchmark_ms1 << "#{req.rid},#{req.ttr_step(@current_time)}\n"
+            #elsif component_name == "MS2"
+            #  @benchmark_ms2 << "#{req.rid},#{req.ttr_step(@current_time)}\n"
+            #end
             # end
 
             # check if there are other steps left to complete the workflow
@@ -463,24 +464,22 @@ module KUBETWIN
               cluster = cluster_repository[cluster_id]
 
               transmission_time =
-                latency_manager.sample_latency_between(current_cluster.location_id,
-                                                     cluster.location_id)
+                latency_manager.sample_latency_between(current_cluster.location_id, cluster.location_id)
               req.update_transfer_time(transmission_time)
               forwarding_time += transmission_time
 
               # update request's current data_center_id / cluster_id
               req.data_center_id = cluster.cluster_id
 
-              # make sure we actually found a VM
+              # make sure we actually found a pod
               raise "Cannot find a Pod running a component of type " +
                     "#{next_component_name} in any cluster!" unless pod
 
-              # schedule request forwarding to vm
+              # schedule request forwarding to pod
               @forwarded += 1
             
               # http chained microservices
-              # if the current microservice is the one which the old was waiting for
-              # free the old container
+              # if the current microservice is the one which the old was waiting, free the old container
               pod.container.to_free(container) unless container.wait_for.empty?
 
               new_event(Event::ET_REQUEST_FORWARDING, req, forwarding_time, pod)
@@ -722,7 +721,6 @@ module KUBETWIN
          #puts "Allocation -- #{c.name} Pods: #{pods}"
       end
       #puts "#{stats.to_csv}"
-=begin
      puts "====== Evaluating new allocation ======\n" +
           # "costs: #{costs}\n" +
            "stats: #{stats.to_s}\n" +
@@ -731,7 +729,6 @@ module KUBETWIN
            "allocation_map: #{allocation_map}\n" +
            "=======================================\n"
       # debug info here
-=end
       # we want to minimize the cost, so we define fitness as the opposite of
       # the sum of all costs incurred
       # -costs.values.inject(0.0){|s,x| s += x }
