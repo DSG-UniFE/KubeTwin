@@ -104,7 +104,8 @@ module KUBETWIN
       # add concurrent execution
       #pod_executing = @node.pod_id_list.length
       #st *= Math::log(pod_executing) if pod_executing > 2
-      
+      #return if @request_queue.length >= 3
+
       ri = RequestInfo.new(r, st, time)
       @request_queue << ri
 
@@ -142,14 +143,15 @@ module KUBETWIN
         else
           @busy = false
         end
-        # puts "Start: #{time}"
+        #puts "Start: #{time}"
         ri = @request_queue.shift
-        # puts "#{containerId} #{@request_queue.length} sr: #{served_request}" if @request_queue.length > 5
+        # puts "#{containerId} #{@request_queue.length} sr: #{served_request} #{time - ri.arrival_time}" if @request_queue.length > 2
         
         req = ri.request
         # update the request's working information
 
-        req.update_queuing_time(time - ri.arrival_time)
+        #req.update_queuing_time(time - ri.arrival_time)
+        req.update_queuing_time(time - req.arrival_at_container)
 
         req.step_completed(ri.service_time)
 
