@@ -11,7 +11,7 @@ module KUBETWIN
     def <=>(o)
       arrival_time <=> o.arrival_time
     end
-    end
+  end
 
   class Container
     # states
@@ -27,6 +27,7 @@ module KUBETWIN
                 :state,
                 :wait_for,
                 :service_time,
+                :request_queue,
                 :served_request,
                 :total_queue_time,
                 :total_queue_processing_time # endCode = 0 if all operations successfull, 0 if there's any kind of error
@@ -70,12 +71,15 @@ module KUBETWIN
     end
 
     def to_free(container)
-      #puts "#{@name} to_free called"
+      # add a chained container, which must wait
+      # until the next workflow step is completed
       @containers_to_free << container
     end
 
     def free_linked_container
-      #puts "#{@name} linked containers #{@containers_to_free.length}"
+      # return the reference to the container
+      # which was waiting the next step to be
+      # completed
       @containers_to_free.shift
     end
 
@@ -86,7 +90,6 @@ module KUBETWIN
     end
 
     def startupC
-      #sleep(0.002)
       @state = Container::CONTAINER_RUNNING
     end
 
@@ -95,10 +98,8 @@ module KUBETWIN
       # improve this code in the future
       r.arrival_at_container = time
 
-      while (st = @service_time.next) <= 1E-6; end
       # remove truncation --- just to make the optimizer runnings
-      #st = @service_time.next
-      #st = 1E-6 if st < 1E-6
+      while (st = @service_time.next) <= 1E-6; end
 
       # add concurrent execution
       #pod_executing = @node.pod_id_list.length
@@ -108,12 +109,14 @@ module KUBETWIN
       @request_queue << ri
 
       if @trace
+        puts "***"
         @request_queue.each_cons(2) do |x, y|
-          raise 'Inconsistent ordering in request_queue!' if y[1] < x[1]
+          puts "#{x[2]},#{y[2]},#{y[2]-x[2]}"
+          raise 'Inconsistent ordering in request_queue!' if y[2] < x[2]
         end
+        puts "***"
       end
 
-      #puts "#{containerId} #{@request_queue.length} #{st}}" if @request_queue.length > 1
 
       try_servicing_new_request(sim, time) unless @busy
     end
@@ -139,22 +142,13 @@ module KUBETWIN
         else
           @busy = false
         end
-
+        # puts "Start: #{time}"
         ri = @request_queue.shift
-        # nc = r.service_time
-
-        # here simulate service time based on cpu and on a random noise
-        # service_time_request = (nc / @guaranteed.cpu) + @service_noise_rv.sample
-        # just implement service_time for now
-
-        if @trace
-          logger.info "Container #{@containerId} fulfilling a new request at time #{time} for #{service_time_request} seconds"
-        end
+        # puts "#{containerId} #{@request_queue.length} sr: #{served_request}" if @request_queue.length > 5
         
         req = ri.request
         # update the request's working information
 
-        # this is somehow wrong --- need to fix it
         req.update_queuing_time(time - ri.arrival_time)
 
         req.step_completed(ri.service_time)
@@ -163,10 +157,8 @@ module KUBETWIN
         @total_queue_time += time - ri.arrival_time
         # raise "We are looking at two different times" if req.queuing_time != (time - ri.arrival_time)
         @total_queue_processing_time += ri.service_time + (time - ri.arrival_time)
-        # + req.queuing_time # does the queueing time also contain 
-        # the queue time for the previous request? yes 
-        # fixed
         # schedule completion of workflow step
+        # puts "Finished #{time + ri.service_time} #{@request_queue.length}"
         sim.new_event(Event::ET_WORKFLOW_STEP_COMPLETED, req, time + ri.service_time, self)
       end
     end
@@ -174,19 +166,18 @@ module KUBETWIN
     def request_resources(moreCpu)
       if @state == CONTAINER_RUNNING
         raise 'Impossible assign resources, container is still running'
-        end
+      end
 
       @guaranteed.cpu += moreCpu
       if @guaranteed.cpu > @limits.cpu
         raise 'CPU limits error, too much resources in request'
-        end
+      end
 
       @state = CONTAINER_WAITING
 
-      'Resources assigned, waiting for setup...'
+      puts 'Resources assigned, waiting for setup...'
       startupC
     end
 
-  # ending module
   end
 end
