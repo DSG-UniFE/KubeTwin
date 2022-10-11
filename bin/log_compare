@@ -98,7 +98,7 @@ k8s_log_files.each do |log_file|
   s_mean, s_std = calcualte_statistics(sim_ttr)
   csv_logs << "#{i},#{s_mean},#{s_std},#{percentile(sim_ttr, 0.90)},#{percentile(sim_ttr, 0.95)},#{percentile(sim_ttr, 0.99)},KubeTwin\n"
   puts "KubeTwin Log: mean: #{s_mean}, std: #{s_std}, min: #{sim_ttr.min} max: #{sim_ttr.max}"
-  system( "python3 plot_dists.py #{log_file} #{benchmark} #{i}" )
+  # system( "python3 plot_dists.py #{log_file} #{benchmark} #{i}" )
   # delete simulation logs
   sim_output.each { |f| File.delete(f) }
   i += 1
