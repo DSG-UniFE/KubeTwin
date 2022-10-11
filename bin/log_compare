@@ -75,14 +75,14 @@ k8s_log_files = Dir["#{k8s_log_files_dir}/*.csv"]
 
 i = 1
 csv_logs = File.open("comparison_log_#{time}.csv", 'w')
-csv_logs << "rps,mean,sd,90th,95th,system\n"
+csv_logs << "rps,mean,sd,90th,95th,99th,system\n"
 k8s_log_files.each do |log_file|
   puts "#{log_file}"
   # print logs' statistics
   k8s_log = CSV.parse(File.read(log_file), headers: true)
   k8s_ttr = k8s_log.by_col[1].map(&:to_f) # get the ttr column
   mean, std = calcualte_statistics(k8s_ttr)
-  csv_logs << "#{i},#{mean},#{std},#{percentile(k8s_ttr, 0.9)},#{percentile(k8s_ttr, 0.95)},K8S\n"
+  csv_logs << "#{i},#{mean},#{std},#{percentile(k8s_ttr, 0.9)},#{percentile(k8s_ttr, 0.95)},#{percentile(k8s_ttr, 0.99)},K8S\n"
   puts "K8S Log: mean: #{mean}, std: #{std}, min: #{k8s_ttr.min} max: #{k8s_ttr.max}"
   # start simulation and check output
   # need to change the request file here
@@ -96,7 +96,7 @@ k8s_log_files.each do |log_file|
   sim_log = CSV.parse(File.read(benchmark), headers: true)
   sim_ttr = sim_log.by_col[1].map(&:to_f)
   s_mean, s_std = calcualte_statistics(sim_ttr)
-  csv_logs << "#{i},#{s_mean},#{s_std},#{percentile(sim_ttr, 0.90)},#{percentile(sim_ttr, 0.95)},KubeTwin\n"
+  csv_logs << "#{i},#{s_mean},#{s_std},#{percentile(sim_ttr, 0.90)},#{percentile(sim_ttr, 0.95)},#{percentile(sim_ttr, 0.99)},KubeTwin\n"
   puts "KubeTwin Log: mean: #{s_mean}, std: #{s_std}, min: #{sim_ttr.min} max: #{sim_ttr.max}"
   system( "python3 plot_dists.py #{log_file} #{benchmark} #{i}" )
   # delete simulation logs
