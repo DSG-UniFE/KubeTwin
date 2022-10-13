@@ -1,4 +1,5 @@
 *~
+*.svg
 *.csv
 ms*.txt
 sim*.csv
