@@ -68,7 +68,7 @@ msc = sim_conf.microservice_types
 
 # open the log only once
 k8s_log = CSV.parse(File.read(ARGV[1]), headers: true)
-k8s_ttr = k8s_log.by_col[1] # get the ttr column
+k8s_ttr = k8s_log.by_col['ttr'] # get the ttr column
 
 microservice_types = sim_conf.microservice_types
 
@@ -114,8 +114,9 @@ to_optimize = lambda do |component_allocation|
       if sim_ttr.length != k8s_ttr.length
         res = 1E+195
       else
-        ks = stats.kstest(sim_ttr, k8s_ttr)
-        res = ks.statistic.to_f 
+        #ks = stats.kstest(sim_ttr, k8s_ttr)
+        ks = stats.wasserstein_distance(sim_ttr, k8s_ttr)
+        res = ks.to_f 
         puts "#{ks}, #{res}"
       end
       File.delete(benchmark[0])
