@@ -68,6 +68,7 @@ module KUBETWIN
       @served_request = 0
       @total_queue_processing_time = 0
       @total_queue_time = 0
+      @last_served_time = 0
     end
 
     def to_free(container)
@@ -100,6 +101,7 @@ module KUBETWIN
 
       # remove truncation --- just to make the optimizer runnings
       while (st = @service_time.next) <= 1E-6; end
+      queue_length = @request_queue.length + 1
 
       # add concurrent execution
       #pod_executing = @node.pod_id_list.length
@@ -145,6 +147,23 @@ module KUBETWIN
         end
         #puts "Start: #{time}"
         ri = @request_queue.shift
+        st = ri.service_time
+        gap = time - @last_served_time
+        puts gap
+        if  gap < st / 4.0
+          if @name == "MS1"
+            puts "ok"
+            st *= 0.5921501305176022
+          elsif @name == "MS2"
+            st *= 0.7921074292203836
+          end
+        elsif gap < st / 3.0
+          if @name == "MS1"
+            st *= 0.8031069595602218
+          elsif @name == "MS2"
+            st *= 0.8996380692788059
+          end 
+        end
         # puts "#{containerId} #{@request_queue.length} sr: #{served_request} #{time - ri.arrival_time}" if @request_queue.length > 2
         
         req = ri.request
@@ -161,6 +180,7 @@ module KUBETWIN
         @total_queue_processing_time += ri.service_time + (time - ri.arrival_time)
         # schedule completion of workflow step
         # puts "Finished #{time + ri.service_time} #{@request_queue.length}"
+        @last_served_time = time + ri.service_time
         sim.new_event(Event::ET_WORKFLOW_STEP_COMPLETED, req, time + ri.service_time, self)
       end
     end

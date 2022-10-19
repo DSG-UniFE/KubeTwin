@@ -103,5 +103,6 @@ k8s_log_files.each do |log_file|
   sim_output.each { |f| File.delete(f) }
   i += 1
 end
-
+out_name = csv_logs.path
 csv_logs.close()
+`python3 comparison-fig.py #{out_name}`
