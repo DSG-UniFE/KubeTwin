@@ -34,6 +34,7 @@ module KUBETWIN
     end
 
     def get_pod(label)
+      return get_random_pod(label)
      if @load_balancing == :random
        pod = get_random_pod(label)
      elsif 

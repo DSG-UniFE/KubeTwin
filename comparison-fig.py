@@ -11,6 +11,7 @@ for k,g in df.groupby('system'):
 plt.legend()
 plt.xlabel('RPS')
 plt.ylabel('MTTR (s)')
+plt.grid()
 #plt.show()
 plt.savefig('mttr-1-20-rps.png')
 
@@ -21,5 +22,6 @@ for k,g in df.groupby('system'):
 plt.legend()
 plt.xlabel('RPS')
 plt.ylabel('99-th (s)')
+plt.grid()
 plt.savefig('99th-1-20-rps.png')
 #plt.show()
