@@ -149,20 +149,22 @@ module KUBETWIN
         ri = @request_queue.shift
         st = ri.service_time
         gap = time - @last_served_time
-        puts gap
-        if  gap < st / 4.0
+        if  gap < 0.022 # st * 0.75
+          #puts "heavy load"
           if @name == "MS1"
-            puts "ok"
             st *= 0.5921501305176022
           elsif @name == "MS2"
             st *= 0.7921074292203836
           end
-        elsif gap < st / 3.0
+          ri.service_time = st
+        elsif gap < st #(st * 1.5)
+          #puts "medium load"
           if @name == "MS1"
             st *= 0.8031069595602218
           elsif @name == "MS2"
             st *= 0.8996380692788059
           end 
+          ri.service_time = st
         end
         # puts "#{containerId} #{@request_queue.length} sr: #{served_request} #{time - ri.arrival_time}" if @request_queue.length > 2
         
