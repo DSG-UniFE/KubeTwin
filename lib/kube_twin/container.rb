@@ -157,7 +157,8 @@ module KUBETWIN
             st *= 0.7921074292203836
           end
           ri.service_time = st
-        elsif gap < st #(st * 1.5)
+        # st was a better coefficient here
+        elsif gap < st * 1.2 #(st * 1.5)
           #puts "medium load"
           if @name == "MS1"
             st *= 0.8031069595602218
