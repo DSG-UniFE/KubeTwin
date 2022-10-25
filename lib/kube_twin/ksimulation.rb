@@ -437,12 +437,11 @@ module KUBETWIN
             per_component_stats[component_name].record_request(req, now)
 
 
-            #if component_name == "MS1"
-            #  @benchmark_ms1 << "#{req.rid},#{req.ttr_step(@current_time)}\n"
-            #elsif component_name == "MS2"
-            #  @benchmark_ms2 << "#{req.rid},#{req.ttr_step(@current_time)}\n"
-            #end
-            # end
+            if component_name == "MS1"
+              @benchmark_ms1 << "#{req.rid},#{req.ttr_step(@current_time)}\n"
+            elsif component_name == "MS2"
+              @benchmark_ms2 << "#{req.rid},#{req.ttr_step(@current_time)}\n"
+            end
 
             # check if there are other steps left to complete the workflow
             if req.next_step < workflow[:component_sequence].size
