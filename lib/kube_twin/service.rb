@@ -5,6 +5,8 @@ require_relative './pod'
 module KUBETWIN
   class Service
 
+    SEED = 12345
+
     # removing :targetPort for now
     # we are not dealing with TCP/IP here...
     # consider it for future work
@@ -22,6 +24,7 @@ module KUBETWIN
       # round robin pod selector
       @rri = 0
       @load_balancing = load_balancing
+      @random = Random.new(SEED)
     end
 
     # assign a pod to a service
@@ -34,7 +37,7 @@ module KUBETWIN
     end
 
     def get_pod(label)
-      return get_random_pod(label)
+      return get_random_pod(label, random: @random)
      if @load_balancing == :random
        pod = get_random_pod(label)
      elsif 
