@@ -147,7 +147,6 @@ module KUBETWIN
         end
         #puts "Start: #{time}"
         ri = @request_queue.shift
-=begin
         st = ri.service_time
         gap = time - @last_served_time
         if  gap < 0.022 # st * 0.75
@@ -168,7 +167,6 @@ module KUBETWIN
           end 
           ri.service_time = st
         end
-=end
         # puts "#{containerId} #{@request_queue.length} sr: #{served_request} #{time - ri.arrival_time}" if @request_queue.length > 2
         
         req = ri.request
