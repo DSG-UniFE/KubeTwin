@@ -265,6 +265,8 @@ to_bench = lambda do |component_allocation|
       msc[ms_name][:service_time_distribution][:mec] = ms_time_dist
     end
 
+    puts "#{msc}"
+
     sim = KUBETWIN::KSimulation.new(configuration: conf,
                                 evaluator: KUBETWIN::Evaluator.new(conf))
     benchmark, bms1, bms2 = sim.evaluate_allocation(nil, nil, msc)

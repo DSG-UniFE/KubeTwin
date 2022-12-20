@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-#import seaborn as sns; sns.set()
+import seaborn as sns; sns.set()
 import sys
 import tikzplotlib
 
@@ -25,8 +25,8 @@ plt.style.use("ggplot")
 plt.grid(True)
 plt.legend()
 
-#plt.show()
-tikzplotlib.save("fig.tex")
+plt.show()
+#tikzplotlib.save("fig.tex")
 
 #plt.title("RPS {}".format(file_name))
 #plt.savefig("dists_comparision_wsd.pdf")
