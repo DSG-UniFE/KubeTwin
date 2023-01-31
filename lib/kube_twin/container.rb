@@ -154,7 +154,7 @@ module KUBETWIN
         req.update_queuing_time(time - req.arrival_at_container)
 
         req.step_completed(ri.service_time)
-
+        
         # update container-based metric here
         @total_queue_time += time - ri.arrival_time
         # raise "We are looking at two different times" if req.queuing_time != (time - ri.arrival_time)

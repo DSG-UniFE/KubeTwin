@@ -34,12 +34,14 @@ module KUBETWIN
       @num_reqs      = opts[:num_reqs]
       @num_reqs = DEFAULT_NUM_REQS if @num_reqs.nil?
       @results_dir += '/' unless @results_dir.nil?
+=begin
       @benchmark = File.open("#{@results_dir}requests_log_#{Time.now.to_i}.csv", 'w')
       @benchmark << "rid,ttr\n"
       @benchmark_ms1 = File.open("#{@results_dir}ms1_log_#{Time.now.to_i}.csv", 'w')
       @benchmark_ms1 << "rid,ttr\n"
       @benchmark_ms2 = File.open("#{@results_dir}ms2_log_#{Time.now.to_i}.csv", 'w')
       @benchmark_ms2 << "rid,ttr\n"
+=end
     end
 
 
@@ -435,14 +437,15 @@ module KUBETWIN
             # register step completion
             component_name = workflow[:component_sequence][req.worked_step][:name]
             per_component_stats[component_name].record_request(req, now)
-
-
+            
+            req.ttr_step(@current_time)
+=begin
             if component_name == "MS1"
               @benchmark_ms1 << "#{req.rid},#{req.ttr_step(@current_time)}\n"
             elsif component_name == "MS2"
               @benchmark_ms2 << "#{req.rid},#{req.ttr_step(@current_time)}\n"
             end
-
+=end
             # check if there are other steps left to complete the workflow
             if req.next_step < workflow[:component_sequence].size
 
@@ -524,7 +527,7 @@ module KUBETWIN
 
               # collect request statistics in per_workflow_and_customer_stats
               per_workflow_and_customer_stats[req.workflow_type_id][req.customer_id].record_request(req, @current_time)
-              @benchmark << "#{req.rid},#{req.ttr(@current_time)}\n"
+              #@benchmark << "#{req.rid},#{req.ttr(@current_time)}\n"
             end
 
             # schedule generation of next request
@@ -722,10 +725,10 @@ module KUBETWIN
       #puts "#{stats.to_csv}"
      puts "====== Evaluating new allocation ======\n" +
           # "costs: #{costs}\n" +
-           "stats: #{stats.to_s}\n" +
-           "per_workflow_and_customer_stats: #{per_workflow_and_customer_stats.to_s}\n" +
-           "component_stats: #{per_component_stats.to_s}\n" +
-           "allocation_map: #{allocation_map}\n" +
+           #"stats: #{stats.to_s}\n" +
+           #"per_workflow_and_customer_stats: #{per_workflow_and_customer_stats.to_s}\n" +
+           #"component_stats: #{per_component_stats.to_s}\n" +
+           #"allocation_map: #{allocation_map}\n" +
            "=======================================\n"
       # debug info here
       # we want to minimize the cost, so we define fitness as the opposite of
@@ -744,13 +747,18 @@ module KUBETWIN
       #  puts "#{(per_workflow_and_customer_stats[1][1].shorter_than[t] / per_workflow_and_customer_stats[1][1].closed.to_f) * 100}% #{t}s"
       #end
       #-stats.mean
-      file_name = @benchmark.path
-      @benchmark.close
+
+      #file_name = @benchmark.path
+      #@benchmark.close
+=begin
       file_ms1 = @benchmark_ms1.path
       @benchmark_ms1.close
       file_ms2 = @benchmark_ms2.path
       @benchmark_ms2.close
-      return File.expand_path(file_name),File.expand_path(file_ms1),File.expand_path(file_ms2)
+=end
+      #puts "#{stats.to_csv}"
+      return stats.to_csv 
+      #return File.expand_path(file_name),File.expand_path(file_ms1),File.expand_path(file_ms2)
     end
   end
 end

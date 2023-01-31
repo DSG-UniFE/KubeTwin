@@ -164,79 +164,52 @@ to_optimize = lambda do |component_allocation|
       sim = KUBETWIN::KSimulation.new(configuration: conf,
                                       evaluator: KUBETWIN::Evaluator.new(conf),
                                       results_dir: results_dirname)
-      benchmark, bms1, bms2 = sim.evaluate_allocation(nil, nil, msc)
+      csv_benchmark = sim.evaluate_allocation(nil, nil, msc)
 
-      # evaluate bench here
-
-      sim_log = CSV.parse(File.read(benchmark), headers: true)
+      sim_log = CSV.parse(csv_benchmark, headers: true)
       sim_ttr = sim_log.by_col[1].map(&:to_f)
-
-      ms1_log = CSV.parse(File.read(bms1), headers: true)
-      sim_ms1_ttr = ms1_log.by_col[1].map(&:to_f)
-
-      ms2_log = CSV.parse(File.read(bms2), headers: true)
-      sim_ms2_ttr = ms2_log.by_col[1].map(&:to_f)
+      sim_ms1_ttr = sim_log.by_col[2].map(&:to_f)
+      sim_ms2_ttr = sim_log.by_col[3].map(&:to_f)
 
       if sim_ttr.length != k8s_ttr.length
         penalty += Float::INFINITY
       else
         begin
           w_e2e = stats.mannwhitneyu(k8s_ttr, sim_ttr)
-          #kl_t = special.kl_div(k8s_ttr, sim_ttr)
-          #puts "#{kl_t}"
           # puts "#{w_e2e}"
           ev = k8s_ttr.length * (k8s_ttr.length + sim_ttr.length + 1) / 4.0
 
           if w_e2e.pvalue.to_f >= 0.05
             puts "Reqs: #{sim_ttr.length} W statistic: #{w_e2e.statistic.to_f} pvalue: #{w_e2e.pvalue.to_f} ev: #{ev} #{(w_e2e.statistic.to_f - ev).abs}" 
             puts "Mean: #{sim_ttr.sum /  sim_ttr.length}"
-          #else 
-          #  penalty += 1E7
           end
-
           #res = (w_e2e.statistic.to_f - ev).abs
 
           res = stats.wasserstein_distance(k8s_ttr, sim_ttr).to_f
 
-
           # print "w statistics #{w_e2e.statistic.to_f} pvalue #{w_e2e.pvalue.to_f}\n" if res < 1000.0
 
           # W for ms1 and ms2?
-          ev_ms1 = ms1_ttr.length * (ms1_ttr.length + sim_ms1_ttr.length - 1) / 2.0
-          ev_ms2 = ms2_ttr.length * (ms2_ttr.length + sim_ms2_ttr.length - 1) / 2.0
+          # ev_ms1 = ms1_ttr.length * (ms1_ttr.length + sim_ms1_ttr.length - 1) / 2.0
+          # ev_ms2 = ms2_ttr.length * (ms2_ttr.length + sim_ms2_ttr.length - 1) / 2.0
 
           # historical data on ms1 and ms2 is lower than 1000
           pop_data = [ms1_ttr.length, sim_ms1_ttr.length].min
 
-          w_ms1 = stats.mannwhitneyu(ms1_ttr[0, pop_data], sim_ms1_ttr[0, pop_data])
-          w_ms2 = stats.mannwhitneyu(ms2_ttr[0, pop_data], sim_ms2_ttr[0, pop_data])
+          # w_ms1 = stats.mannwhitneyu(ms1_ttr[0, pop_data], sim_ms1_ttr[0, pop_data])
+          # w_ms2 = stats.mannwhitneyu(ms2_ttr[0, pop_data], sim_ms2_ttr[0, pop_data])
 
           wt_ms1 = stats.wasserstein_distance(ms1_ttr[0, pop_data], sim_ms1_ttr[0, pop_data]).to_f
           wt_ms2 = stats.wasserstein_distance(ms2_ttr[0, pop_data], sim_ms2_ttr[0, pop_data]).to_f
           
           res += wt_ms1 + wt_ms2
-
-          # just some print here
-          if w_ms1.pvalue.to_f >= 0.05
-            puts "WMS1 statistic: #{w_ms1.statistic.to_f} pvalue: #{w_ms1.pvalue.to_f} ev: #{ev} #{(w_ms1.statistic.to_f - ev_ms1).abs}" 
-          #else
-          #  penalty += 1E5
-          end
-          if w_ms2.pvalue.to_f >= 0.05
-            puts "WMS2 statistic: #{w_ms2.statistic.to_f} pvalue: #{w_ms2.pvalue.to_f} ev: #{ev} #{(w_ms2.statistic.to_f - ev_ms2).abs}" 
-          #else
-          #  penalty += 1E5
-          end
           # missing weights
-          # res += (w_ms1.statistic.to_f - ev_ms1).abs + (w_ms2.statistic.to_f - ev_ms2).abs
         rescue => e
           puts("Rescued execption #{e}")
           penalty += Float::INFINITY
         end
       end
-      File.delete(benchmark)
-      File.delete(bms1)
-      File.delete(bms2)
+
     end
 
     res += penalty
@@ -252,7 +225,7 @@ solver_conf = {
     min: ([0.0, 1E-4, 1E-4] * ($n-1) + [1E-4, 1E-4]) * $n_ms,
     max: ([1.0, 0.10, 0.10] * ($n-1) + [0.10, 0.10]) *$n_ms,
   },
-  exit_condition: lambda {|gen, best | gen >= 200  },
+  exit_condition: lambda {|gen, best | gen >= 50  },
   log_level: :info,
 }
 
@@ -281,16 +254,13 @@ to_bench = lambda do |component_allocation|
     sim = KUBETWIN::KSimulation.new(configuration: conf,
                                 evaluator: KUBETWIN::Evaluator.new(conf),
                                 results_dir: results_dirname)
-    benchmark, bms1, bms2 = sim.evaluate_allocation(nil, nil, msc)
+    csv_benchmark = sim.evaluate_allocation(nil, nil, msc)
+    File.write('best_fitted.csv',csv_benchmark)
 
-    sim_log = CSV.parse(File.read(benchmark), headers: true)
+    sim_log = CSV.parse(csv_benchmark, headers: true)
     sim_ttr = sim_log.by_col[1].map(&:to_f)
-
-    ms1_log = CSV.parse(File.read(bms1), headers: true)
-    sim_ms1_ttr = ms1_log.by_col[1].map(&:to_f)
-
-    ms2_log = CSV.parse(File.read(bms2), headers: true)
-    sim_ms2_ttr = ms2_log.by_col[1].map(&:to_f)
+    sim_ms1_ttr = sim_log.by_col[2].map(&:to_f)
+    sim_ms2_ttr = sim_log.by_col[3].map(&:to_f)
 
     w_e2e = stats.mannwhitneyu(k8s_ttr, sim_ttr)
     ga_logger.info "TTR file #{benchmark}"
