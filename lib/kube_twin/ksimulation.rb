@@ -757,7 +757,7 @@ module KUBETWIN
       @benchmark_ms2.close
 =end
       #puts "#{stats.to_csv}"
-      return stats.to_csv 
+      return stats.to_csv
       #return File.expand_path(file_name),File.expand_path(file_ms1),File.expand_path(file_ms2)
     end
   end

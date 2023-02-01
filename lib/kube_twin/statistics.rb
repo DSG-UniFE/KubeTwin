@@ -33,9 +33,9 @@ module KUBETWIN
       # commented here
       steps = ""
 
-      req.steps_ttr.each do |s|
-        steps += ",#{s}"
-      end
+      #req.steps_ttr.each do |s|
+      #  steps += ",#{s}"
+      #end
 
       @csv += "#{req.rid},#{x}#{steps}\n"
 
