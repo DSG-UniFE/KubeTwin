@@ -31,14 +31,10 @@ module KUBETWIN
       x = req.ttr(time)
       raise "TTR #{x} for request #{req.rid} invalid!" unless x > 0.0
 
-      # string operations are slow
+      # string operations are slow << is the fastest
       steps = req.steps_ttr.join(',')
-      #steps = ""
-      #req.steps_ttr.each do |s|
-      #  steps << ",#{s}"
-      #end
-
-      @csv << "#{req.rid},#{x}#{steps}\n"
+      #@csv << req.rid << ',' << x << ',' << steps << '\n'
+      @csv << "#{req.rid},#{x},#{steps}\n"
 
       qx = req.queuing_time
 
@@ -76,11 +72,7 @@ module KUBETWIN
     end
 
     def to_csv
-      # call header
-      #line = @csv.split().first()
-      #n_step = line.split(',').length - 1
       header = "rid,ttr" 
-      #n_step.times { |i| header += ",#{i}" }
       return "#{header}\n#{@csv.join}"
     end
 
