@@ -716,9 +716,9 @@ module KUBETWIN
       end
       #puts "#{stats.to_csv}"
      puts "====== Evaluating new allocation ======\n" +
-           "costs: #{costs}\n" +
+           #"costs: #{costs}\n" +
            "stats: #{stats.to_s}\n" +
-           "per_workflow_and_customer_stats: #{per_workflow_and_customer_stats.to_s}\n" +
+           #"per_workflow_and_customer_stats: #{per_workflow_and_customer_stats.to_s}\n" +
            "component_stats: #{per_component_stats.to_s}\n" +
            "allocation_map: #{allocation_map}\n" +
            "=======================================\n"
@@ -739,6 +739,7 @@ module KUBETWIN
       #  puts "#{(per_workflow_and_customer_stats[1][1].shorter_than[t] / per_workflow_and_customer_stats[1][1].closed.to_f) * 100}% #{t}s"
       #end
       #-stats.mean
+      #return 0
       return stats.to_csv
     end
   end
