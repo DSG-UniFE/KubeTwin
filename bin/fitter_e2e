@@ -109,8 +109,8 @@ to_optimize = lambda do |component_allocation|
                                   results_dir: results_dirname)
 
       benchmark = sim.evaluate_allocation(nil, nil, microservice_types)
-      sim_log = CSV.parse(File.read(benchmark[0]), headers: true)
-      sim_ttr = sim_log.by_col[1]
+      sim_log = CSV.parse(benchmark, headers: true)
+      sim_ttr = sim_log.by_col[1].map(&:to_f)
       if sim_ttr.length != k8s_ttr.length
         res = 1E+195
       else
@@ -119,9 +119,6 @@ to_optimize = lambda do |component_allocation|
         res = ks.to_f 
         puts "#{ks}, #{res}"
       end
-      File.delete(benchmark[0])
-      File.delete(benchmark[1])
-      File.delete(benchmark[2]) 
     end
     #puts "#{res}"
     -res

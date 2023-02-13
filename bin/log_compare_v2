@@ -100,9 +100,10 @@ k8s_log_files.each do |log_file|
   sim = KUBETWIN::KSimulation.new(configuration: sim_conf,
     evaluator: KUBETWIN::Evaluator.new(sim_conf))
   sim_output = sim.evaluate_allocation()
-  benchmark = sim_output[0]
+  # benchmark = sim_output[0]
   # evaluate bench here
-  sim_log = CSV.parse(File.read(benchmark), headers: true)
+  # sim_log = CSV.parse(File.read(benchmark), headers: true)
+  sim_log = CSV.parse(sim_output, headers: true)
   sim_ttr = sim_log.by_col[1].map(&:to_f)
   s_mean, s_std = calcualte_statistics(sim_ttr)
   csv_logs << "#{i},#{s_mean},#{s_std},#{percentile(sim_ttr, 0.90)},#{percentile(sim_ttr, 0.95)},KubeTwin\n"
