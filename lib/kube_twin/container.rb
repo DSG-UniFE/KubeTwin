@@ -3,6 +3,10 @@
 
 require_relative './logger'
 require_relative './event'
+require 'pycall'
+require 'pycall/import'
+include PyCall::Import
+
 
 module KUBETWIN
 
@@ -14,6 +18,11 @@ module KUBETWIN
   end
 
   class Container
+
+    SEED = 123
+    pyfrom :tensorflow, import: :keras
+    pyfrom :tensorflow_probability, import: :distributions
+
     # states
     CONTAINER_WAITING      = 0      # still running the operations it requires in order to complete start up
     CONTAINER_RUNNING      = 1      # executing without issues
@@ -34,6 +43,7 @@ module KUBETWIN
 
     Guaranteed = Struct.new(:cpu, :memory)
     Limits = Struct.new(:cpu, :memory)
+    
 
     def initialize(containerId, imageId, st_distribution, opts = {})
       @containerId = containerId
@@ -68,6 +78,11 @@ module KUBETWIN
       @served_request = 0
       @total_queue_processing_time = 0
       @total_queue_time = 0
+      @last_request_time = 0.0
+      pyfrom :tensorflow, import: :keras
+      path = './mdn_ttr_model'
+      @mdn_ttr_model= keras.models.load_model(path)
+      @models = Hash.new
     end
 
     def to_free(container)
@@ -81,6 +96,24 @@ module KUBETWIN
       # which was waiting the next step to be
       # completed
       @containers_to_free.shift
+    end
+
+    def get_gamma_mixture(mdn_ttr_model, rps, replica=1)
+      numpy = PyCall.import_module("numpy")
+      weight_pred, conc_pred, scale_pred = mdn_ttr_model.predict([numpy.array([rps,replica]), numpy.array([1,1])])
+      # convert numpy to python list
+      ws = weight_pred.tolist()
+      cps = conc_pred.tolist()
+      scs = scale_pred.tolist()
+      gamma_mix = []
+      ncomponents = ws[0].length - 1
+      (0..ncomponents).each do |i|
+        gamma_mix << ws[0][i].to_f
+        gamma_mix << cps[0][i].to_f
+        gamma_mix << scs[0][i].to_f
+      end
+      ERV::MixtureDistribution.new(
+                ERV::GammaMixtureHelper.RawParametersToMixtureArgsSeed(*gamma_mix, SEED))
     end
 
     def reset_metrics
@@ -98,8 +131,21 @@ module KUBETWIN
       # improve this code in the future
       r.arrival_at_container = time
 
+      # check rps
+      count = @request_queue.select {|r| r.arrival_time.ceil == time.ceil }
+      rps = count.length == 0 ? 1 : count.length
+      #puts "#{rps}"
+      rps = 3
+      if @models.key?(rps)
+        @service_time = @models[rps]
+      else
+        model =  get_gamma_mixture(@mdn_ttr_model, rps)
+        @models[rps] = model
+        @service_time = model
+      end
+      
       # remove truncation --- just to make the optimizer runnings
-      while (st = @service_time.next) <= 1E-6; end
+      while (st = @service_time.sample) <= 1E-6; end
 
       # add concurrent execution
       #pod_executing = @node.pod_id_list.length

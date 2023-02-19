@@ -22,6 +22,14 @@ module ERV
       end
     end
   end
+  module GammaMixtureHelper
+    def self.RawParametersToMixtureArgsSeed(*args, seed)
+      raise ArgumentError, "Arguments must be a multiple of 3!" if (args.count % 3) != 0
+      args.each_slice(3).map do |(a,b,c)|
+        { distribution: :gamma, weight: a, args: { scale: c, shape: b, seed: seed} }
+      end
+end
+  end
 end
 
 if defined? JRUBY_VERSION

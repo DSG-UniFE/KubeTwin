@@ -96,10 +96,11 @@ k8s_log_files.each do |log_file|
     }
   }
   sim_conf.set_rgen(nil, request_gen)
-
+  puts sim_conf
   sim = KUBETWIN::KSimulation.new(configuration: sim_conf,
     evaluator: KUBETWIN::Evaluator.new(sim_conf))
   sim_output = sim.evaluate_allocation()
+  puts sim_output
   # benchmark = sim_output[0]
   # evaluate bench here
   # sim_log = CSV.parse(File.read(benchmark), headers: true)
@@ -110,7 +111,6 @@ k8s_log_files.each do |log_file|
   i += 1
   puts "KubeTwin Log: mean: #{s_mean}, std: #{s_std}, min: #{sim_ttr.min} max: #{sim_ttr.max}"
   # delete simulation logs
-  sim_output.each { |f| File.delete(f) }
 end
 
 csv_logs.close()
