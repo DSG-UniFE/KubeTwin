@@ -21,7 +21,7 @@ module KUBETWIN
 
     SEED = 123
     pyfrom :tensorflow, import: :keras
-    pyfrom :tensorflow_probability, import: :distributions
+    pyfrom :sklearn, import: :mixture
 
     # states
     CONTAINER_WAITING      = 0      # still running the operations it requires in order to complete start up
@@ -65,8 +65,6 @@ module KUBETWIN
       @node = opts[:node]
       @wait_for = opts[:img_info][:wait_for].nil? ? [] : opts[:img_info][:wait_for]
 
-      # seed should alreay be here
-      @service_time = ERV::RandomVariable.new(st_distribution)
       @busy           = false
       @request_queue  = [] # queue incoming requests
 
@@ -78,11 +76,17 @@ module KUBETWIN
       @served_request = 0
       @total_queue_processing_time = 0
       @total_queue_time = 0
-      @last_request_time = 0.0
+      @last_request_time = nil
       pyfrom :tensorflow, import: :keras
-      path = './mdn_ttr_model'
+      path = opts[:img_info][:mdn_file]
       @mdn_ttr_model= keras.models.load_model(path)
       @models = Hash.new
+      @rps = opts[:img_info][:rps].to_i
+      # seed should alreay be here
+      # @service_time = ERV::RandomVariable.new(st_distribution)
+      @tfd = pyfrom :tensorflow_probability, import: :distributions
+      @service_time = get_gamma_mixture(@mdn_ttr_model, @rps)
+
     end
 
     def to_free(container)
@@ -130,12 +134,22 @@ module KUBETWIN
 
       # improve this code in the future
       r.arrival_at_container = time
-
       # check rps
-      count = @request_queue.select {|r| r.arrival_time.ceil == time.ceil }
-      rps = count.length == 0 ? 1 : count.length
-      #puts "#{rps}"
-      rps = 3
+      if @last_request_time.nil?
+        rps = 1 # just set rps to 1 for the first request ...
+      else
+        # load the model
+        delta = time - @last_request_time
+        if delta < 1.0
+          rps = (1 / delta).ceil
+        else 
+          rps = 1 # interarrival time is larger than 1 second
+        end
+      end
+      #rps = 3
+      # sanity check
+      rps = 25 if rps > 25
+      puts rps
       if @models.key?(rps)
         @service_time = @models[rps]
       else
@@ -143,10 +157,10 @@ module KUBETWIN
         @models[rps] = model
         @service_time = model
       end
-      
-      # remove truncation --- just to make the optimizer runnings
+      @last_request_time = time
+      #st_times = Array.new(1000) {@service_time.sample}
+      #st = st_times.sum / st_times.length
       while (st = @service_time.sample) <= 1E-6; end
-
       # add concurrent execution
       #pod_executing = @node.pod_id_list.length
       #st *= Math::log(pod_executing) if pod_executing > 2

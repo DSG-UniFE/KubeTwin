@@ -74,7 +74,7 @@ k8s_log_files_dir = comparison_conf["k8s_log_files"]
 k8s_log_files = Dir["#{k8s_log_files_dir}/*.csv"]
 i = 1
 csv_logs = File.open("comparison_log_#{time}.csv", 'w')
-csv_logs << "rps,mean,sd,90th,95th,system\n"
+csv_logs << "rps,mean,sd,90th,95th,99th,system\n"
 k8s_log_files.each do |log_file|
   rps = i
   puts "#{log_file}"
@@ -82,7 +82,7 @@ k8s_log_files.each do |log_file|
   k8s_log = CSV.parse(File.read(log_file), headers: true)
   k8s_ttr = k8s_log.by_col[1].map(&:to_f) # get the ttr column
   mean, std = calcualte_statistics(k8s_ttr)
-  csv_logs << "#{i},#{mean},#{std},#{percentile(k8s_ttr, 0.9)},#{percentile(k8s_ttr, 0.95)},K8S\n"
+  csv_logs << "#{i},#{mean},#{std},#{percentile(k8s_ttr, 0.9)},#{percentile(k8s_ttr, 0.95)},#{percentile(k8s_ttr, 0.99)},K8S\n"
   puts "K8S Log: mean: #{mean}, std: #{std}, min: #{k8s_ttr.min} max: #{k8s_ttr.max}"
   # start simulation and check output
   # need to change the request file here
@@ -90,13 +90,19 @@ k8s_log_files.each do |log_file|
   request_gen = {
     1 => {
       workflow_types: 1,
-      request_distribution: {distribution: :exponential, args: { rate: rps, seed: 12345 }},
+      request_distribution: {distribution: :exponential, args: { rate: i, seed: 12345 }},
       num_requests: k8s_ttr.length,
       num_customers: 1
     }
   }
   sim_conf.set_rgen(nil, request_gen)
-  puts sim_conf
+  # hard code rps value
+  mconf = sim_conf.microservice_types
+  sim_conf.microservice_types.each do |k,v|
+    v[:rps] = i
+  end
+  puts "#{sim_conf.microservice_types}"
+
   sim = KUBETWIN::KSimulation.new(configuration: sim_conf,
     evaluator: KUBETWIN::Evaluator.new(sim_conf))
   sim_output = sim.evaluate_allocation()
@@ -107,9 +113,8 @@ k8s_log_files.each do |log_file|
   sim_log = CSV.parse(sim_output, headers: true)
   sim_ttr = sim_log.by_col[1].map(&:to_f)
   s_mean, s_std = calcualte_statistics(sim_ttr)
-  csv_logs << "#{i},#{s_mean},#{s_std},#{percentile(sim_ttr, 0.90)},#{percentile(sim_ttr, 0.95)},KubeTwin\n"
+  csv_logs << "#{i},#{s_mean},#{s_std},#{percentile(sim_ttr, 0.90)},#{percentile(sim_ttr, 0.95)},#{percentile(sim_ttr, 0.99)},KubeTwin\n"
   i += 1
-  puts "KubeTwin Log: mean: #{s_mean}, std: #{s_std}, min: #{sim_ttr.min} max: #{sim_ttr.max}"
   # delete simulation logs
 end
 

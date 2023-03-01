@@ -741,6 +741,7 @@ module KUBETWIN
       #-stats.mean
       #return 0
       return stats.to_csv
+      #return 0
     end
   end
 end
