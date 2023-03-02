@@ -77,16 +77,33 @@ module KUBETWIN
       @total_queue_processing_time = 0
       @total_queue_time = 0
       @last_request_time = nil
-      pyfrom :tensorflow, import: :keras
-      path = opts[:img_info][:mdn_file]
-      @mdn_ttr_model= keras.models.load_model(path)
-      @models = Hash.new
-      @rps = opts[:img_info][:rps].to_i
-      # seed should alreay be here
-      # @service_time = ERV::RandomVariable.new(st_distribution)
-      @tfd = pyfrom :tensorflow_probability, import: :distributions
-      @service_time = get_gamma_mixture(@mdn_ttr_model, @rps)
+      @path = opts[:img_info][:mdn_file]
+      unless @path.nil?
+        pyfrom :tensorflow, import: :keras
+        @mdn_ttr_model= keras.models.load_model(@path)
+        @models = Hash.new
+        @rps = opts[:img_info][:rps].to_i
+        # seed should alreay be here
+        # @service_time = ERV::RandomVariable.new(st_distribution)
+        @tfd = pyfrom :tensorflow_probability, import: :distributions
+        @service_time = get_gamma_mixture(@mdn_ttr_model, @rps)
+        @arrival_times = []
+      else
+        @service_time = ERV::RandomVariable.new(st_distribution)
+      end
+    end
 
+    def check_rps(interval=8)
+      #@arrival_times.last(interval).reverse.inject(:-) / interval.to_f
+      i = 0
+      interarrival_times = 0.0
+      @arrival_times.last(interval).reverse.each_slice(2) do |t,tl|
+        break if t.nil? || tl.nil?
+        #puts "t: #{t} tl: #{tl}"
+        i += 1
+        interarrival_times += t - tl
+      end
+      return interarrival_times / i.to_f
     end
 
     def to_free(container)
@@ -134,33 +151,54 @@ module KUBETWIN
 
       # improve this code in the future
       r.arrival_at_container = time
-      # check rps
-      if @last_request_time.nil?
-        rps = 1 # just set rps to 1 for the first request ...
-      else
-        # load the model
-        delta = time - @last_request_time
-        if delta < 1.0
-          rps = (1 / delta).ceil
-        else 
-          rps = 1 # interarrival time is larger than 1 second
+      unless @path.nil?
+        @arrival_times << time
+        if @arrival_times.length < 2
+          rps = 1
+        else
+          inter_arrival_times = check_rps()
+          #puts inter_arrival_times
+          if inter_arrival_times >= 1.0
+            rps = 1
+          else
+            rps = (1 / inter_arrival_times).ceil
+          end
         end
-      end
-      #rps = 3
-      # sanity check
-      rps = 25 if rps > 25
+      rps = 35 if rps > 35
       puts rps
-      if @models.key?(rps)
-        @service_time = @models[rps]
-      else
-        model =  get_gamma_mixture(@mdn_ttr_model, rps)
-        @models[rps] = model
-        @service_time = model
+=begin
+      delta = 0.0
+      unless @path.nil?
+        # check rps
+        if @last_request_time.nil?
+          rps = 1 # just set rps to 1 for the first request ...
+        else
+          # load the model
+          delta = time - @last_request_time
+          if delta < 1.0
+            rps = (1 / delta).ceil
+          else 
+            rps = 1 # interarrival time is larger than 1 second
+          end
+        end
+        #rps = 3
+        # sanity check
+        rps = 25 if rps > 25
+        puts rps
+=end
+        if @models.key?(rps)
+          @service_time = @models[rps]
+        else
+          model =  get_gamma_mixture(@mdn_ttr_model, rps)
+          @models[rps] = model
+          @service_time = model
+        end
       end
       @last_request_time = time
       #st_times = Array.new(1000) {@service_time.sample}
       #st = st_times.sum / st_times.length
       while (st = @service_time.sample) <= 1E-6; end
+
       # add concurrent execution
       #pod_executing = @node.pod_id_list.length
       #st *= Math::log(pod_executing) if pod_executing > 2

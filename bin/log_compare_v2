@@ -59,8 +59,8 @@ comparison_conf = YAML.load_file(ARGV[0])
 simulator_config_file = comparison_conf["config_file"]
 
 # pycall import
-pyfrom :scipy, import: :stats
-pyimport :pandas, as: :pd
+#pyfrom :scipy, import: :stats
+#pyimport :pandas, as: :pd
 
 # here run the optimizer on the oracle
 # load simulation configuration
@@ -71,7 +71,7 @@ time = Time.now.strftime('%Y%m%d%H%M%S')
 # for each k8s log print summary and evaluate allocation in Kubetwin
 k8s_log_files_dir = comparison_conf["k8s_log_files"]
 # using [] notation to exclude dirs
-k8s_log_files = Dir["#{k8s_log_files_dir}/*.csv"]
+k8s_log_files = Dir["#{k8s_log_files_dir}/req*.csv"]
 i = 1
 csv_logs = File.open("comparison_log_#{time}.csv", 'w')
 csv_logs << "rps,mean,sd,90th,95th,99th,system\n"
@@ -101,12 +101,12 @@ k8s_log_files.each do |log_file|
   sim_conf.microservice_types.each do |k,v|
     v[:rps] = i
   end
-  puts "#{sim_conf.microservice_types}"
+  #puts "#{sim_conf.microservice_types}"
 
   sim = KUBETWIN::KSimulation.new(configuration: sim_conf,
     evaluator: KUBETWIN::Evaluator.new(sim_conf))
   sim_output = sim.evaluate_allocation()
-  puts sim_output
+  #puts sim_output
   # benchmark = sim_output[0]
   # evaluate bench here
   # sim_log = CSV.parse(File.read(benchmark), headers: true)
@@ -119,3 +119,5 @@ k8s_log_files.each do |log_file|
 end
 
 csv_logs.close()
+
+puts "python3 comparison-fig.py comparison_log_#{time}.csv"
