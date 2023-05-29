@@ -288,8 +288,8 @@ module KUBETWIN
       current_event = 0
 
       # benchmark file
-      #time = Time.now.strftime('%Y%m%d%H%M%S')
-      #@sim_bench = File.open("sim_bench_#{time}.csv", 'w')
+      time = Time.now.strftime('%Y%m%d%H%M%S')
+      @sim_bench = File.open("csv_bench_#{time}.csv", 'w')
 
       #@sim_bench << "Time,Component,Request,TTP,Pods\n"
 
@@ -740,8 +740,10 @@ module KUBETWIN
       #end
       #-stats.mean
       #return 0
-      return stats.to_csv
-      #return 0
+      #return stats.to_csv
+      @sim_bench << stats.to_csv
+      @sim_bench.close 
+      return 0 # change this
     end
   end
 end
