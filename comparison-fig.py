@@ -13,8 +13,8 @@ for k,g in df.groupby('system'):
 k8s = df[df['system'] == 'KubeTwin']
 kt = df[df['system'] == 'K8S']
 
-mse_mean = mean_squared_error(k8s['mean'], kt['mean'])
-mse_99 = mean_squared_error(k8s['99th'], kt['99th'])
+mse_mean = mean_squared_error(k8s['mean'][0:30], kt['mean'][0:30])
+mse_99 = mean_squared_error(k8s['99th'][0:30], kt['99th'][0:30])
 print(f'MSEs mean: {mse_mean} 99th: {mse_99}')
 
 
@@ -42,10 +42,10 @@ import itertools
 markers = itertools.cycle((',', '+', '.', 'o', '*')) 
 
 for k,g in df.groupby('system'):
-    plt.plot(g['rps'], g['mean'], label=k+'-mean', marker=next(markers))
+   plt.plot(g['rps'][0:30], g['mean'][0:30], label=k+'-mean', marker=next(markers))
 
 for k,g in df.groupby('system'):
-    plt.plot(g['rps'], g['99th'], label=k+'-99th', marker=next(markers))
+    plt.plot(g['rps'][0:30], g['99th'][0:30], label=k+'-99th', marker=next(markers))
 
 plt.legend()
 plt.xlabel('RPS')

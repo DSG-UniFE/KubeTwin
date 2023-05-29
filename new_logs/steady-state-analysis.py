@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-import seaborn as sns; sns.set()
+#import seaborn as sns; sns.set()
 import matplotlib.pyplot as plt
 import sys
 
@@ -36,8 +36,8 @@ plt.plot(ms2[0][1:], label="MS2")
 plt.plot(ms2[0].rolling(window=50).mean(), label="MS2-SMA")
 plt.xlabel("Req No.")
 plt.ylabel("Processing time (s)")
-plt.title("MS2")
-plt.legend()
+plt.legend(facecolor="white")
+plt.grid()
 #plt.show()
 plt.savefig("ms1+ms2-pt.pdf")
 

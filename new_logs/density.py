@@ -1,9 +1,8 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-import seaborn as sns; sns.set()
+#import seaborn as sns; sns.set()
 import sys
-import tikzplotlib
 
 if len(sys.argv) < 3:
     print("Usage: python3 <log-file> <sim-file>")
@@ -18,17 +17,16 @@ df = pd.DataFrame({
     'K8S': k8s['ttr'],
     'KubeTwin': sim['ttr']})
 df.plot.kde()
-plt.xlabel('TTR')
+plt.rcParams.update({'font.size': 22})
+plt.xlabel('TTR (s)')
 plt.ylabel('Density')
 plt.xlim(0, k8s['ttr'].max())
 plt.style.use("ggplot")
-plt.grid(True)
-plt.legend()
+plt.grid()
+plt.legend(facecolor="white")
 
-plt.show()
-#tikzplotlib.save("fig.tex")
-
+#plt.show()
 #plt.title("RPS {}".format(file_name))
-#plt.savefig("dists_comparision_wsd.pdf")
+plt.savefig("dists_comparision_rev.pdf")
 
 

@@ -78,11 +78,11 @@ module KUBETWIN
       @total_queue_time = 0
       @last_request_time = nil
       @path = opts[:img_info][:mdn_file]
-      unless @path.nil?
+      @rps = opts[:img_info][:rps].to_i
+      @models = Hash.new
+      unless @path.nil? && @rps.nil?
         pyfrom :tensorflow, import: :keras
         @mdn_ttr_model= keras.models.load_model(@path)
-        @models = Hash.new
-        @rps = opts[:img_info][:rps].to_i
         # seed should alreay be here
         # @service_time = ERV::RandomVariable.new(st_distribution)
         @tfd = pyfrom :tensorflow_probability, import: :distributions
@@ -151,6 +151,7 @@ module KUBETWIN
 
       # improve this code in the future
       r.arrival_at_container = time
+# begin was here
       unless @path.nil?
         @arrival_times << time
         if @arrival_times.length < 2
@@ -164,28 +165,11 @@ module KUBETWIN
             rps = (1 / inter_arrival_times).ceil
           end
         end
-      rps = 35 if rps > 35
-      puts rps
-=begin
-      delta = 0.0
-      unless @path.nil?
-        # check rps
-        if @last_request_time.nil?
-          rps = 1 # just set rps to 1 for the first request ...
-        else
-          # load the model
-          delta = time - @last_request_time
-          if delta < 1.0
-            rps = (1 / delta).ceil
-          else 
-            rps = 1 # interarrival time is larger than 1 second
-          end
-        end
-        #rps = 3
-        # sanity check
-        rps = 25 if rps > 25
-        puts rps
-=end
+      rps = 34 if rps > 34
+      end
+      #puts rps
+# end was here
+      #rps = @rps
         if @models.key?(rps)
           @service_time = @models[rps]
         else
@@ -193,10 +177,8 @@ module KUBETWIN
           @models[rps] = model
           @service_time = model
         end
-      end
+      #end
       @last_request_time = time
-      #st_times = Array.new(1000) {@service_time.sample}
-      #st = st_times.sum / st_times.length
       while (st = @service_time.sample) <= 1E-6; end
 
       # add concurrent execution

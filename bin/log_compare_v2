@@ -75,9 +75,11 @@ k8s_log_files = Dir["#{k8s_log_files_dir}/req*.csv"]
 i = 1
 csv_logs = File.open("comparison_log_#{time}.csv", 'w')
 csv_logs << "rps,mean,sd,90th,95th,99th,system\n"
+output_logs = File.open("output_log_#{time}.txt", 'w')
 k8s_log_files.each do |log_file|
   rps = i
   puts "#{log_file}"
+  output_logs << "#{log_file}\n"
   # print logs' statistics
   k8s_log = CSV.parse(File.read(log_file), headers: true)
   k8s_ttr = k8s_log.by_col[1].map(&:to_f) # get the ttr column
@@ -119,5 +121,6 @@ k8s_log_files.each do |log_file|
 end
 
 csv_logs.close()
+output_logs.close()
 
 puts "python3 comparison-fig.py comparison_log_#{time}.csv"
