@@ -1,0 +1,4 @@
+# list of python requirements
+scikit-learn
+tensorflow
+
