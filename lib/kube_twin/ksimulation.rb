@@ -17,6 +17,12 @@ require_relative './kube_scheduler'
 require_relative './node'
 
 
+require 'pycall'
+require 'pycall/import'
+include PyCall::Import
+
+
+
 module KUBETWIN
 
   class KSimulation
@@ -26,6 +32,7 @@ module KUBETWIN
 
     DEFAULT_NUM_REQS = 5000
     CONNECT_TIME = 0.00148205
+    SEED = 123
 
     def initialize(opts = {})
       @configuration = opts[:configuration]
@@ -34,6 +41,33 @@ module KUBETWIN
       @num_reqs      = opts[:num_reqs]
       @num_reqs = DEFAULT_NUM_REQS if @num_reqs.nil?
       @results_dir += '/' unless @results_dir.nil?
+      @microservice_mdn = Hash.new
+      pyfrom :tensorflow, import: :keras
+      
+    end
+
+    def retrieve_mdn_model(name, rps)
+      # if not create mdn
+      puts "name: #{name} #{@microservice_mdn}"
+      unless @microservice_mdn[name][:st].key?(rps)
+        numpy = PyCall.import_module("numpy")
+        # here rember to set replica to the correct value
+        weight_pred, conc_pred, scale_pred = @microservice_mdn[name][:model].predict([numpy.array([rps, 1]), numpy.array([1,1])])
+        # convert numpy to python list
+        ws = weight_pred.tolist()
+        cps = conc_pred.tolist()
+        scs = scale_pred.tolist()
+        gamma_mix = []
+        ncomponents = ws[0].length - 1
+        (0..ncomponents).each do |i|
+          gamma_mix << ws[0][i].to_f
+          gamma_mix << cps[0][i].to_f
+          gamma_mix << scs[0][i].to_f
+        end
+        @microservice_mdn[name][:st][rps] = ERV::MixtureDistribution.new(
+                  ERV::GammaMixtureHelper.RawParametersToMixtureArgsSeed(*gamma_mix, SEED))
+      end
+      return @microservice_mdn[name][:st][rps]
     end
 
 
@@ -99,6 +133,19 @@ module KUBETWIN
 
       # information regarding microservices
       @microservice_types = mtt.nil? ? @configuration.microservice_types : mtt
+      puts "#{@microservice_types} #{@microservice_types.nil?}"
+      @microservice_types.each do |k, v|
+        #puts "#{k} #{v}"
+        puts "#{v[:mdn_file]}"
+        #abort
+        pyfrom :tensorflow, import: :keras
+        model = keras.models.load_model(v[:mdn_file])
+        puts "model: #{model}"
+        @microservice_mdn[k] = {model: model, st: Hash.new } 
+        puts "v: #{@microservice_mdn}"
+      end
+
+      puts "init mdns #{@microservice_mdn}"
 
       # information regarding customers
       customer_repository = @configuration.customers
@@ -108,7 +155,7 @@ module KUBETWIN
       # initialize statistics --- leave for later
       stats = Statistics.new
 
-      # statistics for service
+      # statistics for servicemdnmdn
       per_component_stats = Hash[
         @microservice_types.keys.map do |m_id|
           [
@@ -585,6 +632,7 @@ module KUBETWIN
 
             unless tolerance_range === scaling_ratio
               # then here implement the check to scale up or down the associated pods
+              puts "pods: #{pods} scaling_ratio: #{scaling_ratio}"
               d_replicas = (pods * scaling_ratio).ceil
               # puts "desired_replicas: #{d_replicas} current_replicas #{pods}"
 
@@ -651,6 +699,7 @@ module KUBETWIN
               pods_number = s.pods[s.selector].length
               pods_n += "#{k}: #{pods_number} "
               #@sim_bench << "#{now},#{k},#{per_component_stats[k].received},#{per_component_stats[k].mean},#{pods_number}\n"
+              puts "#{now},#{k},#{per_component_stats[k].received},#{per_component_stats[k].mean},#{pods_number}\n"
             end
 
             #puts "++++++++++++++++\n"+

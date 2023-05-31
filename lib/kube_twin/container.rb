@@ -170,14 +170,19 @@ module KUBETWIN
       #puts rps
 # end was here
       #rps = @rps
+      @service_time = sim.retrieve_mdn_model(name, rps)
+=begin
         if @models.key?(rps)
           @service_time = @models[rps]
         else
+          puts "#{rps}"
+          puts "#{@models.keys}"
           model =  get_gamma_mixture(@mdn_ttr_model, rps)
           @models[rps] = model
           @service_time = model
         end
       #end
+=end
       @last_request_time = time
       while (st = @service_time.sample) <= 1E-6; end
 
