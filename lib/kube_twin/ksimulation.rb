@@ -48,7 +48,7 @@ module KUBETWIN
 
     def retrieve_mdn_model(name, rps)
       # if not create mdn
-      puts "name: #{name} #{@microservice_mdn}"
+      # puts "name: #{name} #{@microservice_mdn}"
       unless @microservice_mdn[name][:st].key?(rps)
         numpy = PyCall.import_module("numpy")
         # here rember to set replica to the correct value
@@ -136,13 +136,13 @@ module KUBETWIN
       puts "#{@microservice_types} #{@microservice_types.nil?}"
       @microservice_types.each do |k, v|
         #puts "#{k} #{v}"
-        puts "#{v[:mdn_file]}"
+        # puts "#{v[:mdn_file]}"
         #abort
         pyfrom :tensorflow, import: :keras
         model = keras.models.load_model(v[:mdn_file])
-        puts "model: #{model}"
+        # puts "model: #{model}"
         @microservice_mdn[k] = {model: model, st: Hash.new } 
-        puts "v: #{@microservice_mdn}"
+        # puts "v: #{@microservice_mdn}"
       end
 
       puts "init mdns #{@microservice_mdn}"
@@ -337,8 +337,10 @@ module KUBETWIN
       # benchmark file
       time = Time.now.strftime('%Y%m%d%H%M%S')
       @sim_bench = File.open("csv_bench_#{time}.csv", 'w')
+      @allocation_bench = File.open("allocation_bench_#{time}.csv", 'w')
 
-      #@sim_bench << "Time,Component,Request,TTP,Pods\n"
+
+      @allocation_bench << "Time,Component,Request,TTP,Pods\n"
 
       # launch simulation
       until @event_queue.empty?
@@ -619,10 +621,15 @@ module KUBETWIN
             end
             current_metric /= pods.to_f
 
-            # puts "**** Horizontal Pod Autoscaling ****"
-            # puts "#{hpa.name} pods: #{pods} average processing_time: #{current_metric} desired_metric: #{desired_metric}"
-            # puts "************************************"
-
+            puts "**** Horizontal Pod Autoscaling ****"
+            puts "#{hpa.name} pods: #{pods} average processing_time: #{current_metric} desired_metric: #{desired_metric}"
+            puts "************************************"
+            
+            if pods == 0
+              puts "Ending the simulation!"
+              break
+              #new_event(Event::ET_END_OF_SIMULATION, nil, nil, nil)
+            end
             # see here
             # https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/
             # if close to 1 do not scale -- use a tolerance range
@@ -698,7 +705,7 @@ module KUBETWIN
             @services.each do |k, s|
               pods_number = s.pods[s.selector].length
               pods_n += "#{k}: #{pods_number} "
-              #@sim_bench << "#{now},#{k},#{per_component_stats[k].received},#{per_component_stats[k].mean},#{pods_number}\n"
+              @allocation_bench << "#{now},#{k},#{per_component_stats[k].received},#{per_component_stats[k].mean},#{pods_number}\n"
               puts "#{now},#{k},#{per_component_stats[k].received},#{per_component_stats[k].mean},#{pods_number}\n"
             end
 
@@ -792,6 +799,7 @@ module KUBETWIN
       #return stats.to_csv
       @sim_bench << stats.to_csv
       @sim_bench.close 
+      @allocation_bench.close
       return 0 # change this
     end
   end
