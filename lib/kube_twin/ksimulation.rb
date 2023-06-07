@@ -306,13 +306,13 @@ module KUBETWIN
         req_attrs = rg.generate(now)
         @current_time = @start_time = req_attrs[:generation_time] - 2
         @configuration.set_start(@current_time)
-        new_event(Event::ET_REQUEST_GENERATION, req_attrs, req_attrs[:generation_time], nil)
+        new_event(Event::ET_REQUEST_GENERATION, req_attrs, req_attrs[:generation_time], rg)
       else 
         @configuration.request_gen.each do |k,v|
           puts k,v
           rg = RequestGenerator.new(@configuration.request_gen[k])
           req_attrs = rg.generate(now)
-          new_event(Event::ET_REQUEST_GENERATION, req_attrs, req_attrs[:generation_time], nil)
+          new_event(Event::ET_REQUEST_GENERATION, req_attrs, req_attrs[:generation_time], rg)
         end
       end
       #new_event(Event::ET_REQUEST_GENERATION, req_attrs, req_attrs[:generation_time], nil)
@@ -402,8 +402,9 @@ module KUBETWIN
 
             # schedule generation of next request
             if @current_time < cooldown_treshold #warmup_threshold
+                rg = e.destination
                 req_attrs = rg.generate(@current_time)
-                new_event(Event::ET_REQUEST_GENERATION, req_attrs, req_attrs[:generation_time], nil) if req_attrs
+                new_event(Event::ET_REQUEST_GENERATION, req_attrs, req_attrs[:generation_time], rg) if req_attrs
             end
 
           when Event::ET_REQUEST_ARRIVAL
@@ -633,7 +634,7 @@ module KUBETWIN
             if pods == 0
               puts "Ending the simulation!"
               #break
-              new_event(Event::ET_END_OF_SIMULATION, nil, now, nil)
+              #new_event(Event::ET_END_OF_SIMULATION, nil, now, nil)
               next
             end
             # see here
