@@ -632,8 +632,9 @@ module KUBETWIN
             
             if pods == 0
               puts "Ending the simulation!"
-              break
-              #new_event(Event::ET_END_OF_SIMULATION, nil, nil, nil)
+              #break
+              new_event(Event::ET_END_OF_SIMULATION, nil, now, nil)
+              next
             end
             # see here
             # https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/
@@ -700,7 +701,9 @@ module KUBETWIN
           when Event::ET_END_OF_SIMULATION
             # FOR NOW KEEP PROCESSING REQUEST
             #puts "#{e.time}: end simulation"
-            break
+            until @event_queue.empty?
+              e = @event_queue.shift
+            end
           
           # print some stats (useful to track simulation data)
           when Event::ET_STATS_PRINT

@@ -159,10 +159,15 @@ module KUBETWIN
         else
           inter_arrival_times = check_rps()
           #puts inter_arrival_times
-          if inter_arrival_times >= 1.0
+          if inter_arrival_times >= 1.0 || inter_arrival_times == 0.to_f
             rps = 1
           else
-            rps = (1 / inter_arrival_times).ceil
+            begin
+              rps = (1 / inter_arrival_times).ceil
+            rescue
+              puts inter_arrival_times
+              abort
+            end
           end
         end
       rps = 34 if rps > 34
