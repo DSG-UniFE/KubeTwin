@@ -306,11 +306,16 @@ module KUBETWIN
         req_attrs = rg.generate(now)
         @current_time = @start_time = req_attrs[:generation_time] - 2
         @configuration.set_start(@current_time)
+        new_event(Event::ET_REQUEST_GENERATION, req_attrs, req_attrs[:generation_time], nil)
       else 
-        rg = RequestGenerator.new(@configuration.request_gen[1])
-        req_attrs = rg.generate(now)
+        @configuration.request_gen.each do |k,v|
+          puts k,v
+          rg = RequestGenerator.new(@configuration.request_gen[k])
+          req_attrs = rg.generate(now)
+          new_event(Event::ET_REQUEST_GENERATION, req_attrs, req_attrs[:generation_time], nil)
+        end
       end
-      new_event(Event::ET_REQUEST_GENERATION, req_attrs, req_attrs[:generation_time], nil)
+      #new_event(Event::ET_REQUEST_GENERATION, req_attrs, req_attrs[:generation_time], nil)
 
       # generate first HPA check
       @horizontal_pod_autoscaler_repo.each do | name, hpa|

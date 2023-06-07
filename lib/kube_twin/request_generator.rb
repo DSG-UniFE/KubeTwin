@@ -9,6 +9,7 @@ module KUBETWIN
 
     def initialize(opts={})
       # get the configuration parameters
+      @starting_time = opts[:starting_time]
       @rg_rv = ERV::RandomVariable.new(opts[:request_distribution])
       @workflow_types = opts[:workflow_types]
       @num_customers = opts[:num_customers]
