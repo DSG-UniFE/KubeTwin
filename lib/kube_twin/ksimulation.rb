@@ -43,6 +43,9 @@ module KUBETWIN
       @results_dir += '/' unless @results_dir.nil?
       @microservice_mdn = Hash.new
       pyfrom :tensorflow, import: :keras
+      keras.utils.disable_interactive_logging()
+      os = PyCall.import_module("os")
+      os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
       
     end
 
@@ -299,6 +302,7 @@ module KUBETWIN
       # generate first request
       # both R and ruby should work request_gen is written in Ruby
       # request_generation is csv or R
+      @to_generate = 0
       if @configuration.request_gen.nil? 
         #puts "#{@configuration.request_generation}"
         rg = RequestGeneratorR.new(@configuration.request_generation)
@@ -309,7 +313,7 @@ module KUBETWIN
         new_event(Event::ET_REQUEST_GENERATION, req_attrs, req_attrs[:generation_time], rg)
       else 
         @configuration.request_gen.each do |k,v|
-          puts k,v
+          @to_generate += @configuration.request_gen[k][:num_requests]
           rg = RequestGenerator.new(@configuration.request_gen[k])
           req_attrs = rg.generate(now)
           new_event(Event::ET_REQUEST_GENERATION, req_attrs, req_attrs[:generation_time], rg)
@@ -401,11 +405,12 @@ module KUBETWIN
             new_event(Event::ET_REQUEST_ARRIVAL, [new_req, pod], arrival_time, nil)
 
             # schedule generation of next request
-            if @current_time < cooldown_treshold #warmup_threshold
+            if @current_time < cooldown_treshold && @generated < @to_generate#warmup_threshold
                 rg = e.destination
                 req_attrs = rg.generate(@current_time)
                 new_event(Event::ET_REQUEST_GENERATION, req_attrs, req_attrs[:generation_time], rg) if req_attrs
             end
+
 
           when Event::ET_REQUEST_ARRIVAL
             # get request
@@ -468,7 +473,7 @@ module KUBETWIN
             req = e.data
             container  = e.destination
             @processed += 1
-
+            
             # unless next_ms
             container.request_finished(self, e.time) if container.wait_for.empty?
 
@@ -715,7 +720,7 @@ module KUBETWIN
               pods_number = s.pods[s.selector].length
               pods_n += "#{k}: #{pods_number} "
               @allocation_bench << "#{now},#{k},#{per_component_stats[k].received},#{per_component_stats[k].mean},#{pods_number}\n"
-              puts "#{now},#{k},#{per_component_stats[k].received},#{per_component_stats[k].mean},#{pods_number}\n"
+              #puts "#{now},#{k},#{per_component_stats[k].received},#{per_component_stats[k].mean},#{pods_number}\n"
             end
 
             #puts "++++++++++++++++\n"+
