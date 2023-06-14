@@ -1,0 +1,96 @@
+#!/usr/bin/env ruby
+
+begin
+  require 'kube_twin'
+  require 'logger'
+  require 'pycall'
+  require 'pycall/import'
+  include PyCall::Import
+  require 'yaml'
+  require 'csv'
+rescue LoadError
+  require 'rubygems'
+  require 'kube_twin'
+  require 'yaml'
+end
+
+def do_abort(message)
+    abort <<-EOS.gsub(/^\s+\|/, '')
+      |#{message}
+      |
+      |Usage:
+      |    #{File.basename(__FILE__)} config_file
+      |
+    EOS
+  end
+  
+
+if File.expand_path(__FILE__) == File.expand_path($0)
+    # make sure both required arguments were given
+    case ARGV.size
+    when 0 then
+      do_abort("Missing simulator configuration files!")
+    end
+    # make sure simulator config file exists
+    unless File.exists? ARGV[0]
+      do_abort("Invalid simulator configuration file!")
+    end
+end
+
+def calcualte_statistics(samples)
+  # https://stackoverflow.com/questions/19484891/how-do-i-find-the-standard-deviation-in-ruby
+  n = samples.length      
+  mean = samples.reduce(&:+) / n
+  sum_sqr = samples.map {|x| x * x}.reduce(&:+)
+  std_dev = Math.sqrt((sum_sqr - n * mean * mean)/(n-1)) # => 2.7386127875258306
+  return [mean, std_dev]
+end
+
+def percentile(values, percentile)
+  # https://stackoverflow.com/questions/11784843/calculate-95th-percentile-in-ruby
+  values_sorted = values.sort
+  k = (percentile*(values_sorted.length-1)+1).floor - 1
+  f = (percentile*(values_sorted.length-1)+1).modulo(1)
+  return values_sorted[k] + (f * (values_sorted[k+1] - values_sorted[k]))
+end
+
+# ARGV[0] should be a config filee
+comparison_conf = YAML.load_file(ARGV[0])
+simulator_config_file = comparison_conf["config_file"]
+
+# pycall import
+#pyfrom :scipy, import: :stats
+#pyimport :pandas, as: :pd
+
+# here run the optimizer on the oracle
+# load simulation configuration
+
+time = Time.now.strftime('%Y%m%d%H%M%S')
+csv_logs = File.open("static_deployment_log_#{time}.csv", 'w')
+csv_logs << "rps,mean,sd,90th,95th,99th\n"
+
+(1..20).each do |replica|
+  rps = i
+  # print logs' statistics
+  # start simulation and check output
+  # need to change the request file here
+  sim_conf = KUBETWIN::Configuration.load_from_file(simulator_config_file)
+
+  # setting the number of replica for both MS1 and MS2
+  sim_conf.replica_sets.each do |k,v|
+    v[:replicas] = replica
+  end
+
+  sim = KUBETWIN::KSimulation.new(configuration: sim_conf,
+    evaluator: KUBETWIN::Evaluator.new(sim_conf))
+  sim_output = sim.evaluate_allocation()
+  sim_log = CSV.parse(sim_output, headers: true)
+  sim_ttr = sim_log.by_col[1].map(&:to_f)
+  s_mean, s_std = calcualte_statistics(sim_ttr)
+  csv_logs << "#{i},#{s_mean},#{s_std},#{percentile(sim_ttr, 0.90)},#{percentile(sim_ttr, 0.95)},#{percentile(sim_ttr, 0.99)}\n"
+  i += 1
+end
+
+csv_logs.close()
+
+#puts "python3 comparison-fig.py comparison_log_#{time}.csv"
