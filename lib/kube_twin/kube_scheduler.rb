@@ -62,13 +62,23 @@ module KUBETWIN
       # sorting operations are computionally heavy
       # implementing a sorting algorithm here
       # {|n| (n[requested_resources] + n[:deployed_pods])}
+
       if @filtered_nodes.empty?
         puts "Resource saturation"
         return nil
       end
-
+      node = nil
       # check also for node affinity here
-      node = @filtered_nodes.select{|n| n[:tier] == node_affinity}.sort_by { |n| -n[:available_resources_cpu] }[0][:node] unless node_affinity.nil?
+      unless node_affinity.nil?
+        node_with_affinity = @filtered_nodes.select{|n| n[:tier] == node_affinity}
+        
+        if node_with_affinity.empty?
+          node = nil
+        else
+          node = node_with_affinity.sort_by { |n| -n[:available_resources_cpu] }[0][:node]
+        end
+      end
+
       # distribute the application load among clusters
       # available_resources_cpu prefers powerful nodes
       # select mec first

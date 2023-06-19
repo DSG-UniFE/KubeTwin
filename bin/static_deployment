@@ -70,7 +70,6 @@ csv_logs = File.open("static_deployment_log_#{time}.csv", 'w')
 csv_logs << "rps,mean,sd,90th,95th,99th\n"
 
 (1..20).each do |replica|
-  rps = i
   # print logs' statistics
   # start simulation and check output
   # need to change the request file here
@@ -79,6 +78,7 @@ csv_logs << "rps,mean,sd,90th,95th,99th\n"
   # setting the number of replica for both MS1 and MS2
   sim_conf.replica_sets.each do |k,v|
     v[:replicas] = replica
+    puts "#{k} #{v}"
   end
 
   sim = KUBETWIN::KSimulation.new(configuration: sim_conf,
@@ -87,8 +87,7 @@ csv_logs << "rps,mean,sd,90th,95th,99th\n"
   sim_log = CSV.parse(sim_output, headers: true)
   sim_ttr = sim_log.by_col[1].map(&:to_f)
   s_mean, s_std = calcualte_statistics(sim_ttr)
-  csv_logs << "#{i},#{s_mean},#{s_std},#{percentile(sim_ttr, 0.90)},#{percentile(sim_ttr, 0.95)},#{percentile(sim_ttr, 0.99)}\n"
-  i += 1
+  csv_logs << "#{replica},#{s_mean},#{s_std},#{percentile(sim_ttr, 0.90)},#{percentile(sim_ttr, 0.95)},#{percentile(sim_ttr, 0.99)}\n"
 end
 
 csv_logs.close()

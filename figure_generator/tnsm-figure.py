@@ -55,5 +55,21 @@ plt.grid()
 plt.show()
 fig.savefig('pods-tnsm.pdf')
 
+markers = itertools.cycle(('+', '.', 'o', '*')) 
+colors = itertools.cycle(('r', 'g'))
+
+fig, ax = plt.subplots(figsize=(10,4))
+for key, grp in df.groupby(['Component']):
+    ax.plot(grp['Time'],grp['Requests'],label=key, marker=next(markers), color=next(colors))
+
+ax.legend()
+plt.xlabel('Requests per Second (RPS)')
+plt.ylabel('# Pods')
+plt.legend(facecolor="white")
+plt.grid()
+plt.show()
+fig.savefig('pods-tnsm.pdf')
+
+
 
 

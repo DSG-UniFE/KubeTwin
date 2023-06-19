@@ -814,7 +814,7 @@ module KUBETWIN
       @sim_bench << stats.to_csv
       @sim_bench.close 
       @allocation_bench.close
-      return 0 # change this
+      return stats.to_csv # change this
     end
   end
 end
