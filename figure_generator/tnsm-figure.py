@@ -10,42 +10,36 @@ if len(sys.argv) < 2:
     print("fig.py <csv_file>")
     sys.exit(1)
 
-df = pd.read_csv(sys.argv[1]) 
-df = df[df['Time'] < (df['Time'][0] + 150)]
+df_complete = pd.read_csv(sys.argv[1]) 
+#df = df_complete[df_complete['Time'] < (df_complete['Time'][0] + 135)]
+df = df_complete[df_complete['TTP'] > 0]
 
 grouped = df.groupby('Component')['TTP']
 
-fig, ax = plt.subplots(2, 1, figsize=(18,10), squeeze= False)
-plt.subplots_adjust(left=0.125, bottom=0.1, right=0.9, top=0.9, wspace=0.2, hspace=0.4)
-i = 0 #index used in subplots generation
+
+fig, ax = plt.subplots(figsize=(10,4))
 
 for key, grp in df.groupby(['Component']):
     # calculate SMA for TTP
     grp['TTP-SMA'] = grp['TTP'].rolling(window=5).mean()
-    ax[i,0].plot(grp['Time'], grp['TTP-SMA'], marker=next(markers), color=next(colors))
-    i += 1
+    ax.plot(grp['Time'], grp['TTP-SMA'], marker=next(markers), color=next(colors), label=key[0])
 
-fig.text(0.5, 0.04, 'Time (s)', ha='center', fontsize='large')
-fig.text(0.04, 0.5, 'Time To Process (TTP) (s)', va='center', rotation='vertical', fontsize='large')
-
-ax[0,0].set_title('MS1')
-ax[1,0].set_title('MS2')
-
-lines, labels = fig.axes[-1].get_legend_handles_labels()
-fig.legend(lines, labels, loc = 'upper left', fontsize='large')
-#plt.legend(facecolor="white")
+plt.xlabel('Time (s)')
+plt.ylabel('Time To Process (TTP) (s)')
+plt.legend(facecolor="white")
 plt.grid()
-
 plt.show()
-
 fig.savefig('ttp-tnsm.pdf')
+
 
 markers = itertools.cycle(('+', '.', 'o', '*')) 
 colors = itertools.cycle(('r', 'g'))
 
+df = df_complete
+
 fig, ax = plt.subplots(figsize=(10,4))
 for key, grp in df.groupby(['Component']):
-    ax.plot(grp['Time'],grp['Pods'],label=key, marker=next(markers), color=next(colors))
+    ax.plot(grp['Time'],grp['Pods'],label=key[0], marker=next(markers), color=next(colors))
 
 ax.legend()
 plt.xlabel('Time (s)')
@@ -55,20 +49,21 @@ plt.grid()
 plt.show()
 fig.savefig('pods-tnsm.pdf')
 
+df = pd.read_csv(sys.argv[2])
+
 markers = itertools.cycle(('+', '.', 'o', '*')) 
 colors = itertools.cycle(('r', 'g'))
 
 fig, ax = plt.subplots(figsize=(10,4))
-for key, grp in df.groupby(['Component']):
-    ax.plot(grp['Time'],grp['Requests'],label=key, marker=next(markers), color=next(colors))
+ax.plot(df['Time'],df['CRequests'])
 
 ax.legend()
-plt.xlabel('Requests per Second (RPS)')
-plt.ylabel('# Pods')
-plt.legend(facecolor="white")
+plt.xlabel('Time (s)')
+plt.ylabel('Requests per Second (RPS)')
+#plt.legend(facecolor="white")
 plt.grid()
 plt.show()
-fig.savefig('pods-tnsm.pdf')
+fig.savefig('requests-tnsm.pdf')
 
 
 

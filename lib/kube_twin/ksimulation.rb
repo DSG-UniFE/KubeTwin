@@ -315,7 +315,7 @@ module KUBETWIN
         @configuration.request_gen.each do |k,v|
           @to_generate += @configuration.request_gen[k][:num_requests]
           rg = RequestGenerator.new(@configuration.request_gen[k])
-          req_attrs = rg.generate(now)
+          req_attrs = rg.generate(@configuration.request_gen[k][:starting_time].to_i)
           new_event(Event::ET_REQUEST_GENERATION, req_attrs, req_attrs[:generation_time], rg)
         end
       end
@@ -347,6 +347,10 @@ module KUBETWIN
       time = Time.now.strftime('%Y%m%d%H%M%S')
       @sim_bench = File.open("csv_bench_#{time}.csv", 'w')
       @allocation_bench = File.open("allocation_bench_#{time}.csv", 'w')
+      @request_profile = File.open("request_profile_#{time}.csv", 'w')
+      @request_profile << "Time,CRequests\n"
+      @last_second = @current_time.to_i
+      @req_in_sec = 0
 
 
       @allocation_bench << "Time,Component,Request,TTP,Pods\n"
@@ -369,6 +373,16 @@ module KUBETWIN
             req_attrs = e.data
 
             @generated += 1
+            if @current_time.to_i == @last_second
+              @req_in_sec += 1
+            elsif @current_time.to_i == @last_second + 1
+              @request_profile << "#{@current_time.to_i},#{@req_in_sec}\n"
+              @req_in_sec = 1
+              @last_second = @current_time.to_i
+            elsif  (@current_time.to_i - 1) > @last_second
+              @last_second = @current_time.to_i
+            end
+
             # find closest data center
             customer_location_id = 
                                     customer_repository.
@@ -813,8 +827,13 @@ module KUBETWIN
       #return stats.to_csv
       @sim_bench << stats.to_csv
       @sim_bench.close 
+      path_file = @allocation_bench.path
       @allocation_bench.close
-      return stats.to_csv # change this
+      path_request = @request_profile.path
+      @request_profile.close
+      puts "python figure_generator/tnsm-figure.py #{path_file} #{path_request}"
+      `python figure_generator/tnsm-figure.py #{path_file} #{path_request}`
+      #return stats.to_csv # change this
     end
   end
 end
