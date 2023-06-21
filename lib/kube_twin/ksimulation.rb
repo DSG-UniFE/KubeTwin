@@ -735,7 +735,21 @@ module KUBETWIN
               pods_n += "#{k}: #{pods_number} "
               @allocation_bench << "#{now},#{k},#{per_component_stats[k].received},#{per_component_stats[k].mean},#{pods_number}\n"
               #puts "#{now},#{k},#{per_component_stats[k].received},#{per_component_stats[k].mean},#{pods_number}\n"
+              # just to print the allocation map
             end
+
+            allocation_map = {}
+            cluster_repository.each do |_,c|
+               #puts "Allocation -- #{c.name} Pods: #{pods}"
+               pods = 0
+               c.nodes.values.each do |n|
+                pods += n.pod_id_list.length
+                #puts "node_id: #{n.node_id}: pods: #{n.pod_id_list.length}"
+               end
+               allocation_map[c.name] = {tier: c.tier, pods: pods}
+               #puts "Allocation -- #{c.name} Pods: #{pods}"
+            end
+            puts "Allocation_map: #{allocation_map}\n"
 
             #puts "++++++++++++++++\n"+
             #"#{now}\n" +

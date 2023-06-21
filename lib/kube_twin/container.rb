@@ -79,6 +79,9 @@ module KUBETWIN
       @last_request_time = nil
       @path = opts[:img_info][:mdn_file]
       @rps = opts[:img_info][:rps].to_i
+      @service_time = nil
+      @arrival_times = []
+=begin
       @models = Hash.new
       unless @path.nil? && @rps.nil?
         pyfrom :tensorflow, import: :keras
@@ -91,6 +94,7 @@ module KUBETWIN
       else
         @service_time = ERV::RandomVariable.new(st_distribution)
       end
+=end
     end
 
     def check_rps(interval=8)
@@ -119,6 +123,7 @@ module KUBETWIN
       @containers_to_free.shift
     end
 
+=begin
     def get_gamma_mixture(mdn_ttr_model, rps, replica=1)
       numpy = PyCall.import_module("numpy")
       weight_pred, conc_pred, scale_pred = mdn_ttr_model.predict([numpy.array([rps,replica]), numpy.array([1,1])])
@@ -136,6 +141,7 @@ module KUBETWIN
       ERV::MixtureDistribution.new(
                 ERV::GammaMixtureHelper.RawParametersToMixtureArgsSeed(*gamma_mix, SEED))
     end
+=end
 
     def reset_metrics
       @served_request = 0

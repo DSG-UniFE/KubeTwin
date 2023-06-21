@@ -15,6 +15,8 @@ module KUBETWIN
                 :pods 
                 #, :targetPort
 
+    SEED = 12345
+
     def initialize(serviceName, selector, load_balancing=:load_balancing)
       @serviceName = serviceName
       @selector = selector
@@ -22,6 +24,7 @@ module KUBETWIN
       # round robin pod selector
       @rri = 0
       @load_balancing = load_balancing
+      srand(SEED)
     end
 
     # assign a pod to a service
