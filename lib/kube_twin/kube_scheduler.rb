@@ -84,7 +84,9 @@ module KUBETWIN
       # select mec first
       if node.nil?
         #node = @filtered_nodes.sort_by { |n| -n[:available_resources_cpu] }[0][:node]
-        node = @filtered_nodes.sort_by { |n| -n[:price] }[0][:node]
+        #puts "#{@filtered_nodes.sort_by { |n| n[:price] }}"
+        #abort
+        node = @filtered_nodes.sort_by { |n| n[:price] }[0][:node]
       end
       return node
     end
