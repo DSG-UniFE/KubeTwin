@@ -59,11 +59,11 @@ plt.ylabel('Time To Resolution (TTR)')
 
 #plt.subplots_adjust(left=0.125, bottom=0.1, right=0.9, top=0.9, wspace=0.2, hspace=0.4)
 
-plt.legend()
+plt.legend(facecolor="white")
 #plt.legend(facecolor="white")
 #plt.grid()
 plt.tight_layout()
-plt.show()
+#plt.show()
 
 plt.savefig('tnsm-static-deployment.pdf')
 
