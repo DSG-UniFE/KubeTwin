@@ -57,7 +57,6 @@ colors = itertools.cycle(('r', 'g'))
 fig, ax = plt.subplots(figsize=(10,4))
 ax.plot(df['Time'],df['CRequests'])
 
-ax.legend()
 plt.xlabel('Time (s)')
 plt.ylabel('Requests per Second (RPS)')
 #plt.legend(facecolor="white")
