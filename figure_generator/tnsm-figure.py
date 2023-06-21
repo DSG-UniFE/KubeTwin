@@ -6,7 +6,7 @@ import itertools
 markers = itertools.cycle(('+', '.', 'o', '*')) 
 colors = itertools.cycle(('r', 'g'))
 
-#plt.style.use('ggplot')
+plt.style.use('ggplot')
 
 
 if len(sys.argv) < 2:
@@ -39,7 +39,7 @@ ax.plot(time, ms2d, label='MS2-desired', alpha=0.8)
 plt.xlabel('Time (s)')
 plt.ylabel('Time To Process (TTP) (s)')
 plt.legend(facecolor="white")
-plt.grid()
+#plt.grid()
 
 plt.tight_layout()
 plt.show()
@@ -61,7 +61,7 @@ ax.legend()
 plt.xlabel('Time (s)')
 plt.ylabel('# Pods')
 plt.legend(facecolor="white")
-plt.grid()
+#plt.grid()
 plt.tight_layout()
 plt.show()
 fig.savefig('pods-tnsm.pdf')
@@ -78,7 +78,7 @@ plt.xlabel('Time (s)')
 plt.ylabel('Requests per Second (RPS)')
 #plt.legend(facecolor="white")
 plt.tight_layout()
-plt.grid()
+#plt.grid()
 plt.show()
 fig.savefig('requests-tnsm.pdf')
 

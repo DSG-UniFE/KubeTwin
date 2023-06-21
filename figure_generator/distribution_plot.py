@@ -1,6 +1,6 @@
 from matplotlib import pyplot as plt
  
-#plt.style.use('ggplot')
+plt.style.use('ggplot')
 
 '''
 Allocation_map: {"eu-south-1 - Local DC"=>{:tier=>"local", :pods=>30}, 
@@ -53,7 +53,7 @@ usEast_150 = [0, 0, 0, 0]
 
 labels = ["Local DC", "Tier 1", "Tier 2", "Remote DC"]
 fig, axs = plt.subplots(nrows=1,ncols=1, figsize=(10, 5), sharex=True, sharey=True)
-plt.grid()
+#plt.grid()
 
 '''
 p11 = axs[0].bar(tiers, localDcSample, label='eu-south-1')
