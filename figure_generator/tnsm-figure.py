@@ -32,7 +32,7 @@ plt.rc('axes', labelsize=15)    # fontsize of the x and y labels
 plt.rc('xtick', labelsize=15)    # fontsize of the tick labels
 plt.rc('ytick', labelsize=15)    # fontsize of the tick labels
 
-fig, ax = plt.subplots(figsize=(10,4))
+fig, ax = plt.subplots(figsize=(10,5))
 
 for key, grp in df.groupby(['Component']):
     # calculate SMA for TTP
@@ -60,7 +60,7 @@ colors = itertools.cycle(('r', 'g'))
 
 df = df_complete
 
-fig, ax = plt.subplots(figsize=(10,4))
+fig, ax = plt.subplots(figsize=(10,5))
 
 
 for key, grp in df.groupby(['Component']):
@@ -82,7 +82,7 @@ df = pd.read_csv(sys.argv[2])
 markers = itertools.cycle(('+', '.', 'o', '*')) 
 colors = itertools.cycle(('r', 'g'))
 
-fig, ax = plt.subplots(figsize=(10,4))
+fig, ax = plt.subplots(figsize=(10,5))
 ax.plot(df['Time'],df['CRequests'], color='#1f77b4')
 
 plt.xlabel('Time (s)')
