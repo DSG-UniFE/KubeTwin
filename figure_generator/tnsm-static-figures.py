@@ -24,14 +24,12 @@ plt.figure(figsize=(10, 5))
 
 #plt.figure(figsize=(18, 12))
 #plt.rc('font', size=20)          # controls default text sizes
-'''
-plt.rc('axes', titlesize=SMALL_SIZE)     # fontsize of the axes title
-plt.rc('axes', labelsize=MEDIUM_SIZE)    # fontsize of the x and y labels
-plt.rc('xtick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
-plt.rc('ytick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
-plt.rc('legend', fontsize=SMALL_SIZE)    # legend fontsize
-plt.rc('figure', titlesize=BIGGER_SIZE)  # fontsize of the figure title
-'''
+
+plt.rc('axes', labelsize=15)    # fontsize of the x and y labels
+plt.rc('xtick', labelsize=15)    # fontsize of the tick labels
+plt.rc('ytick', labelsize=15)    # fontsize of the tick labels
+plt.rc('legend', fontsize=14)    # legend fontsize
+#plt.rc('figure', titlesize=BIGGER_SIZE)  # fontsize of the figure title
 
 for v in df['rps']:
     if int(v) > 3:
@@ -47,7 +45,7 @@ plt.bar(np.array(rps) + 0.2, ttr_99, width=0.4, label = '99th TTR')
 # just a sla indicator
 rps = rps + [20.5]
 sla = sla + [0.06] 
-plt.plot(rps , sla, linewidth=3.5, color='g', label='Target TTR')   
+plt.plot(rps , sla,  '--', linewidth=2.5, color='tab:orange', label='Target TTR')   
 
 #plt.xlim([3, 15])
 plt.xticks([5, 10, 15, 20])

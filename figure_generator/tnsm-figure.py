@@ -8,6 +8,7 @@ colors = itertools.cycle(('r', 'g'))
 
 plt.style.use('ggplot')
 
+#plt.rcParams.update({'font.size': 18})
 
 if len(sys.argv) < 2:
     print("fig.py <csv_file>")
@@ -26,6 +27,11 @@ ms2_service_time = 0.020 * 1.5
 ms1d = np.repeat(ms1_service_time, len(time))
 ms2d = np.repeat(ms2_service_time, len(time))
 
+plt.rc('legend', fontsize=12)    # legend fontsize
+plt.rc('axes', labelsize=15)    # fontsize of the x and y labels
+plt.rc('xtick', labelsize=15)    # fontsize of the tick labels
+plt.rc('ytick', labelsize=15)    # fontsize of the tick labels
+
 fig, ax = plt.subplots(figsize=(10,4))
 
 for key, grp in df.groupby(['Component']):
@@ -39,7 +45,10 @@ ax.plot(time, ms2d, label='MS2-desired', alpha=0.8)
 plt.xlabel('Time (s)')
 plt.ylabel('Time To Process (TTP) (s)')
 plt.legend(facecolor="white")
-#plt.grid()
+
+
+# plt.grid()
+
 
 plt.tight_layout()
 plt.show()
@@ -52,6 +61,8 @@ colors = itertools.cycle(('r', 'g'))
 df = df_complete
 
 fig, ax = plt.subplots(figsize=(10,4))
+
+
 for key, grp in df.groupby(['Component']):
     ax.plot(grp['Time'],grp['Pods'],label=key[0], marker=next(markers), color=next(colors))
 
