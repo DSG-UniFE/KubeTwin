@@ -83,7 +83,7 @@ markers = itertools.cycle(('+', '.', 'o', '*'))
 colors = itertools.cycle(('r', 'g'))
 
 fig, ax = plt.subplots(figsize=(10,4))
-ax.plot(df['Time'],df['CRequests'])
+ax.plot(df['Time'],df['CRequests'], color='#1f77b4')
 
 plt.xlabel('Time (s)')
 plt.ylabel('Requests per Second (RPS)')
