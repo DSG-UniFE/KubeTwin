@@ -20,7 +20,7 @@ rps = []
 avg_ttr = []
 ttr_99 = []
 sla = []
-plt.figure(figsize=(10, 5))
+plt.figure(figsize=(10, 4))
 
 #plt.figure(figsize=(18, 12))
 #plt.rc('font', size=20)          # controls default text sizes
@@ -37,9 +37,12 @@ for v in df['rps']:
         avg_ttr.append(df['mean'][int(v) - 1])
         ttr_99.append(df['99th'][int(v) - 1])
         sla.append(0.060)
-
+'''
 plt.bar(np.array(rps) - 0.2, avg_ttr, width=0.4, label ='Mean TTR')
 plt.bar(np.array(rps) + 0.2, ttr_99, width=0.4, label = '99th TTR')
+'''
+plt.plot(np.array(rps), avg_ttr, label ='Mean TTR', marker='+')
+plt.plot(np.array(rps), ttr_99, label = '99th TTR', marker='*')
 
 # add also a tolerance line here
 # just a sla indicator
