@@ -20,7 +20,7 @@ rps = []
 avg_ttr = []
 ttr_99 = []
 sla = []
-plt.figure(figsize=(10, 4))
+plt.figure(figsize=(10, 5))
 
 #plt.figure(figsize=(18, 12))
 #plt.rc('font', size=20)          # controls default text sizes
@@ -43,6 +43,7 @@ plt.bar(np.array(rps) + 0.2, ttr_99, width=0.4, label = '99th TTR')
 '''
 plt.plot(np.array(rps), avg_ttr, label ='Mean TTR', marker='+')
 plt.plot(np.array(rps), ttr_99, label = '99th TTR', marker='*')
+plt.yscale("log")
 
 # add also a tolerance line here
 # just a sla indicator
@@ -52,7 +53,7 @@ plt.plot(rps , sla,  '--', linewidth=2.5, color='tab:orange', label='Target TTR'
 
 #plt.xlim([3, 15])
 plt.xticks([5, 10, 15, 20])
-plt.xlabel('RPS')
+plt.xlabel('# Replicas')
 plt.ylabel('Time To Resolution (TTR)')
 
 
