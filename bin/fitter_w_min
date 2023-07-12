@@ -68,7 +68,7 @@ results_dirname = "#{time}_results"
 # create an output directory if it does not exist
 Dir.mkdir(results_dirname) unless File.exist?(results_dirname)
 
-GA_LOG = "#{results_dirname}/fitter_log_#{time}_#{$n}.log"
+GA_LOG = "#{results_dirname}/fitter_log_cnsm_#{time}_#{$n}.log"
 
 File.delete(GA_LOG) if File.exist?(GA_LOG)
 ga_logger = Logger.new(GA_LOG)
@@ -79,16 +79,20 @@ msc = sim_conf.microservice_types
 
 # open the log only once
 k8s_log = CSV.parse(File.read(ARGV[1]), headers: true)
-k8s_ttr = k8s_log.by_col["ttr"].map(&:to_f) # get the ttr column
+k8s_ttr = k8s_log.by_col["ttr"].map(&:to_f).map {|e| e * 1E-9}
+
+# get the ttr column
 
 # ms1 ttr
-k8s_ms1 = CSV.parse(File.read(ARGV[3]), headers: true)
-ms1_ttr = k8s_ms1.by_col[0].map(&:to_f) # get the ttr column
+k8s_ms1 = CSV.parse(File.read(ARGV[3]), headers: false)
+ms1_ttr = k8s_ms1.flatten.map(&:to_f).map {|e| e * 1E-9}
+# get the ttr column
 puts "MS1: #{ms1_ttr.length} #{ms1_ttr.max} #{ms1_ttr.min}"
 
 # ms2 ttr
-k8s_ms2 = CSV.parse(File.read(ARGV[4]), headers: true)
-ms2_ttr = k8s_ms2.by_col[0].map(&:to_f) # get the ttr column
+k8s_ms2 = CSV.parse(File.read(ARGV[4]), headers: false)
+ms2_ttr = k8s_ms2.flatten.map(&:to_f).map {|e| e * 1E-9}
+# get the ttr column
 # ms2_ttr = ms2_ttr.select{|e| ! e.nil?}.collect {|e| e * 1E3}
 
 puts "MS2: #{ms2_ttr.length} #{ms2_ttr.max} #{ms2_ttr.min}"
@@ -223,9 +227,9 @@ solver_conf = {
   logger: ga_logger,
   constraints: {
     min: ([0.0, 1E-4, 1E-4] * ($n-1) + [1E-4, 1E-4]) * $n_ms,
-    max: ([1.0, 0.10, 0.10] * ($n-1) + [0.10, 0.10]) *$n_ms,
+    max: ([1.0, 1.0, 1.00] * ($n-1) + [1.00, 1.00]) *$n_ms,
   },
-  exit_condition: lambda {|gen, best | gen >= 50  },
+  exit_condition: lambda {|gen, best | gen >= 100  },
   log_level: :info,
 }
 
@@ -263,19 +267,6 @@ to_bench = lambda do |component_allocation|
     sim_ms2_ttr = sim_log.by_col[3].map(&:to_f)
 
     w_e2e = stats.mannwhitneyu(k8s_ttr, sim_ttr)
-    ga_logger.info "TTR file #{benchmark}"
-    puts "Reqs: #{sim_ttr.length} W statistic: #{w_e2e.statistic.to_f} pvalue: #{w_e2e.pvalue.to_f}" 
-    puts "Mean: #{sim_ttr.sum /  sim_ttr.length}"
-    ga_logger.info "Reqs: #{sim_ttr.length} W statistic: #{w_e2e.statistic.to_f} pvalue: #{w_e2e.pvalue.to_f}" 
-    ga_logger.info "Mean: #{sim_ttr.sum /  sim_ttr.length}"
-    pop_data = [ms1_ttr.length, sim_ms1_ttr.length].min
-    w_ms1 = stats.mannwhitneyu(ms1_ttr[0, pop_data], sim_ms1_ttr[0, pop_data])
-    w_ms2 = stats.mannwhitneyu(ms2_ttr[0, pop_data], sim_ms2_ttr[0, pop_data])
-
-    puts "WMS1 statistic: #{w_ms1.statistic.to_f} pvalue: #{w_ms1.pvalue.to_f}" 
-    puts "WMS2 statistic: #{w_ms2.statistic.to_f} pvalue: #{w_ms2.pvalue.to_f}" 
-    ga_logger.info "WMS1 statistic: #{w_ms1.statistic.to_f} pvalue: #{w_ms1.pvalue.to_f}" 
-    ga_logger.info "WMS2 statistic: #{w_ms2.statistic.to_f} pvalue: #{w_ms2.pvalue.to_f}" 
   end
   res
 end

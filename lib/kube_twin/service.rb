@@ -17,7 +17,7 @@ module KUBETWIN
 
     SEED = 12345
 
-    def initialize(serviceName, selector, load_balancing=:load_balancing)
+    def initialize(serviceName, selector, load_balancing=:random)
       @serviceName = serviceName
       @selector = selector
       @pods = {}

@@ -35,7 +35,8 @@ module KUBETWIN
 
       # parse data
       tokens = line.split(",") # should be faster than CSV parsing
-      generation_time  = tokens[0].to_f
+      # 1e-9 just because time are in nano
+      generation_time  = tokens[0].to_f * 1E-9
       # just to simplify data parsing
       workflow_type_id = 1 #tokens[1].to_i
       customer_id      = 1 #tokens[2].to_i

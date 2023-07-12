@@ -54,6 +54,22 @@ def percentile(values, percentile)
   return values_sorted[k] + (f * (values_sorted[k+1] - values_sorted[k]))
 end
 
+def mse(array1, array2)
+  unless array1.length == array2.length
+    raise ArgumentError, "Arrays must have the same lenght"
+  end
+
+  sum = 0.0
+  array1.zip(array2).each do |a, b|
+    diff = a - b
+    sum += diff * diff
+  end
+
+  mse_value = sum / array1.length.to_f
+  return mse_value
+end
+
+
 # ARGV[0] should be a config filee
 comparison_conf = YAML.load_file(ARGV[0])
 simulator_config_file = comparison_conf["config_file"]
@@ -75,33 +91,57 @@ k8s_log_files = Dir["#{k8s_log_files_dir}/*.csv"]
 
 i = 1
 csv_logs = File.open("comparison_log_#{time}.csv", 'w')
-csv_logs << "rps,mean,sd,90th,95th,99th,system\n"
+csv_logs << "rps,mean,sd,90th,95th,99th,system,mse\n"
 k8s_log_files.each do |log_file|
   puts "#{log_file}"
+  rps_f = log_file.split('/').last.split('_')[4].slice(3..).to_f
+  #rps = 1 if rps == 0
+  puts "Retrieved rps #{rps_f}"
   # print logs' statistics
   k8s_log = CSV.parse(File.read(log_file), headers: true)
-  k8s_ttr = k8s_log.by_col[1].map(&:to_f) # get the ttr column
+  k8s_ttr = k8s_log.by_col[1].map(&:to_f).map {|v| v * 1E-9} # get the ttr column
+
   mean, std = calcualte_statistics(k8s_ttr)
-  csv_logs << "#{i},#{mean},#{std},#{percentile(k8s_ttr, 0.9)},#{percentile(k8s_ttr, 0.95)},#{percentile(k8s_ttr, 0.99)},K8S\n"
+  csv_logs << "#{rps_f},#{mean},#{std},#{percentile(k8s_ttr, 0.9)},#{percentile(k8s_ttr, 0.95)},#{percentile(k8s_ttr, 0.99)},K8S,NaN\n"
   puts "K8S Log: mean: #{mean}, std: #{std}, min: #{k8s_ttr.min} max: #{k8s_ttr.max}"
   # start simulation and check output
   # need to change the request file here
   sim_conf = KUBETWIN::Configuration.load_from_file(simulator_config_file)
-  sim_conf.set_rgen(log_file)
+=begin
+  request_gen = {
+    1 => {
+      workflow_types: 1,
+      request_distribution: {distribution: :exponential, args: { rate: rps_f, seed: 12345 }},
+      starting_time: sim_conf.start_time.to_f,
+      num_requests: k8s_ttr.length,
+      num_customers: 1
+    }
+  }
+  sim_conf.set_rgen(nil, request_gen)
+=end
+  sim_conf.set_rgen(log_file, nil)
+  mconf = sim_conf.microservice_types
+  sim_conf.microservice_types.each do |k,v|
+    #v[:rps] = rps_f.ceil
+    v[:rps] = rps_f * 10
+  end
+
   sim = KUBETWIN::KSimulation.new(configuration: sim_conf,
     evaluator: KUBETWIN::Evaluator.new(sim_conf))
   sim_output = sim.evaluate_allocation()
-  benchmark = sim_output[0]
+  #benchmark = sim_output[0]
   # evaluate bench here
-  sim_log = CSV.parse(File.read(benchmark), headers: true)
+  sim_log = CSV.parse(sim_output, headers: true)
   sim_ttr = sim_log.by_col[1].map(&:to_f)
   s_mean, s_std = calcualte_statistics(sim_ttr)
-  csv_logs << "#{i},#{s_mean},#{s_std},#{percentile(sim_ttr, 0.90)},#{percentile(sim_ttr, 0.95)},#{percentile(sim_ttr, 0.99)},KubeTwin\n"
+  vmse = mse(k8s_ttr, sim_ttr)
+  csv_logs << "#{rps_f},#{s_mean},#{s_std},#{percentile(sim_ttr, 0.90)},#{percentile(sim_ttr, 0.95)},#{percentile(sim_ttr, 0.99)},KubeTwin,#{vmse}\n"
   puts "KubeTwin Log: mean: #{s_mean}, std: #{s_std}, min: #{sim_ttr.min} max: #{sim_ttr.max}"
-  # system( "python3 plot_dists.py #{log_file} #{benchmark} #{i}" )
   # delete simulation logs
-  sim_output.each { |f| File.delete(f) }
+  #sim_output.each { |f| File.delete(f) }
   i += 1
 end
-
+fname = csv_logs.path
 csv_logs.close()
+system( "python comparison-fig.py #{fname}" )
+

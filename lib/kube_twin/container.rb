@@ -79,8 +79,10 @@ module KUBETWIN
       @last_request_time = nil
       @path = opts[:img_info][:mdn_file]
       @rps = opts[:img_info][:rps].to_i
+      @replica = opts[:img_info][:replica].to_i
       @service_time = nil
       @arrival_times = []
+      @service_time = ERV::RandomVariable.new(st_distribution) if @path.nil?
 =begin
       @models = Hash.new
       unless @path.nil? && @rps.nil?
@@ -158,7 +160,8 @@ module KUBETWIN
       # improve this code in the future
       r.arrival_at_container = time
 # begin was here
-      unless @path.nil?
+#=begin
+unless @path.nil?
         @arrival_times << time
         if @arrival_times.length < 2
           rps = 1
@@ -176,12 +179,14 @@ module KUBETWIN
             end
           end
         end
+      rps = rps * 10
       rps = 34 if rps > 34
       end
       #puts rps
+#=end
 # end was here
       #rps = @rps
-      @service_time = sim.retrieve_mdn_model(name, rps)
+      @service_time = sim.retrieve_mdn_model(name, rps, @replica) unless @path.nil?
 =begin
         if @models.key?(rps)
           @service_time = @models[rps]

@@ -49,13 +49,13 @@ module KUBETWIN
       
     end
 
-    def retrieve_mdn_model(name, rps)
+    def retrieve_mdn_model(name, rps, replica=1)
       # if not create mdn
-      # puts "name: #{name} #{@microservice_mdn}"
+      #puts "name: #{name} #{@microservice_mdn} #{replica}"
       unless @microservice_mdn[name][:st].key?(rps)
         numpy = PyCall.import_module("numpy")
         # here rember to set replica to the correct value
-        weight_pred, conc_pred, scale_pred = @microservice_mdn[name][:model].predict([numpy.array([rps, 1]), numpy.array([1,1])])
+        weight_pred, conc_pred, scale_pred = @microservice_mdn[name][:model].predict([numpy.array([rps, replica]), numpy.array([1,1])])
         # convert numpy to python list
         ws = weight_pred.tolist()
         cps = conc_pred.tolist()
@@ -68,7 +68,7 @@ module KUBETWIN
           gamma_mix << scs[0][i].to_f
         end
         @microservice_mdn[name][:st][rps] = ERV::MixtureDistribution.new(
-                  ERV::GammaMixtureHelper.RawParametersToMixtureArgsSeed(*gamma_mix, SEED))
+                  ERV::WeibullMixtureHelper.RawParametersToMixtureArgsSeed(*gamma_mix, SEED))
       end
       return @microservice_mdn[name][:st][rps]
     end
@@ -136,19 +136,17 @@ module KUBETWIN
 
       # information regarding microservices
       @microservice_types = mtt.nil? ? @configuration.microservice_types : mtt
-      puts "#{@microservice_types} #{@microservice_types.nil?}"
+      #puts "#{@microservice_types} #{@microservice_types.nil?}"
+
       @microservice_types.each do |k, v|
-        #puts "#{k} #{v}"
-        # puts "#{v[:mdn_file]}"
-        #abort
-        pyfrom :tensorflow, import: :keras
-        model = keras.models.load_model(v[:mdn_file])
-        # puts "model: #{model}"
-        @microservice_mdn[k] = {model: model, st: Hash.new } 
-        # puts "v: #{@microservice_mdn}"
+        unless v[:mdn_file].nil?
+          pyfrom :tensorflow, import: :keras
+          model = keras.models.load_model(v[:mdn_file])
+          @microservice_mdn[k] = {model: model, st: Hash.new } 
+        end
       end
 
-      puts "init mdns #{@microservice_mdn}"
+      #puts "init mdns #{@microservice_mdn}"
 
       # information regarding customers
       customer_repository = @configuration.customers
@@ -302,7 +300,7 @@ module KUBETWIN
       # generate first request
       # both R and ruby should work request_gen is written in Ruby
       # request_generation is csv or R
-      @to_generate = 0
+      @to_generate = 1000
       if @configuration.request_gen.nil? 
         #puts "#{@configuration.request_generation}"
         rg = RequestGeneratorR.new(@configuration.request_generation)
@@ -345,15 +343,15 @@ module KUBETWIN
 
       # benchmark file
       time = Time.now.strftime('%Y%m%d%H%M%S')
-      @sim_bench = File.open("csv_bench_#{time}.csv", 'w')
-      @allocation_bench = File.open("allocation_bench_#{time}.csv", 'w')
-      @request_profile = File.open("request_profile_#{time}.csv", 'w')
-      @request_profile << "Time,CRequests\n"
+      #@sim_bench = File.open("csv_bench_#{time}.csv", 'w')
+      #@allocation_bench = File.open("allocation_bench_#{time}.csv", 'w')
+      #@request_profile = File.open("request_profile_#{time}.csv", 'w')
+      #@request_profile << "Time,CRequests\n"
       @last_second = @current_time.to_i
       @req_in_sec = 0
 
 
-      @allocation_bench << "Time,Component,Request,TTP,Pods\n"
+      #@allocation_bench << "Time,Component,Request,TTP,Pods\n"
 
       # launch simulation
       until @event_queue.empty?
@@ -371,12 +369,12 @@ module KUBETWIN
         case e.type
           when Event::ET_REQUEST_GENERATION
             req_attrs = e.data
-
+            
             @generated += 1
             if @current_time.to_i == @last_second
               @req_in_sec += 1
             elsif @current_time.to_i == @last_second + 1
-              @request_profile << "#{@current_time.to_i},#{@req_in_sec}\n"
+              #@request_profile << "#{@current_time.to_i},#{@req_in_sec}\n"
               @req_in_sec = 1
               @last_second = @current_time.to_i
             elsif  (@current_time.to_i - 1) > @last_second
@@ -429,7 +427,7 @@ module KUBETWIN
           when Event::ET_REQUEST_ARRIVAL
             # get request
             req, pod = e.data
-            
+
             # do not consider warmup here
             if req.arrival_time > warmup_threshold && req.arrival_time < cooldown_treshold
 
@@ -746,7 +744,7 @@ module KUBETWIN
             @services.each do |k, s|
               pods_number = s.pods[s.selector].length
               pods_n += "#{k}: #{pods_number} "
-              @allocation_bench << "#{now},#{k},#{per_component_stats[k].received},#{per_component_stats[k].mean},#{pods_number}\n"
+              #@allocation_bench << "#{now},#{k},#{per_component_stats[k].received},#{per_component_stats[k].mean},#{pods_number}\n"
               #puts "#{now},#{k},#{per_component_stats[k].received},#{per_component_stats[k].mean},#{pods_number}\n"
               # just to print the allocation map
             end
@@ -839,15 +837,15 @@ module KUBETWIN
       #-stats.mean
       #return 0
       #return stats.to_csv
-      @sim_bench << stats.to_csv
-      @sim_bench.close 
-      path_file = @allocation_bench.path
-      @allocation_bench.close
-      path_request = @request_profile.path
-      @request_profile.close
-      puts "python figure_generator/tnsm-figure.py #{path_file} #{path_request}"
-      `python figure_generator/tnsm-figure.py #{path_file} #{path_request}`
-      #return stats.to_csv # change this
+      #@sim_bench << stats.to_csv
+      #@sim_bench.close 
+      #path_file = @allocation_bench.path
+      #@allocation_bench.close
+      #path_request = @request_profile.path
+      #@request_profile.close
+      #puts "python figure_generator/tnsm-figure.py #{path_file} #{path_request}"
+      #`python figure_generator/tnsm-figure.py #{path_file} #{path_request}`
+      return stats.to_csv # change this
     end
   end
 end
