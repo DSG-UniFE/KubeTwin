@@ -1,0 +1,149 @@
+#!/usr/bin/env ruby
+
+begin
+  require 'kube_twin'
+  require 'logger'
+  require 'pycall'
+  require 'pycall/import'
+  include PyCall::Import
+  require 'yaml'
+  require 'csv'
+rescue LoadError
+  require 'rubygems'
+  require 'kube_twin'
+  require 'yaml'
+end
+
+def do_abort(message)
+    abort <<-EOS.gsub(/^\s+\|/, '')
+      |#{message}
+      |
+      |Usage:
+      |    #{File.basename(__FILE__)} config_file
+      |
+    EOS
+  end
+  
+
+if File.expand_path(__FILE__) == File.expand_path($0)
+    # make sure both required arguments were given
+    case ARGV.size
+    when 0 then
+      do_abort("Missing simulator configuration files!")
+    end
+    # make sure simulator config file exists
+    unless File.exists? ARGV[0]
+      do_abort("Invalid simulator configuration file!")
+    end
+end
+
+def calcualte_statistics(samples)
+  # https://stackoverflow.com/questions/19484891/how-do-i-find-the-standard-deviation-in-ruby
+  n = samples.length      
+  mean = samples.reduce(&:+) / n
+  sum_sqr = samples.map {|x| x * x}.reduce(&:+)
+  std_dev = Math.sqrt((sum_sqr - n * mean * mean)/(n-1)) # => 2.7386127875258306
+  return [mean, std_dev]
+end
+
+def percentile(values, percentile)
+  # https://stackoverflow.com/questions/11784843/calculate-95th-percentile-in-ruby
+  values_sorted = values.sort
+  k = (percentile*(values_sorted.length-1)+1).floor - 1
+  f = (percentile*(values_sorted.length-1)+1).modulo(1)
+  return values_sorted[k] + (f * (values_sorted[k+1] - values_sorted[k]))
+end
+
+def mse(array1, array2)
+  unless array1.length == array2.length
+    raise ArgumentError, "Arrays must have the same lenght"
+  end
+
+  sum = 0.0
+  array1.zip(array2).each do |a, b|
+    diff = a - b
+    sum += diff * diff
+  end
+
+  mse_value = sum / array1.length.to_f
+  return mse_value
+end
+
+
+# ARGV[0] should be a config filee
+comparison_conf = YAML.load_file(ARGV[0])
+simulator_config_file = comparison_conf["config_file"]
+
+# pycall import
+pyfrom :scipy, import: :stats
+pyimport :pandas, as: :pd
+
+# here run the optimizer on the oracle
+# load simulation configuration
+
+time = Time.now.strftime('%Y%m%d%H%M%S')
+
+
+# for each k8s log print summary and evaluate allocation in Kubetwin
+k8s_log_files_dir = comparison_conf["k8s_log_files"]
+# using [] notation to exclude dirs
+k8s_log_files = Dir["#{k8s_log_files_dir}/*.csv"]
+puts "LOGS: #{k8s_log_files}"
+
+i = 1
+csv_logs = File.open("comparison_log_#{time}.csv", 'w')
+csv_logs << "rps,mean,sd,90th,95th,99th,system,mse\n"
+k8s_log_files.each do |log_file|
+  puts "#{log_file}"
+  rps_f = log_file.split('/').last.split('_')[4].slice(3..).to_f
+  #rps = 1 if rps == 0
+  puts "Retrieved rps #{rps_f}"
+  # print logs' statistics
+  k8s_log = CSV.parse(File.read(log_file), headers: true)
+  k8s_ttr = k8s_log.by_col[1].map(&:to_f).map {|v| v * 1E-9} # get the ttr column
+
+  mean, std = calcualte_statistics(k8s_ttr)
+  csv_logs << "#{rps_f},#{mean},#{std},#{percentile(k8s_ttr, 0.9)},#{percentile(k8s_ttr, 0.95)},#{percentile(k8s_ttr, 0.99)},K8S,NaN\n"
+  puts "K8S Log: mean: #{mean}, std: #{std}, min: #{k8s_ttr.min} max: #{k8s_ttr.max}"
+  # start simulation and check output
+  # need to change the request file here
+  sim_conf = KUBETWIN::Configuration.load_from_file(simulator_config_file)
+=begin
+  request_gen = {
+    1 => {
+      workflow_types: 1,
+      request_distribution: {distribution: :exponential, args: { rate: rps_f, seed: 12345 }},
+      starting_time: sim_conf.start_time.to_f,
+      num_requests: k8s_ttr.length,
+      num_customers: 1
+    }
+  }
+  sim_conf.set_rgen(nil, request_gen)
+=end
+  sim_conf.set_rgen(log_file, nil)
+  mconf = sim_conf.microservice_types
+  sim_conf.microservice_types.each do |k,v|
+    #v[:rps] = rps_f.ceil
+    v[:replica] = 3
+    v[:rps] = rps_f * 10
+  end
+
+  sim = KUBETWIN::KSimulation.new(configuration: sim_conf,
+    evaluator: KUBETWIN::Evaluator.new(sim_conf))
+  sim_output = sim.evaluate_allocation()
+  #benchmark = sim_output[0]
+  # evaluate bench here
+  sim_log = CSV.parse(sim_output, headers: true)
+  sim_ttr = sim_log.by_col[1].map(&:to_f)
+  s_mean, s_std = calcualte_statistics(sim_ttr)
+  vmse = mse(k8s_ttr, sim_ttr)
+  csv_logs << "#{rps_f},#{s_mean},#{s_std},#{percentile(sim_ttr, 0.90)},#{percentile(sim_ttr, 0.95)},#{percentile(sim_ttr, 0.99)},KubeTwin,#{vmse}\n"
+  puts "KubeTwin Log: mean: #{s_mean}, std: #{s_std}, min: #{sim_ttr.min} max: #{sim_ttr.max}"
+  # delete simulation logs
+  #sim_output.each { |f| File.delete(f) }
+  i += 1
+end
+fname = csv_logs.path
+csv_logs.close()
+system( "python comparison-fig.py #{fname}" )
+
