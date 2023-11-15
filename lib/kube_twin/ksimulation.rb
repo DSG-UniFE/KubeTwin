@@ -845,8 +845,8 @@ module KUBETWIN
       @allocation_bench.close
       path_request = @request_profile.path
       @request_profile.close
-      puts "python figure_generator/tnsm-figure.py #{path_file} #{path_request}"
-      `python figure_generator/tnsm-figure.py #{path_file} #{path_request}`
+      #puts "python figure_generator/tnsm-figure.py #{path_file} #{path_request}"
+      #`python figure_generator/tnsm-figure.py #{path_file} #{path_request}`
       #return stats.to_csv # change this
     end
   end
