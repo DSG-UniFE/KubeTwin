@@ -31,7 +31,7 @@ module KUBETWIN
     # no need for :port now
     attr_reader :containerId,
                 :imageId,
-                :endCode, 
+                :endCode,
                 :name,
                 :state,
                 :wait_for,
@@ -43,7 +43,7 @@ module KUBETWIN
 
     Guaranteed = Struct.new(:cpu, :memory)
     Limits = Struct.new(:cpu, :memory)
-    
+
 
     def initialize(containerId, imageId, st_distribution, opts = {})
       @containerId = containerId
@@ -79,7 +79,7 @@ module KUBETWIN
       @last_request_time = nil
       @path = opts[:img_info][:mdn_file]
       @rps = opts[:img_info][:rps].to_i
-      @service_time = nil
+      @service_time = ERV::RandomVariable.new(st_distribution) if @path.nil?
       @arrival_times = []
 =begin
       @models = Hash.new
@@ -157,7 +157,8 @@ module KUBETWIN
 
       # improve this code in the future
       r.arrival_at_container = time
-# begin was here
+=begin
+# the following code guesses the rps by looking at interarrival time
       unless @path.nil?
         @arrival_times << time
         if @arrival_times.length < 2
@@ -180,20 +181,9 @@ module KUBETWIN
       end
       #puts rps
 # end was here
-      #rps = @rps
-      @service_time = sim.retrieve_mdn_model(name, rps)
-=begin
-        if @models.key?(rps)
-          @service_time = @models[rps]
-        else
-          puts "#{rps}"
-          puts "#{@models.keys}"
-          model =  get_gamma_mixture(@mdn_ttr_model, rps)
-          @models[rps] = model
-          @service_time = model
-        end
-      #end
 =end
+      rps = @rps
+      @service_time = sim.retrieve_mdn_model(name, rps) unless @path.nil?
       @last_request_time = time
       while (st = @service_time.sample) <= 1E-6; end
 
@@ -225,14 +215,14 @@ module KUBETWIN
       try_servicing_new_request(sim, time) unless @busy
     end
 
-    def try_servicing_new_request(sim, time) 
-      
+    def try_servicing_new_request(sim, time)
+
       if @busy
         raise "Container is currently processing another request (id: #{@containerId})"
       end
 
       unless @request_queue.empty? # || (@state == Container::CONTAINER_TERMINATED)
-        
+
         # monkey patch for MQTT service
         if @blocking == true
           @busy = true
@@ -242,7 +232,7 @@ module KUBETWIN
         #puts "Start: #{time}"
         ri = @request_queue.shift
         # puts "#{containerId} #{@request_queue.length} sr: #{served_request} #{time - ri.arrival_time}" if @request_queue.length > 2
-        
+
         req = ri.request
         # update the request's working information
 
@@ -250,7 +240,7 @@ module KUBETWIN
         req.update_queuing_time(time - req.arrival_at_container)
 
         req.step_completed(ri.service_time)
-        
+
         # update container-based metric here
         @total_queue_time += time - ri.arrival_time
         # raise "We are looking at two different times" if req.queuing_time != (time - ri.arrival_time)

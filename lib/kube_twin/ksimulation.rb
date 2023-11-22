@@ -46,7 +46,7 @@ module KUBETWIN
       keras.utils.disable_interactive_logging()
       os = PyCall.import_module("os")
       os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
-      
+
     end
 
     def retrieve_mdn_model(name, rps)
@@ -108,7 +108,7 @@ module KUBETWIN
       # here need to retrieve configuration cost also
       evaluation_cost = Hash.new
 
-      @configuration.evaluation[:cluster_hourly_cost].each do |c| 
+      @configuration.evaluation[:cluster_hourly_cost].each do |c|
         evaluation_cost[c[:cluster]] = c[:fixed_cpu_hourly_cost]
         # leave memory out for now
         #evaluation_cost[c[:cluster_memory]] = c[:fixed_memory_hourly_cost]
@@ -125,7 +125,7 @@ module KUBETWIN
       cluster_repository.values.each do |c|
         node_number = c.node_number
         node_number.times do |i|
-          # we suppose to have nodes with homogenous capabilities in a 
+          # we suppose to have nodes with homogenous capabilities in a
           # cluster
           # set also the cluster_id here
           n = Node.new(node_id, c.node_resources_cpu, c.node_resources_memory, c.cluster_id, c.type)
@@ -142,10 +142,12 @@ module KUBETWIN
         # puts "#{v[:mdn_file]}"
         #abort
         pyfrom :tensorflow, import: :keras
-        model = keras.models.load_model(v[:mdn_file])
-        # puts "model: #{model}"
-        @microservice_mdn[k] = {model: model, st: Hash.new } 
-        # puts "v: #{@microservice_mdn}"
+        unless v[:mdn_file].nil?
+          model = keras.models.load_model(v[:mdn_file])
+          # puts "model: #{model}"
+          @microservice_mdn[k] = {model: model, st: Hash.new }
+          # puts "v: #{@microservice_mdn}"
+        end
       end
 
       puts "init mdns #{@microservice_mdn}"
@@ -187,7 +189,7 @@ module KUBETWIN
       ]
 
       # Initialize Kubernetes internal objects/services
-  
+
       @kube_dns = KubeDns.new
 
       # debug variables
@@ -197,10 +199,10 @@ module KUBETWIN
       @forwarded = 0
 
       @replica_sets = {}
-      
+
       # init from simulation or optimizator
-      if rss.nil? 
-        crs = @configuration.replica_sets 
+      if rss.nil?
+        crs = @configuration.replica_sets
       else
         crs = rss
       end
@@ -219,7 +221,7 @@ module KUBETWIN
       unless @configuration.horizontal_pod_autoscalers.nil?
         @configuration.horizontal_pod_autoscalers.each do |name, conf|
           # implement the horizontal_pod_autoscaler
-          @horizontal_pod_autoscaler_repo[name] = 
+          @horizontal_pod_autoscaler_repo[name] =
               HorizontalPodAutoscaler.new(conf[:name],
                   conf[:minReplicas], conf[:maxReplicas],
                     conf[:targetProcessingPercentage],
@@ -233,8 +235,8 @@ module KUBETWIN
       # not simulating starup events in the MVP
 
       # init from simulation or optimizator
-      if css.nil? 
-        css = @configuration.services 
+      if css.nil?
+        css = @configuration.services
       end
 
       @services = {}
@@ -292,18 +294,18 @@ module KUBETWIN
 
 
       # here null check before sending event
-      @stats_print_interval = @configuration.stats_print_interval 
+      @stats_print_interval = @configuration.stats_print_interval
 
       # create event queue
       # this stores all simulation events
       @event_queue = SortedArray.new
 
-      # puts "========== Simulation Start =========="      
+      # puts "========== Simulation Start =========="
       # generate first request
       # both R and ruby should work request_gen is written in Ruby
       # request_generation is csv or R
       @to_generate = 0
-      if @configuration.request_gen.nil? 
+      if @configuration.request_gen.nil?
         #puts "#{@configuration.request_generation}"
         rg = RequestGeneratorR.new(@configuration.request_generation)
         # this is to avoid mismatch when reproducing logs
@@ -311,7 +313,7 @@ module KUBETWIN
         @current_time = @start_time = req_attrs[:generation_time] - 2
         @configuration.set_start(@current_time)
         new_event(Event::ET_REQUEST_GENERATION, req_attrs, req_attrs[:generation_time], rg)
-      else 
+      else
         @configuration.request_gen.each do |k,v|
           @to_generate += @configuration.request_gen[k][:num_requests]
           rg = RequestGenerator.new(@configuration.request_gen[k])
@@ -384,14 +386,14 @@ module KUBETWIN
             end
 
             # find closest data center
-            customer_location_id = 
+            customer_location_id =
                                     customer_repository.
                                     dig(req_attrs[:customer_id], :location_id)
 
             # find first component name for requested workflow
             workflow = workflow_type_repository[req_attrs[:workflow_type_id]]
             first_component_name = workflow[:component_sequence][0][:name]
-            
+
             # first we need to resolve the component name using
             # the kubernetes DNS
             # TODO -- modeling internal service time
@@ -399,14 +401,14 @@ module KUBETWIN
 
             service = @kube_dns.lookup(first_component_name)
 
-            # the closest_dc stuff should be implmented within a load balancer / service 
+            # the closest_dc stuff should be implmented within a load balancer / service
             # here we cloud implement different policies rather than random policy
             pod = service.get_pod(first_component_name) # same as selector
 
             # we need to get a reference to the cluster where the pod is running
             cluster_id = pod.node.cluster_id
             cluster = cluster_repository[cluster_id]
-            
+
             arrival_time = @current_time + latency_manager.sample_latency_between(customer_location_id, cluster.location_id)
             # here we should also add the HTTP connection time (8 ms)
             arrival_time += CONNECT_TIME
@@ -429,7 +431,7 @@ module KUBETWIN
           when Event::ET_REQUEST_ARRIVAL
             # get request
             req, pod = e.data
-            
+
             # do not consider warmup here
             if req.arrival_time > warmup_threshold && req.arrival_time < cooldown_treshold
 
@@ -465,12 +467,12 @@ module KUBETWIN
 
           when Event::ET_REQUEST_FORWARDING
             # get request
-            # do we need to handle this event? we could have 
+            # do we need to handle this event? we could have
             # done everything in the previous one
             req  = e.data
             time = e.time
             pod   = e.destination
-            
+
             # increase count of received requests in per_component_stats
             workflow = workflow_type_repository[req.workflow_type_id]
             component_name = workflow[:component_sequence][req.next_step][:name]
@@ -487,7 +489,7 @@ module KUBETWIN
             req = e.data
             container  = e.destination
             @processed += 1
-            
+
             # unless next_ms
             container.request_finished(self, e.time) if container.wait_for.empty?
 
@@ -503,7 +505,7 @@ module KUBETWIN
             # register step completion
             component_name = workflow[:component_sequence][req.worked_step][:name]
             per_component_stats[component_name].record_request(req, now)
-            
+
             req.ttr_step(@current_time)
 =begin
             if component_name == "MS1"
@@ -526,7 +528,7 @@ module KUBETWIN
 
               # get a pod from the one available
               pod = service.get_pod(next_component_name) # same as selector
-              
+
               # we need to get a reference to the cluster where the pod is running
               cluster_id = pod.node.cluster_id
               cluster = cluster_repository[cluster_id]
@@ -545,7 +547,7 @@ module KUBETWIN
 
               # schedule request forwarding to pod
               @forwarded += 1
-            
+
               # http chained microservices
               # if the current microservice is the one which the old was waiting, free the old container
               pod.container.to_free(container) unless container.wait_for.empty?
@@ -625,7 +627,7 @@ module KUBETWIN
             service_time = sva.sum / sva.length.to_f
             # while (service_time = service_time_rv.next) < 2E-3; end
             # puts service_time
-          
+
             desired_metric = hpa.target_processing_percentage * service_time
 
             current_metric = 0
@@ -649,7 +651,7 @@ module KUBETWIN
             puts "**** Horizontal Pod Autoscaling ****"
             puts "#{hpa.name} pods: #{pods} average processing_time: #{current_metric} desired_metric: #{desired_metric}"
             puts "************************************"
-            
+
             if pods == 0
               puts "Ending the simulation!"
               #break
@@ -678,7 +680,7 @@ module KUBETWIN
                 rs.set_replicas(d_replicas)
 
                 # then create the replicas
-                to_scale.times do 
+                to_scale.times do
                   selector = rs.selector
                   sct = @microservice_types[selector]
                   reqs_c = sct[:resources_requirements_cpu]
@@ -703,7 +705,7 @@ module KUBETWIN
                 unless to_scale.zero?
                   # puts "deactivating pods"
                   ppl = s.pods[hpa.name].sample(to_scale)
-                  ppl.each do |p| 
+                  ppl.each do |p|
                     p.deactivate_pod
                     s.delete_pod(s.selector, p)
                   end
@@ -737,10 +739,10 @@ module KUBETWIN
             until @event_queue.empty?
               e = @event_queue.shift
             end
-          
+
           # print some stats (useful to track simulation data)
           when Event::ET_STATS_PRINT
-            
+
             # calculate the number of pods
             pods_n = ""
             @services.each do |k, s|
@@ -774,20 +776,20 @@ module KUBETWIN
             if next_event_time < cooldown_treshold
               new_event(Event::ET_STATS_PRINT, nil, @current_time + @stats_print_interval, nil) unless @stats_print_interval.nil?
             end
-            
+
           when Event::ET_ALLOCATE_NODE
             new_node, target_cluster = e.data
             #target_cluster.node_number += 1
             target_cluster.add_node(new_node)
             puts "New Node Allocated: node_id: #{new_node.node_id} in cluster #{target_cluster.cluster_id} at time #{e.time}"
-            
+
 
           when Event::ET_DEALLOCATE_NODE
             new_node, target_cluster = e.data
             #target_cluster.node_number += 1
             target_cluster.remove_node(new_node)
             puts "Node Deallocated: node_id: #{new_node.node_id} in cluster #{target_cluster.cluster_id} at time #{e.time}"
-           
+
         end
       end
 
@@ -796,7 +798,7 @@ module KUBETWIN
       # TODO -- IMPLEMENT COST EVALUATION HERE
       #costs = @evaluator.evaluate_fixed_costs_cpu(vm_allocation)
 
-     
+
      #puts "\n\n"
      #@sim_bench.close
      #puts "Finished after #{now - @configuration.end_time}"
@@ -824,10 +826,10 @@ module KUBETWIN
       # we want to minimize the cost, so we define fitness as the opposite of
       # the sum of all costs incurred
       # -costs.values.inject(0.0){|s,x| s += x }
-      # 99-th percentile ttr + closed_request + 
+      # 99-th percentile ttr + closed_request +
       # (- 0.99 )
       # -stats.mean
-      #res = -per_workflow_and_customer_stats[1][1].longer_than[0.51] / 
+      #res = -per_workflow_and_customer_stats[1][1].longer_than[0.51] /
       #    per_workflow_and_customer_stats[1][1].closed.to_f
       # puts "Res: #{res}"
       # res
@@ -840,7 +842,7 @@ module KUBETWIN
       #return 0
       #return stats.to_csv
       @sim_bench << stats.to_csv
-      @sim_bench.close 
+      @sim_bench.close
       path_file = @allocation_bench.path
       @allocation_bench.close
       path_request = @request_profile.path
