@@ -29,7 +29,7 @@ module KUBETWIN
                         
        # image_info[:blocking]) #, opts[:port]) # @containers = {}
       # startup the container here -- we just need a MVP for now
-      @container.startupC
+      #@container.startupC
       @startTime = Time.now
       @status = Pod::POD_PENDING
       @label = label
@@ -38,7 +38,9 @@ module KUBETWIN
       # priority       = 0
     end
 
-    def startUpPod
+    def startUpPod(node)
+      raise 'Node unavailable to accept pods' if node.ready == false
+      #raise 'Pod already running' if @status == Pod::POD_RUNNING
       @container.startupC
       # here commented to speed-up the simulation
       # it is working 

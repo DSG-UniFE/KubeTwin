@@ -11,7 +11,8 @@ module KUBETWIN
     ET_REQUEST_CLOSURE         = 4
     ET_HPA_CONTROL             = 5
     ET_STATS_PRINT             = 6
-    ET_ALLOCATE_NODE           = 7
+    ET_NODE_CONTROL            = 7
+    #ET_ALLOCATE_NODE           = 7
     ET_DEALLOCATE_NODE         = 8 
     ET_PASSING_WAIT            = 9
     # ET_VM_SUSPEND              = 5

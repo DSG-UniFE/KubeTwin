@@ -45,10 +45,12 @@ module KUBETWIN
       # do we need to use the following?
       # register node into cluster
       @nodes[node.node_id] = node
+      node.startup_node
     end
 
     def remove_node(node)
         raise 'Error! Node not allocated in this cluster' unless @nodes.include? node.node_id
+        node.ready = false
         @nodes.delete(node.node_id)
     end
 

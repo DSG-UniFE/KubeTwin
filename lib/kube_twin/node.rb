@@ -8,7 +8,7 @@ module KUBETWIN
 
     # :type [:mec, cloud] depends on the cluster 
     attr_reader :resources_cpu, :resources_memory, :requested_resources, :node_id, 
-     :pod_id_list, :cluster_id, :type
+     :ready, :heartbeat_period, :pod_id_list, :cluster_id, :type
     # cluster_id should not be here
     # this is a programming error that i introduce to speed-up
     # the development process
@@ -17,17 +17,24 @@ module KUBETWIN
     # here define the number of resources
     # we could use the CPU frequency or something else?
     # we defined the resources in containers using th mCPU
-    def initialize(node_id, resources_cpu, resources_memory, cluster_id, type)
+    def initialize(node_id, resources_cpu, resources_memory, heartbeat_period, cluster_id, type)
       @node_id = node_id
       @resources_cpu = resources_cpu
       @resources_memory = resources_memory
       @requested_resources = {cpu: 0.to_f, memory: 0.to_f}
+      @ready = false #initally the node is not ready to accept pods
+      @heartbeat_period = heartbeat_period
       @cluster_id = cluster_id
       @pod_id_list = []
       @type = type
     end
 
+    def startup_node
+      @ready = true # the node is ready to accept pods
+    end
+
     def assign_resources(pod, resources_cpu, resources_memory)
+      raise 'Node unavailable to accept pods' if @ready == false
       raise 'Unfeasible resource assignement!' if (@requested_resources[:cpu] + resources_cpu > @resources_cpu) && (@requested_resources[:memory] + resources_memory > @resources_memory)
       @pod_id_list << pod.pod_id
       @requested_resources[:cpu] += resources_cpu

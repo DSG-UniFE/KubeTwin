@@ -128,7 +128,7 @@ module KUBETWIN
           # we suppose to have nodes with homogenous capabilities in a
           # cluster
           # set also the cluster_id here
-          n = Node.new(node_id, c.node_resources_cpu, c.node_resources_memory, c.cluster_id, c.type)
+          n = Node.new(node_id, c.node_resources_cpu, c.node_resources_memory, 5, c.cluster_id, c.type) #5 as heartbeat period for each node
           c.add_node(n)
           node_id += 1
         end
@@ -277,10 +277,11 @@ module KUBETWIN
           # depending on its cluster type
 
           pod = Pod.new(pod_id, "#{selector}_#{pod_id}", node, selector, sct)
-          pod.startUpPod
-
+          pod.startUpPod(node)
+          #puts "pod #{pod_id} created and ready to be assigned to node #{node.node_id}"
           # assign resources for the pod
           node.assign_resources(pod, reqs_c, reqs_m)
+          #puts "assigning pod #{pod_id} to node #{node.node_id}"
           # get the service here and assign the pod to the service
           # convert string to sym
           # we could also assing the service to the replica set
@@ -322,6 +323,16 @@ module KUBETWIN
         end
       end
       #new_event(Event::ET_REQUEST_GENERATION, req_attrs, req_attrs[:generation_time], nil)
+
+      #new potential event for checking node availability: heartbeat --> pod-eviction-timeout --> pod evicition and rescheduling
+      #new_event(Event::ET_NODE_CONTROL, node.node_id, @current_time + node.heartbeat_period, nil)
+
+      #generate first heartbeat check
+      cluster_repository.each do |k, cluster|
+        cluster.nodes.each do |k, node|
+          new_event(Event::ET_NODE_CONTROL, node, @current_time + node.heartbeat_period, nil)
+        end
+      end
 
       # generate first HPA check
       @horizontal_pod_autoscaler_repo.each do | name, hpa|
@@ -421,7 +432,7 @@ module KUBETWIN
             new_event(Event::ET_REQUEST_ARRIVAL, [new_req, pod], arrival_time, nil)
 
             # schedule generation of next request
-            if @current_time < cooldown_treshold && @generated < @to_generate#warmup_threshold
+            if @current_time < cooldown_treshold && @generated < @to_generate #warmup_threshold
                 rg = e.destination
                 req_attrs = rg.generate(@current_time)
                 new_event(Event::ET_REQUEST_GENERATION, req_attrs, req_attrs[:generation_time], rg) if req_attrs
@@ -691,7 +702,7 @@ module KUBETWIN
 
                   break if node.nil? # check here --- what happens if no nodes are available
                   pod = Pod.new(pod_id, "#{selector}_#{pod_id}", node, selector, sct)
-                  pod.startUpPod
+                  pod.startUpPod(node)
                   # assign resources for the pod
                   node.assign_resources(pod, reqs_c, reqs_m)
                   s.assignPod(pod)
@@ -777,12 +788,20 @@ module KUBETWIN
               new_event(Event::ET_STATS_PRINT, nil, @current_time + @stats_print_interval, nil) unless @stats_print_interval.nil?
             end
 
-          when Event::ET_ALLOCATE_NODE
-            new_node, target_cluster = e.data
-            #target_cluster.node_number += 1
-            target_cluster.add_node(new_node)
-            puts "New Node Allocated: node_id: #{new_node.node_id} in cluster #{target_cluster.cluster_id} at time #{e.time}"
+          when Event::ET_NODE_CONTROL #periodically check nodes heartbeat signal
+            check_node = e.data
+            if check_node.ready == true
+              puts "Node #{check_node.node_id} on cluster #{check_node.cluster_id} is alive"
+            else
+              puts "Node #{check_node.node_id} on cluster #{check_node.cluster_id} is dead"
+            end
 
+            # schedule next control
+            if @current_time + check_node.heartbeat_period < cooldown_treshold
+              new_event(Event::ET_NODE_CONTROL, check_node, @current_time + check_node.heartbeat_period, nil)
+            end
+            
+            
 
           when Event::ET_DEALLOCATE_NODE
             new_node, target_cluster = e.data
