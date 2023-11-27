@@ -128,7 +128,7 @@ module KUBETWIN
           # we suppose to have nodes with homogenous capabilities in a
           # cluster
           # set also the cluster_id here
-          n = Node.new(node_id, c.node_resources_cpu, c.node_resources_memory, 5, c.cluster_id, c.type) #5 as heartbeat period for each node
+          n = Node.new(node_id, c.node_resources_cpu, c.node_resources_memory, 5, 3, c.cluster_id, c.type) #5 as heartbeat period, 3 as eviction threshold for each node
           c.add_node(n)
           node_id += 1
         end
@@ -324,9 +324,6 @@ module KUBETWIN
       end
       #new_event(Event::ET_REQUEST_GENERATION, req_attrs, req_attrs[:generation_time], nil)
 
-      #new potential event for checking node availability: heartbeat --> pod-eviction-timeout --> pod evicition and rescheduling
-      #new_event(Event::ET_NODE_CONTROL, node.node_id, @current_time + node.heartbeat_period, nil)
-
       #generate first heartbeat check
       cluster_repository.each do |k, cluster|
         cluster.nodes.each do |k, node|
@@ -339,6 +336,12 @@ module KUBETWIN
         new_event(Event::ET_HPA_CONTROL, [name, hpa], @current_time + hpa.period_seconds, nil)
       end
 
+      # randomly select a node to generate shutdown event
+      random_cluster = cluster_repository.values.sample
+      random_node = random_cluster.nodes.values.sample
+      new_event(Event::ET_SHUTDOWN_NODE, random_node, @current_time + 50, nil)
+
+      
       # schedule end of simulation
       unless @configuration.end_time.nil?
         # puts "Simulation ends at: #{@configuration.end_time}"
@@ -792,8 +795,14 @@ module KUBETWIN
             check_node = e.data
             if check_node.ready == true
               puts "Node #{check_node.node_id} on cluster #{check_node.cluster_id} is alive"
+              check_node.eviction_count = 0
             else
               puts "Node #{check_node.node_id} on cluster #{check_node.cluster_id} is dead"
+              check_node.eviction_count += 1
+              if check_node.eviction_count == check_node.eviction_threshold
+                puts "Node #{check_node.node_id} on cluster #{check_node.cluster_id} is going to be evicted"
+                new_event(Event::ET_DEALLOCATE_NODE, [check_node, cluster_repository[check_node.cluster_id]], @current_time, nil)
+              end
             end
 
             # schedule next control
@@ -801,14 +810,37 @@ module KUBETWIN
               new_event(Event::ET_NODE_CONTROL, check_node, @current_time + check_node.heartbeat_period, nil)
             end
             
-            
+          #try to implement shutdown node event. Example --> select a random node and put ready to false
+          when Event::ET_SHUTDOWN_NODE
+            node = e.data
+            puts "Node #{node.node_id} on cluster #{node.cluster_id} is going to shutdown"
+            break if node.ready == false
+            node.ready = false
+            puts "Shutdown event: Node #{node.node_id} on cluster #{node.cluster_id}"
+            # schedule next control
+            if @current_time + node.heartbeat_period < cooldown_treshold
+              new_event(Event::ET_NODE_CONTROL, node, @current_time + node.heartbeat_period, nil)
+            end
+
 
           when Event::ET_DEALLOCATE_NODE
-            new_node, target_cluster = e.data
-            #target_cluster.node_number += 1
-            target_cluster.remove_node(new_node)
-            puts "Node Deallocated: node_id: #{new_node.node_id} in cluster #{target_cluster.cluster_id} at time #{e.time}"
+            node, target_cluster = e.data
 
+            #TODO: remove pods from target node in order to reallocate them
+            ##############################
+
+            target_cluster.node_number -= 1
+            target_cluster.remove_node(node)
+            puts "Node Deallocated: node_id: #{node.node_id} in cluster #{target_cluster.cluster_id} at time #{e.time}"
+            puts "Cluster #{target_cluster.cluster_id} has now #{target_cluster.nodes.length} nodes"
+            #if @current_time + node.heartbeat_period < cooldown_treshold
+            #  new_event(Event::ET_NODE_CONTROL, node, @current_time + node.heartbeat_period, nil)
+            #end
+            cluster_repository.each do |k, cluster|
+              cluster.nodes.each do |k, node|
+                new_event(Event::ET_NODE_CONTROL, node, @current_time + node.heartbeat_period, nil)
+              end
+            end
         end
       end
 

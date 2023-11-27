@@ -9,7 +9,9 @@ module KUBETWIN
 
     def_delegator :@vms, :has_key?, :has_vms_of_type?
 
-    attr_reader :cluster_id, :location_id, :node_number, 
+    attr_accessor :node_number
+
+    attr_reader :cluster_id, :location_id,
                 :nodes, :name, :node_resources_cpu, :node_resources_memory, :type,
                 :tier,:fixed_hourly_cost_cpu, :fixed_hourly_cost_memory
 
@@ -50,7 +52,6 @@ module KUBETWIN
 
     def remove_node(node)
         raise 'Error! Node not allocated in this cluster' unless @nodes.include? node.node_id
-        node.ready = false
         @nodes.delete(node.node_id)
     end
 

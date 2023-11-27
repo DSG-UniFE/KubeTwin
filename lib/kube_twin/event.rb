@@ -12,9 +12,10 @@ module KUBETWIN
     ET_HPA_CONTROL             = 5
     ET_STATS_PRINT             = 6
     ET_NODE_CONTROL            = 7
+    ET_SHUTDOWN_NODE           = 8
     #ET_ALLOCATE_NODE           = 7
-    ET_DEALLOCATE_NODE         = 8 
-    ET_PASSING_WAIT            = 9
+    ET_DEALLOCATE_NODE         = 9
+    #ET_PASSING_WAIT            = 9
     # ET_VM_SUSPEND              = 5
     # ET_VM_RESUME               = 6
     ET_END_OF_SIMULATION       = 100
