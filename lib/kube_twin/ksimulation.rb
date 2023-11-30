@@ -794,13 +794,13 @@ module KUBETWIN
           when Event::ET_NODE_CONTROL #periodically check nodes heartbeat signal
             check_node = e.data
             if check_node.ready == true
-              puts "Node #{check_node.node_id} on cluster #{check_node.cluster_id} is alive"
+              #puts "Node #{check_node.node_id} on cluster #{check_node.cluster_id} is alive"
               check_node.eviction_count = 0
             else
-              puts "Node #{check_node.node_id} on cluster #{check_node.cluster_id} is dead"
+              #puts "Node #{check_node.node_id} on cluster #{check_node.cluster_id} is dead"
               check_node.eviction_count += 1
               if check_node.eviction_count == check_node.eviction_threshold
-                puts "Node #{check_node.node_id} on cluster #{check_node.cluster_id} is going to be evicted"
+                #puts "Node #{check_node.node_id} on cluster #{check_node.cluster_id} is going to be evicted"
                 new_event(Event::ET_DEALLOCATE_NODE, [check_node, cluster_repository[check_node.cluster_id]], @current_time, nil)
               end
             end
@@ -813,10 +813,10 @@ module KUBETWIN
           #try to implement shutdown node event. Example --> select a random node and put ready to false
           when Event::ET_SHUTDOWN_NODE
             node = e.data
-            puts "Node #{node.node_id} on cluster #{node.cluster_id} is going to shutdown"
+            #puts "Node #{node.node_id} on cluster #{node.cluster_id} is going to shutdown"
             break if node.ready == false
             node.ready = false
-            puts "Shutdown event: Node #{node.node_id} on cluster #{node.cluster_id}"
+            #puts "Shutdown event: Node #{node.node_id} on cluster #{node.cluster_id}"
             # schedule next control
             if @current_time + node.heartbeat_period < cooldown_treshold
               new_event(Event::ET_NODE_CONTROL, node, @current_time + node.heartbeat_period, nil)
@@ -826,13 +826,16 @@ module KUBETWIN
           when Event::ET_DEALLOCATE_NODE
             node, target_cluster = e.data
 
-            #TODO: remove pods from target node in order to reallocate them
-            ##############################
+            node.pod_id_list.each do |pod_id|
+              pod = node.retrieve_pod(pod_id)
+              new_event(Event::ET_EVICT_POD, [pod, node], @current_time, nil)
+            end
 
             target_cluster.node_number -= 1
+            puts "Cluster #{target_cluster.cluster_id} has now #{target_cluster.node_number} nodes"
             target_cluster.remove_node(node)
-            puts "Node Deallocated: node_id: #{node.node_id} in cluster #{target_cluster.cluster_id} at time #{e.time}"
-            puts "Cluster #{target_cluster.cluster_id} has now #{target_cluster.nodes.length} nodes"
+            #puts "Node Deallocated: node_id: #{node.node_id} in cluster #{target_cluster.cluster_id} at time #{e.time}"
+            #puts "Cluster #{target_cluster.cluster_id} has now #{target_cluster.nodes.length} nodes"
             #if @current_time + node.heartbeat_period < cooldown_treshold
             #  new_event(Event::ET_NODE_CONTROL, node, @current_time + node.heartbeat_period, nil)
             #end
@@ -841,6 +844,15 @@ module KUBETWIN
                 new_event(Event::ET_NODE_CONTROL, node, @current_time + node.heartbeat_period, nil)
               end
             end
+
+          when Event::ET_EVICT_POD
+            pod, node = e.data
+            puts "Pod #{pod.pod_id} is going to be evicted from node #{node.node_id}"
+            puts "Node resources before eviction: #{node.available_resources_cpu} #{node.available_resources_memory}"
+            pod.evict_pod
+            puts "Pod #{pod.pod_id} is now evicted"
+            puts "Node resources after eviction: #{node.available_resources_cpu} #{node.available_resources_memory}"
+
         end
       end
 

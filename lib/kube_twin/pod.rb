@@ -9,6 +9,7 @@ module KUBETWIN
     POD_RUNNING         = 0     # At least one container is still running, or is in the process of starting or restarting.
     POD_SUCCEEDED       = 0     # All containers in the Pod have terminated in success, and will not be restarted.
     POD_FAILED          = 0     # All containers in the Pod have terminated, and at least one container has terminated in failure
+    POD_EVICTED         = 0     # The Pod has been selected to be scheduled to another node due to a node failure or the node having insufficient free resources
 
     # commenting podIP info for now :podIp
     attr_reader :pod_id, :podName, :node, :label,
@@ -48,6 +49,12 @@ module KUBETWIN
 
       @status = Pod::POD_RUNNING
       # "Pod started successfully"
+    end
+
+    def evict_pod
+      @status = Pod::POD_EVICTED
+      @node.remove_resources(self, @requirements[:cpu], @requirements[:memory])
+      #@node = nil
     end
 
     def deactivate_pod

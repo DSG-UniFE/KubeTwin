@@ -53,6 +53,7 @@ module KUBETWIN
     def remove_node(node)
         raise 'Error! Node not allocated in this cluster' unless @nodes.include? node.node_id
         @nodes.delete(node.node_id)
+        puts "Node #{node.node_id} removed from cluster #{self.cluster_id}"
     end
 
     def edge?

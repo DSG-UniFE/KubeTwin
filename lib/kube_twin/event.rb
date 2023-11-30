@@ -15,6 +15,7 @@ module KUBETWIN
     ET_SHUTDOWN_NODE           = 8
     #ET_ALLOCATE_NODE           = 7
     ET_DEALLOCATE_NODE         = 9
+    ET_EVICT_POD               = 10
     #ET_PASSING_WAIT            = 9
     # ET_VM_SUSPEND              = 5
     # ET_VM_RESUME               = 6

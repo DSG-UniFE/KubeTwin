@@ -9,7 +9,7 @@ module KUBETWIN
     # :type [:mec, cloud] depends on the cluster 
     attr_accessor :ready, :eviction_count
     attr_reader :resources_cpu, :resources_memory, :requested_resources, :node_id, 
-     :ready, :heartbeat_period, :eviction_threshold, :pod_id_list, :cluster_id, :type
+     :heartbeat_period, :eviction_threshold, :pods, :pod_id_list, :cluster_id, :type
     # cluster_id should not be here
     # this is a programming error that i introduce to speed-up
     # the development process
@@ -28,6 +28,7 @@ module KUBETWIN
       @eviction_count = 0
       @eviction_threshold = eviction_threshold
       @cluster_id = cluster_id
+      @pods = {}
       @pod_id_list = []
       @type = type
     end
@@ -40,9 +41,14 @@ module KUBETWIN
     def assign_resources(pod, resources_cpu, resources_memory)
       raise 'Node unavailable to accept pods' if @ready == false
       raise 'Unfeasible resource assignement!' if (@requested_resources[:cpu] + resources_cpu > @resources_cpu) && (@requested_resources[:memory] + resources_memory > @resources_memory)
+      @pods[pod.pod_id] = pod
       @pod_id_list << pod.pod_id
       @requested_resources[:cpu] += resources_cpu
       @requested_resources[:memory] += resources_memory
+    end
+
+    def retrieve_pod(pod_id)
+      @pods[pod_id]
     end
 
     def remove_resources(pod, resources_cpu, resources_memory)
@@ -52,6 +58,7 @@ module KUBETWIN
       @requested_resources[:memory] -= resources_memory
 
       # remove pod from the list of associated pods 
+      @pods.delete(pod.pod_id)
       @pod_id_list.delete(pod.pod_id)
     end
 
