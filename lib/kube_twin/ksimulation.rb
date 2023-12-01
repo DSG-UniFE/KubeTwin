@@ -199,6 +199,7 @@ module KUBETWIN
       @forwarded = 0
 
       @replica_sets = {}
+      @evicted_pods = {}
 
       # init from simulation or optimizator
       if rss.nil?
@@ -288,8 +289,6 @@ module KUBETWIN
           s = @services[selector]
           s.assignPod(pod)
           pod_id += 1
-
-
         end
       end
 
@@ -337,9 +336,22 @@ module KUBETWIN
       end
 
       # randomly select a node to generate shutdown event
+      #random_cluster = cluster_repository.values.sample
+      #random_node = random_cluster.nodes.values.sample
+      #new_event(Event::ET_SHUTDOWN_NODE, random_node, @current_time + 50, nil)
+
       random_cluster = cluster_repository.values.sample
-      random_node = random_cluster.nodes.values.sample
-      new_event(Event::ET_SHUTDOWN_NODE, random_node, @current_time + 50, nil)
+      if random_cluster.nodes.length >= 3
+        # Selected cluster has enough nodes for chaos event
+        random_nodes = random_cluster.nodes.values.sample(3)
+        random_nodes.each do |node|
+          new_event(Event::ET_SHUTDOWN_NODE, node, @current_time + 50, nil)
+        end
+      else
+        #cluster selected not suitable for chaos event --> ending simulation
+        puts "Cluster selected not suitable for chaos event --> ending simulation"
+        new_event(Event::ET_END_OF_SIMULATION, nil, @configuration.end_time, nil)
+      end
 
       
       # schedule end of simulation
@@ -847,10 +859,18 @@ module KUBETWIN
 
           when Event::ET_EVICT_POD
             pod, node = e.data
+            raise "Pod #{pod.pod_id} is not running on node #{node.node_id}" unless node.pod_id_list.include?(pod.pod_id)
             puts "Pod #{pod.pod_id} is going to be evicted from node #{node.node_id}"
             puts "Node resources before eviction: #{node.available_resources_cpu} #{node.available_resources_memory}"
             pod.evict_pod
+            @evicted_pods[pod.pod_id] = pod
             puts "Pod #{pod.pod_id} is now evicted"
+            
+            puts "Current Evicted Pods:"
+            @evicted_pods.each do |pod_id, pod|
+              puts "Pod ID: #{pod_id}, Name: #{pod.podName}, Original Node: #{pod.node&.node_id}"
+            end
+
             puts "Node resources after eviction: #{node.available_resources_cpu} #{node.available_resources_memory}"
 
         end
