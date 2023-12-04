@@ -16,6 +16,8 @@ require_relative './kube_dns'
 require_relative './kube_scheduler'
 require_relative './node'
 
+require 'json'
+require 'socket'
 
 require 'pycall'
 require 'pycall/import'
@@ -82,6 +84,13 @@ module KUBETWIN
 
     def now
       @current_time
+    end
+
+    def establish_socket_connection(path)
+      socket_path = path
+      socket = UNIXServer.new(socket_path)
+      puts "Socket established at #{socket_path}"
+      return socket
     end
 
     # rss is replica set
@@ -335,10 +344,6 @@ module KUBETWIN
         new_event(Event::ET_HPA_CONTROL, [name, hpa], @current_time + hpa.period_seconds, nil)
       end
 
-      # randomly select a node to generate shutdown event
-      #random_cluster = cluster_repository.values.sample
-      #random_node = random_cluster.nodes.values.sample
-      #new_event(Event::ET_SHUTDOWN_NODE, random_node, @current_time + 50, nil)
 
       random_cluster = cluster_repository.values.sample
       if random_cluster.nodes.length >= 3
@@ -813,7 +818,7 @@ module KUBETWIN
               check_node.eviction_count += 1
               if check_node.eviction_count == check_node.eviction_threshold
                 #puts "Node #{check_node.node_id} on cluster #{check_node.cluster_id} is going to be evicted"
-                new_event(Event::ET_DEALLOCATE_NODE, [check_node, cluster_repository[check_node.cluster_id]], @current_time, nil)
+                new_event(Event::ET_SHUTDOWN_NODE, check_node, @current_time, nil)
               end
             end
 
@@ -825,32 +830,48 @@ module KUBETWIN
           #try to implement shutdown node event. Example --> select a random node and put ready to false
           when Event::ET_SHUTDOWN_NODE
             node = e.data
-            #puts "Node #{node.node_id} on cluster #{node.cluster_id} is going to shutdown"
             break if node.ready == false
             node.ready = false
-            #puts "Shutdown event: Node #{node.node_id} on cluster #{node.cluster_id}"
-            # schedule next control
-            if @current_time + node.heartbeat_period < cooldown_treshold
-              new_event(Event::ET_NODE_CONTROL, node, @current_time + node.heartbeat_period, nil)
-            end
-
-
-          when Event::ET_DEALLOCATE_NODE
-            node, target_cluster = e.data
-
             node.pod_id_list.each do |pod_id|
               pod = node.retrieve_pod(pod_id)
               new_event(Event::ET_EVICT_POD, [pod, node], @current_time, nil)
             end
 
-            target_cluster.node_number -= 1
-            puts "Cluster #{target_cluster.cluster_id} has now #{target_cluster.node_number} nodes"
-            target_cluster.remove_node(node)
-            #puts "Node Deallocated: node_id: #{node.node_id} in cluster #{target_cluster.cluster_id} at time #{e.time}"
-            #puts "Cluster #{target_cluster.cluster_id} has now #{target_cluster.nodes.length} nodes"
+            puts "Node #{node.node_id} on cluster #{node.cluster_id} is going to be deallocated"
+            new_event(Event::ET_DEALLOCATE_NODE, [node, cluster_repository[node.cluster_id]], @current_time, nil)
+
+
             #if @current_time + node.heartbeat_period < cooldown_treshold
             #  new_event(Event::ET_NODE_CONTROL, node, @current_time + node.heartbeat_period, nil)
             #end
+
+
+          when Event::ET_DEALLOCATE_NODE
+            node, target_cluster = e.data
+            target_cluster.remove_node(node)
+            target_cluster.node_number -= 1
+            puts "Cluster #{target_cluster.cluster_id} has now #{target_cluster.node_number} nodes"
+            puts "Node Deallocated: node_id: #{node.node_id} in cluster #{target_cluster.cluster_id} at time #{e.time}"
+            puts "Evicted pods JSON: #{@evicted_pods.to_json}"
+            # Socket Communication with RL Agent #
+            #socket_sim = establish_socket_connection("/tmp/chaos_sim.sock")
+            #sock = socket_sim.accept
+
+            #begin
+            #  cluster_info = # Decide what to send to the client
+            #  sock.write(cluster_info.to_json)  # Convert to JSON and send
+            
+            #  line = sock.recv(512) 
+            #  unless line.empty?
+                ##########################################################
+            #  end
+            #rescue => error
+            #  puts "Error in handling request"
+            #  puts error
+            #ensure
+            #  sock.close  # Close socket after request handled
+            #end
+
             cluster_repository.each do |k, cluster|
               cluster.nodes.each do |k, node|
                 new_event(Event::ET_NODE_CONTROL, node, @current_time + node.heartbeat_period, nil)
@@ -861,7 +882,6 @@ module KUBETWIN
             pod, node = e.data
             raise "Pod #{pod.pod_id} is not running on node #{node.node_id}" unless node.pod_id_list.include?(pod.pod_id)
             puts "Pod #{pod.pod_id} is going to be evicted from node #{node.node_id}"
-            puts "Node resources before eviction: #{node.available_resources_cpu} #{node.available_resources_memory}"
             pod.evict_pod
             @evicted_pods[pod.pod_id] = pod
             puts "Pod #{pod.pod_id} is now evicted"
@@ -870,8 +890,6 @@ module KUBETWIN
             @evicted_pods.each do |pod_id, pod|
               puts "Pod ID: #{pod_id}, Name: #{pod.podName}, Original Node: #{pod.node&.node_id}"
             end
-
-            puts "Node resources after eviction: #{node.available_resources_cpu} #{node.available_resources_memory}"
 
         end
       end
