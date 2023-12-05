@@ -22,6 +22,7 @@ module KUBETWIN
     # generate the next request
     def generate(current_time)
       if @num_requests && @next_rid >= @num_requests
+        puts "No more requests to generate!"
         return nil
       end
       #while (nr = @rg_rv.next) <= 1E-2; end

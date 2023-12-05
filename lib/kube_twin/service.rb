@@ -17,7 +17,7 @@ module KUBETWIN
 
     SEED = 12345
 
-    def initialize(serviceName, selector, load_balancing=:load_balancing)
+    def initialize(serviceName, selector, load_balancing=:random)
       @serviceName = serviceName
       @selector = selector
       @pods = {}
@@ -50,11 +50,14 @@ module KUBETWIN
     def get_random_pod(label, random: nil)
       if @pods.key? label
         if random
-          @pods[label].sample(random: random)
+          while (pod = @pods[label].sample(random: random)).status != Pod::POD_RUNNING; end
+          #@pods[label].sample(random: random)
         else
-          @pods[label].sample
+          while (pod = @pods[label].sample).status != Pod::POD_RUNNING; end
+          #@pods[label].sample
         end
       end
+      return pod
     end
 
     def get_pod_rr(label)

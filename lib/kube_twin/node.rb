@@ -37,6 +37,17 @@ module KUBETWIN
       @ready = true # the node is ready to accept pods
     end
 
+    def as_json
+      {
+        node_id: @node_id,
+        resources_cpu: @resources_cpu,
+        resources_memory: @resources_memory,
+        cluster_id: @cluster_id,
+        pods: @pods,
+        pod_id_list: @pod_id_list,
+      }
+    end
+
     def assign_resources(pod, resources_cpu, resources_memory)
       raise 'Node unavailable to accept pods' if @ready == false
       raise 'Unfeasible resource assignement!' if (@requested_resources[:cpu] + resources_cpu > @resources_cpu) && (@requested_resources[:memory] + resources_memory > @resources_memory)

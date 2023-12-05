@@ -19,9 +19,9 @@ require_relative './node'
 require 'json'
 require 'socket'
 
-require 'pycall'
-require 'pycall/import'
-include PyCall::Import
+#require 'pycall'
+#require 'pycall/import'
+#include PyCall::Import
 
 
 
@@ -44,10 +44,10 @@ module KUBETWIN
       @num_reqs = DEFAULT_NUM_REQS if @num_reqs.nil?
       @results_dir += '/' unless @results_dir.nil?
       @microservice_mdn = Hash.new
-      pyfrom :tensorflow, import: :keras
-      keras.utils.disable_interactive_logging()
-      os = PyCall.import_module("os")
-      os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
+      #pyfrom :tensorflow, import: :keras
+      #keras.utils.disable_interactive_logging()
+      #os = PyCall.import_module("os")
+      #os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
 
     end
 
@@ -146,6 +146,7 @@ module KUBETWIN
       # information regarding microservices
       @microservice_types = mtt.nil? ? @configuration.microservice_types : mtt
       puts "#{@microservice_types} #{@microservice_types.nil?}"
+=begin
       @microservice_types.each do |k, v|
         #puts "#{k} #{v}"
         # puts "#{v[:mdn_file]}"
@@ -158,6 +159,7 @@ module KUBETWIN
           # puts "v: #{@microservice_mdn}"
         end
       end
+=end
 
       puts "init mdns #{@microservice_mdn}"
 
@@ -330,6 +332,7 @@ module KUBETWIN
           new_event(Event::ET_REQUEST_GENERATION, req_attrs, req_attrs[:generation_time], rg)
         end
       end
+      puts "to generate #{@to_generate}"
       #new_event(Event::ET_REQUEST_GENERATION, req_attrs, req_attrs[:generation_time], nil)
 
       #generate first heartbeat check
@@ -346,22 +349,25 @@ module KUBETWIN
 
 
       random_cluster = cluster_repository.values.sample
-      if random_cluster.nodes.length >= 3
+      if random_cluster.nodes.length >= 5
         # Selected cluster has enough nodes for chaos event
-        random_nodes = random_cluster.nodes.values.sample(3)
+        random_nodes = random_cluster.nodes.values.sample(1)
         random_nodes.each do |node|
-          new_event(Event::ET_SHUTDOWN_NODE, node, @current_time + 50, nil)
+          new_event(Event::ET_SHUTDOWN_NODE, node, @current_time + 0.10, nil)
         end
+# Mattia: commented this part because we don't want to end the simulation when a cluster has less than 5 nodes
+=begin
       else
         #cluster selected not suitable for chaos event --> ending simulation
         puts "Cluster selected not suitable for chaos event --> ending simulation"
         new_event(Event::ET_END_OF_SIMULATION, nil, @configuration.end_time, nil)
+=end
       end
 
       
       # schedule end of simulation
       unless @configuration.end_time.nil?
-        # puts "Simulation ends at: #{@configuration.end_time}"
+        puts "Simulation ends at: #{@configuration.end_time} duration: #{@configuration.end_time - @start_time}"
         new_event(Event::ET_END_OF_SIMULATION, nil, @configuration.end_time, nil)
       end
 
@@ -380,8 +386,8 @@ module KUBETWIN
       time = Time.now.strftime('%Y%m%d%H%M%S')
       @sim_bench = File.open("csv_bench_#{time}.csv", 'w')
       @allocation_bench = File.open("allocation_bench_#{time}.csv", 'w')
-      @request_profile = File.open("request_profile_#{time}.csv", 'w')
-      @request_profile << "Time,CRequests\n"
+      #@request_profile = File.open("request_profile_#{time}.csv", 'w')
+      #@request_profile << "Time,CRequests\n"
       @last_second = @current_time.to_i
       @req_in_sec = 0
 
@@ -406,6 +412,7 @@ module KUBETWIN
             req_attrs = e.data
 
             @generated += 1
+=begin
             if @current_time.to_i == @last_second
               @req_in_sec += 1
             elsif @current_time.to_i == @last_second + 1
@@ -415,7 +422,7 @@ module KUBETWIN
             elsif  (@current_time.to_i - 1) > @last_second
               @last_second = @current_time.to_i
             end
-
+=end
             # find closest data center
             customer_location_id =
                                     customer_repository.
@@ -456,6 +463,8 @@ module KUBETWIN
                 rg = e.destination
                 req_attrs = rg.generate(@current_time)
                 new_event(Event::ET_REQUEST_GENERATION, req_attrs, req_attrs[:generation_time], rg) if req_attrs
+            else
+              puts "Ending the simulation! Stopping generating requests!"
             end
 
 
@@ -509,6 +518,8 @@ module KUBETWIN
             component_name = workflow[:component_sequence][req.next_step][:name]
             per_component_stats[component_name].request_received
 
+            #print "Evicted pod #{pod.pod_id} received request #{req.rid}!\n" if pod.status == Pod::POD_EVICTED
+            
             # here we should use the delegator
             # puts "#{now},#{pod.container.containerId},#{pod.container.request_queue.length}\n"
             pod.container.new_request(self, req, time)
@@ -834,6 +845,7 @@ module KUBETWIN
             node.ready = false
             node.pod_id_list.each do |pod_id|
               pod = node.retrieve_pod(pod_id)
+              pod.simulate_issue
               new_event(Event::ET_EVICT_POD, [pod, node], @current_time, nil)
             end
 
@@ -848,23 +860,33 @@ module KUBETWIN
 
           when Event::ET_DEALLOCATE_NODE
             node, target_cluster = e.data
+            nodes_alive_json = {}
             target_cluster.remove_node(node)
             target_cluster.node_number -= 1
             puts "Cluster #{target_cluster.cluster_id} has now #{target_cluster.node_number} nodes"
             puts "Node Deallocated: node_id: #{node.node_id} in cluster #{target_cluster.cluster_id} at time #{e.time}"
-            puts "Evicted pods JSON: #{@evicted_pods.to_json}"
+            evicted_pods_json = @evicted_pods.transform_values { |pod| pod.as_json }.to_json
+
+            cluster_repository.each do |k, cluster|
+              cluster.nodes.each do |k, node|
+                nodes_alive_json[node.node_id] = node
+              end
+            end
+
+            nodes_alive_json = nodes_alive_json.transform_values { |node| node.as_json }.to_json
+            
             # Socket Communication with RL Agent #
             #socket_sim = establish_socket_connection("/tmp/chaos_sim.sock")
             #sock = socket_sim.accept
 
             #begin
-            #  cluster_info = # Decide what to send to the client
-            #  sock.write(cluster_info.to_json)  # Convert to JSON and send
+            #  sock.write(evicted_pods_json)  # Send evicted pods to RL Agent
+            #  sock.write(nodes_alive_json)  # Send alive nodes to RL Agent
             
             #  line = sock.recv(512) 
             #  unless line.empty?
                 ##########################################################
-            #  end
+            #end
             #rescue => error
             #  puts "Error in handling request"
             #  puts error
@@ -918,6 +940,7 @@ module KUBETWIN
       #puts "#{stats.to_csv}"
      puts "====== Evaluating new allocation ======\n" +
            #"costs: #{costs}\n" +
+           "generated: #{@generated} arrived #{@arrived}\n" +
            "stats: #{stats.to_s}\n" +
            #"per_workflow_and_customer_stats: #{per_workflow_and_customer_stats.to_s}\n" +
            "component_stats: #{per_component_stats.to_s}\n" +
@@ -946,8 +969,8 @@ module KUBETWIN
       @sim_bench.close
       path_file = @allocation_bench.path
       @allocation_bench.close
-      path_request = @request_profile.path
-      @request_profile.close
+      #path_request = @request_profile.path
+      #@request_profile.close
       #puts "python figure_generator/tnsm-figure.py #{path_file} #{path_request}"
       #`python figure_generator/tnsm-figure.py #{path_file} #{path_request}`
       #return stats.to_csv # change this

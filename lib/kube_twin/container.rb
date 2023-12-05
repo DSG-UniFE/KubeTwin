@@ -3,9 +3,9 @@
 
 require_relative './logger'
 require_relative './event'
-require 'pycall'
-require 'pycall/import'
-include PyCall::Import
+#require 'pycall'
+#require 'pycall/import'
+#include PyCall::Import
 
 
 module KUBETWIN
@@ -20,8 +20,8 @@ module KUBETWIN
   class Container
 
     SEED = 123
-    pyfrom :tensorflow, import: :keras
-    pyfrom :sklearn, import: :mixture
+    #pyfrom :tensorflow, import: :keras
+    #pyfrom :sklearn, import: :mixture
 
     # states
     CONTAINER_WAITING      = 0      # still running the operations it requires in order to complete start up
@@ -221,7 +221,7 @@ module KUBETWIN
         raise "Container is currently processing another request (id: #{@containerId})"
       end
 
-      unless @request_queue.empty? # || (@state == Container::CONTAINER_TERMINATED)
+      unless @request_queue.empty? || (@state == Container::CONTAINER_TERMINATED)
 
         # monkey patch for MQTT service
         if @blocking == true
@@ -265,6 +265,10 @@ module KUBETWIN
 
       puts 'Resources assigned, waiting for setup...'
       startupC
+    end
+
+    def terminate
+      @state = Container::CONTAINER_TERMINATED
     end
 
   end

@@ -12,8 +12,8 @@ module KUBETWIN
     POD_EVICTED         = 0     # The Pod has been selected to be scheduled to another node due to a node failure or the node having insufficient free resources
 
     # commenting podIP info for now :podIp
-    attr_reader :pod_id, :podName, :node, :label,
-     :container, :requirements
+    attr_reader :pod_id, :podName, :node, :label, 
+    :status, :container, :requirements
 
     # here fix it
     # instead of nodeIP we could use a nodeID
@@ -51,10 +51,23 @@ module KUBETWIN
       # "Pod started successfully"
     end
 
+    def as_json
+      {
+        pod_id: @pod_id,
+        node: @node,
+        node_affinity: @node_affinity,
+        requirements: @requirements,
+      }
+    end
+
+    def simulate_issue
+      @container.terminate
+    end
+
     def evict_pod
       @status = Pod::POD_EVICTED
+      #@container.terminate
       @node.remove_resources(self, @requirements[:cpu], @requirements[:memory])
-      #@node = nil
     end
 
     def deactivate_pod
