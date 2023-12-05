@@ -6,6 +6,7 @@ module KUBETWIN
   class RequestGenerator
 
     SEED = 12345
+    attr_reader :rid
 
     def initialize(opts={})
       # get the configuration parameters

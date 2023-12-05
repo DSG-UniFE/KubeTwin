@@ -326,6 +326,7 @@ module KUBETWIN
         new_event(Event::ET_REQUEST_GENERATION, req_attrs, req_attrs[:generation_time], rg)
       else
         @configuration.request_gen.each do |k,v|
+          puts "Generator #{k}"
           @to_generate += @configuration.request_gen[k][:num_requests]
           rg = RequestGenerator.new(@configuration.request_gen[k])
           req_attrs = rg.generate(@configuration.request_gen[k][:starting_time].to_i)
@@ -462,7 +463,11 @@ module KUBETWIN
             if @current_time < cooldown_treshold && @generated < @to_generate #warmup_threshold
                 rg = e.destination
                 req_attrs = rg.generate(@current_time)
-                new_event(Event::ET_REQUEST_GENERATION, req_attrs, req_attrs[:generation_time], rg) if req_attrs
+                if req_attrs
+                  new_event(Event::ET_REQUEST_GENERATION, req_attrs, req_attrs[:generation_time], rg)
+                else
+                  raise "Generated nil request!"
+                end 
             else
               puts "Ending the simulation! Stopping generating requests!"
             end
@@ -777,7 +782,7 @@ module KUBETWIN
 
           when Event::ET_END_OF_SIMULATION
             # FOR NOW KEEP PROCESSING REQUEST
-            #puts "#{e.time}: end simulation"
+            puts "#{e.time}: end simulation @event_queue size: #{@event_queue.length}"
             until @event_queue.empty?
               e = @event_queue.shift
             end
@@ -873,7 +878,7 @@ module KUBETWIN
               end
             end
 
-            nodes_alive_json = nodes_alive_json.transform_values { |node| node.as_json }.to_json
+            #nodes_alive_json = nodes_alive_json.transform_values { |node| node.as_json }.to_json
             
             # Socket Communication with RL Agent #
             #socket_sim = establish_socket_connection("/tmp/chaos_sim.sock")
