@@ -353,8 +353,9 @@ module KUBETWIN
       if random_cluster.nodes.length >= 5
         # Selected cluster has enough nodes for chaos event
         random_nodes = random_cluster.nodes.values.sample(1)
+        puts "#{random_nodes} random nodes selected for chaos event"
         random_nodes.each do |node|
-          new_event(Event::ET_SHUTDOWN_NODE, node, @current_time + 0.10, nil)
+          new_event(Event::ET_SHUTDOWN_NODE, node, @current_time + 30, nil)
         end
 # Mattia: commented this part because we don't want to end the simulation when a cluster has less than 5 nodes
 =begin
@@ -385,15 +386,15 @@ module KUBETWIN
 
       # benchmark file
       time = Time.now.strftime('%Y%m%d%H%M%S')
-      @sim_bench = File.open("csv_bench_#{time}.csv", 'w')
-      @allocation_bench = File.open("allocation_bench_#{time}.csv", 'w')
+      #@sim_bench = File.open("csv_bench_#{time}.csv", 'w')
+      #@allocation_bench = File.open("allocation_bench_#{time}.csv", 'w')
       #@request_profile = File.open("request_profile_#{time}.csv", 'w')
       #@request_profile << "Time,CRequests\n"
       @last_second = @current_time.to_i
       @req_in_sec = 0
 
 
-      @allocation_bench << "Time,Component,Request,TTP,Pods\n"
+      #@allocation_bench << "Time,Component,Request,TTP,Pods\n"
 
       # launch simulation
       until @event_queue.empty?
@@ -463,11 +464,7 @@ module KUBETWIN
             if @current_time < cooldown_treshold && @generated < @to_generate #warmup_threshold
                 rg = e.destination
                 req_attrs = rg.generate(@current_time)
-                if req_attrs
-                  new_event(Event::ET_REQUEST_GENERATION, req_attrs, req_attrs[:generation_time], rg)
-                else
-                  raise "Generated nil request!"
-                end 
+                new_event(Event::ET_REQUEST_GENERATION, req_attrs, req_attrs[:generation_time], rg) if req_attrs
             else
               puts "Ending the simulation! Stopping generating requests!"
             end
@@ -554,13 +551,7 @@ module KUBETWIN
             per_component_stats[component_name].record_request(req, now)
 
             req.ttr_step(@current_time)
-=begin
-            if component_name == "MS1"
-              @benchmark_ms1 << "#{req.rid},#{req.ttr_step(@current_time)}\n"
-            elsif component_name == "MS2"
-              @benchmark_ms2 << "#{req.rid},#{req.ttr_step(@current_time)}\n"
-            end
-=end
+
             # check if there are other steps left to complete the workflow
             if req.next_step < workflow[:component_sequence].size
 
@@ -795,7 +786,7 @@ module KUBETWIN
             @services.each do |k, s|
               pods_number = s.pods[s.selector].length
               pods_n += "#{k}: #{pods_number} "
-              @allocation_bench << "#{now},#{k},#{per_component_stats[k].received},#{per_component_stats[k].mean},#{pods_number}\n"
+              #@allocation_bench << "#{now},#{k},#{per_component_stats[k].received},#{per_component_stats[k].mean},#{pods_number}\n"
               #puts "#{now},#{k},#{per_component_stats[k].received},#{per_component_stats[k].mean},#{pods_number}\n"
               # just to print the allocation map
             end
@@ -846,7 +837,7 @@ module KUBETWIN
           #try to implement shutdown node event. Example --> select a random node and put ready to false
           when Event::ET_SHUTDOWN_NODE
             node = e.data
-            break if node.ready == false
+            next if node.ready == false
             node.ready = false
             node.pod_id_list.each do |pod_id|
               pod = node.retrieve_pod(pod_id)
@@ -970,10 +961,10 @@ module KUBETWIN
       #-stats.mean
       #return 0
       #return stats.to_csv
-      @sim_bench << stats.to_csv
-      @sim_bench.close
-      path_file = @allocation_bench.path
-      @allocation_bench.close
+      #@sim_bench << stats.to_csv
+      #@sim_bench.close
+      #path_file = @allocation_bench.path
+      #@allocation_bench.close
       #path_request = @request_profile.path
       #@request_profile.close
       #puts "python figure_generator/tnsm-figure.py #{path_file} #{path_request}"

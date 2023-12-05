@@ -29,14 +29,14 @@ if File.expand_path(__FILE__) == File.expand_path($0)
   end
 
   # make sure simulator config file exists
-  unless File.exists? ARGV[0]
+  unless File.exist? ARGV[0]
     do_abort("Invalid simulator configuration file!")
   end
 
   # load simulation configuration
   conf = KUBETWIN::Configuration.load_from_file(ARGV[0])
 
-  # load vm allocation
+  # load vm allocationß
   # keep track of this for futre references
   # vm_allocation = eval(File.read(ARGV[1]))
 
