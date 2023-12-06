@@ -88,6 +88,7 @@ module KUBETWIN
 
     def establish_socket_connection(path)
       socket_path = path
+      File.delete(socket_path) if File.exist?(socket_path)
       socket = UNIXServer.new(socket_path)
       puts "Socket established at #{socket_path}"
       return socket
@@ -326,14 +327,12 @@ module KUBETWIN
         new_event(Event::ET_REQUEST_GENERATION, req_attrs, req_attrs[:generation_time], rg)
       else
         @configuration.request_gen.each do |k,v|
-          puts "Generator #{k}"
           @to_generate += @configuration.request_gen[k][:num_requests]
           rg = RequestGenerator.new(@configuration.request_gen[k])
           req_attrs = rg.generate(@configuration.request_gen[k][:starting_time].to_i)
           new_event(Event::ET_REQUEST_GENERATION, req_attrs, req_attrs[:generation_time], rg)
         end
       end
-      puts "to generate #{@to_generate}"
       #new_event(Event::ET_REQUEST_GENERATION, req_attrs, req_attrs[:generation_time], nil)
 
       #generate first heartbeat check
@@ -869,26 +868,26 @@ module KUBETWIN
               end
             end
 
-            #nodes_alive_json = nodes_alive_json.transform_values { |node| node.as_json }.to_json
-            
+            nodes_alive_json = nodes_alive_json.transform_values { |node| node.as_json }.to_json
+            puts "Evicted Pods JSON: #{evicted_pods_json + "\n"}"
             # Socket Communication with RL Agent #
-            #socket_sim = establish_socket_connection("/tmp/chaos_sim.sock")
-            #sock = socket_sim.accept
+            socket_sim = establish_socket_connection("/tmp/chaos_sim.sock")
+            sock = socket_sim.accept
 
-            #begin
-            #  sock.write(evicted_pods_json)  # Send evicted pods to RL Agent
-            #  sock.write(nodes_alive_json)  # Send alive nodes to RL Agent
+            begin
+              sock.write(evicted_pods_json + "\n")  # Send evicted pods to RL Agent
+              sock.write(nodes_alive_json + "\n")  # Send alive nodes to RL Agent
             
             #  line = sock.recv(512) 
             #  unless line.empty?
                 ##########################################################
             #end
-            #rescue => error
-            #  puts "Error in handling request"
-            #  puts error
-            #ensure
-            #  sock.close  # Close socket after request handled
-            #end
+            rescue => error
+              puts "Error in handling request"
+              puts error
+            ensure
+              sock.close  # Close socket after request handled
+            end
 
             cluster_repository.each do |k, cluster|
               cluster.nodes.each do |k, node|

@@ -39,12 +39,12 @@ module KUBETWIN
 
     def as_json
       {
-        node_id: @node_id,
-        resources_cpu: @resources_cpu,
-        resources_memory: @resources_memory,
-        cluster_id: @cluster_id,
-        pods: @pods,
-        pod_id_list: @pod_id_list,
+        "node_id": @node_id,
+        "resources_cpu": @resources_cpu,
+        "resources_memory": @resources_memory,
+        "cluster_id": @cluster_id,
+        "pods": @pods,
+        "pod_id_list": @pod_id_list,
       }
     end
 
