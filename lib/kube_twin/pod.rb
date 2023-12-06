@@ -54,7 +54,7 @@ module KUBETWIN
     def as_json
       {
         "pod_id": @pod_id,
-        #"node": @node,
+        "original_node": @node.node_id,
         "node_affinity": @node_affinity,
         "requirements": @requirements,
       }

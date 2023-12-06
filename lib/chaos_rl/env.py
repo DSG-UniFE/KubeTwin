@@ -13,10 +13,9 @@ class ChaosEnv(gym.Env):
 
     def __init__(self, config):
         super(ChaosEnv, self).__init__()
-        self.config = config
-        #Agente deve avere a disposizione informazioni nodi sani e pod in stato Evicted da allocare --> tra tutti i nodi sani azione, qual'è il migliore per allocare il pod?
-        #self.action_space = spaces.Discrete(...) #TODO: Define action space, number of nodes in clusters? 
+        self.config = config 
         self.observation_space = spaces.Box(low=0, high=1, shape=(1,), dtype=np.float32) #TODO: Define observation space, maybe a matrix composed by node metrics?
+        self.action_space = None 
         self.state = None
         self.steps = 0
         self.max_steps = 100
@@ -30,16 +29,24 @@ class ChaosEnv(gym.Env):
             print("Error in connecting to UNIX socket")
             exit(1)
 
-
+    #Function to read state from socket
     def read_state(self):
         print("Waiting for data from socket...")
         evicted_pods_json = self._read_until_newline()
         nodes_alive_json = self._read_until_newline()
         evicted_pods = json.loads(evicted_pods_json)
         nodes_alive = json.loads(nodes_alive_json)
-        return f"Read from Socket: Evicted Pods --> {dict(evicted_pods)}, Nodes Still Alive --> {dict(nodes_alive)}"
+        self.state = {"evicted_pods": evicted_pods, "nodes_alive": nodes_alive}
+        print("Data received from socket: ", self.state)
+        self.define_action_space()
+        return self.state
+    
+    #Define action space based on the number of nodes in the cluster
+    def define_action_space(self):
+        if self.state and "nodes_alive" in self.state:
+            self.action_space = list(self.state["nodes_alive"].keys())
 
-    ######TODO: Implement this function to read from socket until newline #########
+    #Function to read from socket until newline --> separate Evicted Pods and Nodes Alive
     def _read_until_newline(self): 
         data = []
         while True:
@@ -48,9 +55,43 @@ class ChaosEnv(gym.Env):
                 break
             data.append(chunk)
         return ''.join(data)
+    
+    #Check if the node selected by the agent is eligible to riallocate the pod
+    def _is_node_eligible(self, node_id, pod):
+        node = self.state["nodes_alive"][str(node_id)]
+        is_cpu_ok = node["resources_cpu_available"] >= pod["requirements"]["cpu"]
+        is_memory_ok = node["resources_memory_available"] >= pod["requirements"]["memory"]
+        is_different_from_original = node_id != pod["original_node"]
+        return is_cpu_ok and is_memory_ok and is_different_from_original
 
     def step(self, action):
-        #self.steps += 1
+        self.steps += 1
+
+        #TODO: Function to select node from action space
+        selected_node_id = action
+
+        if self.state["evicted_pods"]:
+            pod_to_reallocate = next(iter(self.state["evicted_pods"].values()))
+            print(f"Pod to reallocate: {pod_to_reallocate}")
+        #First very simple reward structure
+        if self._is_node_eligible(selected_node_id, pod_to_reallocate):
+            print(f"Node {selected_node_id} is eligible to reallocate pod {pod_to_reallocate}")
+
+            #TODO: Communicate with Ruby new allocation proposal --> selected_node.assign_resources(pod_to_reallocate)
+            # if positive response from the simulator, reward = 1, else penalty
+            
+            reward = 1  
+        else:
+            print(f"Node {selected_node_id} is not eligible to reallocate pod {pod_to_reallocate}")
+            reward = -1 
+
+        #TODO: Check if the environment is done
+        done = self._check_done()
+        
+        info = {}
+        return self.state, reward, done, info
+
+
         #if action == 0:
         #    self.state = 0
         #elif action == 1:
