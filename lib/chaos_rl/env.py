@@ -56,13 +56,30 @@ class ChaosEnv(gym.Env):
             data.append(chunk)
         return ''.join(data)
     
+    def reallocate_pod(self, node_id, pod_id):
+        info = {"node_id": node_id, "pod_id": pod_id}
+        info_json = json.dumps(info)
+
+        try:
+            self.sock.sendall(info_json.encode('utf-8'))
+        except socket.error as e:
+            print("Error in sending data to simulator for the pod reallocation through UNIX socket: {e}")
+            exit(1)
+    
     #Check if the node selected by the agent is eligible to riallocate the pod
     def _is_node_eligible(self, node_id, pod):
         node = self.state["nodes_alive"][str(node_id)]
         is_cpu_ok = node["resources_cpu_available"] >= pod["requirements"]["cpu"]
         is_memory_ok = node["resources_memory_available"] >= pod["requirements"]["memory"]
         is_different_from_original = node_id != pod["original_node"]
-        return is_cpu_ok and is_memory_ok and is_different_from_original
+
+        #If node is eligible, communicate with the simulator to reallocate the pod
+        if is_cpu_ok and is_memory_ok and is_different_from_original:
+            self.reallocate_pod(node_id, pod["pod_id"])
+            return True
+        else:
+            return False
+
 
     def step(self, action):
         self.steps += 1
@@ -86,10 +103,10 @@ class ChaosEnv(gym.Env):
             reward = -1 
 
         #TODO: Check if the environment is done
-        done = self._check_done()
+        #done = self._check_done()
         
         info = {}
-        return self.state, reward, done, info
+        return self.state, reward, info #done, info
 
 
         #if action == 0:
@@ -139,4 +156,12 @@ if __name__ == "__main__":
     config = {}
     env = ChaosEnv(config)
     result = env.read_state()
-    print(result)
+    action = 30
+    print(f"Testing action: {action}")
+
+    new_state, reward, info = env.step(action) #done, info = env.step(action)
+
+    print(f"New State: {new_state}")
+    print(f"Reward: {reward}")
+    #print(f"Done: {done}")
+    print(f"Info: {info}")

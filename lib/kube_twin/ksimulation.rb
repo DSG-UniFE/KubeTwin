@@ -877,11 +877,23 @@ module KUBETWIN
             begin
               sock.write(evicted_pods_json + "\n")  # Send evicted pods to RL Agent
               sock.write(nodes_alive_json + "\n")  # Send alive nodes to RL Agent
-            
-            #  line = sock.recv(512) 
-            #  unless line.empty?
-                ##########################################################
-            #end
+
+              
+              # Receive new allocation from RL Agent
+              
+              new_allocation = sock.recv(1024)
+              unless new_allocation.empty?  # Legge fino a 1024 byte dalla socket
+                break if new_allocation.empty?
+                break if new_allocation.nil?
+                new_allocation = JSON.parse(new_allocation)
+                puts "New Allocation: #{new_allocation}"
+
+                new_pod_id = new_allocation["pod_id"]
+                new_node_id = new_allocation["node_id"]
+
+                puts "New Pod ID: #{new_pod_id}, New Node ID: #{new_node_id}"
+              end
+
             rescue => error
               puts "Error in handling request"
               puts error
