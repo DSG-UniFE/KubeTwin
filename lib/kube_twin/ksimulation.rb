@@ -6,6 +6,7 @@ require_relative './horizontal_pod_autoscaler'
 require_relative './service'
 require_relative './event'
 require_relative './generator'
+require_relative './fault_generator'
 require_relative './request_generator'
 require_relative './sorted_array'
 require_relative './statistics'
@@ -44,6 +45,7 @@ module KUBETWIN
       @num_reqs = DEFAULT_NUM_REQS if @num_reqs.nil?
       @results_dir += '/' unless @results_dir.nil?
       @microservice_mdn = Hash.new
+      @socket_sim = establish_socket_connection("/tmp/chaos_sim.sock")
       #pyfrom :tensorflow, import: :keras
       #keras.utils.disable_interactive_logging()
       #os = PyCall.import_module("os")
@@ -334,6 +336,17 @@ module KUBETWIN
         end
       end
       #new_event(Event::ET_REQUEST_GENERATION, req_attrs, req_attrs[:generation_time], nil)
+      # Simulate node faults chaos events
+
+      ## Handle faults generation
+      unless @configuration.cluster_faults.nil?
+        @configuration.cluster_faults.each do |k,v|
+          fg = FaultGenerator.new(@configuration.cluster_faults[k])
+          fault_attributes = fg.generate(@configuration.cluster_faults[k][:starting_time].to_i)
+          node = cluster_repository[fault_attributes[:cluster]].nodes.values.sample(1)
+          new_event(Event::ET_SHUTDOWN_NODE, node, req_attrs[:generation_time], fg)
+        end
+      end
 
       #generate first heartbeat check
       cluster_repository.each do |k, cluster|
@@ -347,7 +360,7 @@ module KUBETWIN
         new_event(Event::ET_HPA_CONTROL, [name, hpa], @current_time + hpa.period_seconds, nil)
       end
 
-
+=begin
       random_cluster = cluster_repository.values.sample
       if random_cluster.nodes.length >= 5
         # Selected cluster has enough nodes for chaos event
@@ -356,6 +369,9 @@ module KUBETWIN
         random_nodes.each do |node|
           new_event(Event::ET_SHUTDOWN_NODE, node, @current_time + 30, nil)
         end
+      end
+=end
+
 # Mattia: commented this part because we don't want to end the simulation when a cluster has less than 5 nodes
 =begin
       else
@@ -363,7 +379,6 @@ module KUBETWIN
         puts "Cluster selected not suitable for chaos event --> ending simulation"
         new_event(Event::ET_END_OF_SIMULATION, nil, @configuration.end_time, nil)
 =end
-      end
 
       
       # schedule end of simulation
@@ -413,17 +428,7 @@ module KUBETWIN
             req_attrs = e.data
 
             @generated += 1
-=begin
-            if @current_time.to_i == @last_second
-              @req_in_sec += 1
-            elsif @current_time.to_i == @last_second + 1
-              @request_profile << "#{@current_time.to_i},#{@req_in_sec}\n"
-              @req_in_sec = 1
-              @last_second = @current_time.to_i
-            elsif  (@current_time.to_i - 1) > @last_second
-              @last_second = @current_time.to_i
-            end
-=end
+
             # find closest data center
             customer_location_id =
                                     customer_repository.
@@ -835,7 +840,7 @@ module KUBETWIN
             
           #try to implement shutdown node event. Example --> select a random node and put ready to false
           when Event::ET_SHUTDOWN_NODE
-            node = e.data
+            node = e.data[0]
             next if node.ready == false
             node.ready = false
             node.pod_id_list.each do |pod_id|
@@ -846,12 +851,18 @@ module KUBETWIN
 
             puts "Node #{node.node_id} on cluster #{node.cluster_id} is going to be deallocated"
             new_event(Event::ET_DEALLOCATE_NODE, [node, cluster_repository[node.cluster_id]], @current_time, nil)
-
-
-            #if @current_time + node.heartbeat_period < cooldown_treshold
-            #  new_event(Event::ET_NODE_CONTROL, node, @current_time + node.heartbeat_period, nil)
-            #end
-
+            
+            # schedule generation of next faults
+            if @current_time < cooldown_treshold
+              fg = e.destination
+              fault_attrs = fg.generate(@current_time)
+              next if fault_attrs.nil?
+              puts "fault_attrs: #{fault_attrs}"
+              cluster = fault_attrs[:cluster]
+              puts "cluster: #{cluster}"
+              node = cluster_repository[fault_attrs[:cluster]].nodes.values.sample(1)
+              new_event(Event::ET_SHUTDOWN_NODE, node, fault_attrs[:generation_time], fg) if fault_attrs
+            end
 
           when Event::ET_DEALLOCATE_NODE
             node, target_cluster = e.data
@@ -870,9 +881,9 @@ module KUBETWIN
 
             nodes_alive_json = nodes_alive_json.transform_values { |node| node.as_json }.to_json
             puts "Evicted Pods JSON: #{evicted_pods_json + "\n"}"
+           
             # Socket Communication with RL Agent #
-            socket_sim = establish_socket_connection("/tmp/chaos_sim.sock")
-            sock = socket_sim.accept
+            sock = @socket_sim.accept
 
             begin
               sock.write(evicted_pods_json + "\n")  # Send evicted pods to RL Agent
@@ -934,11 +945,6 @@ module KUBETWIN
               sock.close  # Close socket after request handled
             end
 
-            cluster_repository.each do |k, cluster|
-              cluster.nodes.each do |k, node|
-                new_event(Event::ET_NODE_CONTROL, node, @current_time + node.heartbeat_period, nil)
-              end
-            end
 
           when Event::ET_EVICT_POD
             pod, node = e.data
