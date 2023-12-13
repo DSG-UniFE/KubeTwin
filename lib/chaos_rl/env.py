@@ -66,20 +66,6 @@ class ChaosEnv(gym.Env):
             print("Error in sending data to simulator for the pod reallocation through UNIX socket: {e}")
             exit(1)
     
-    #Check if the node selected by the agent is eligible to riallocate the pod
-    def _is_node_eligible(self, node_id, pod):
-        node = self.state["nodes_alive"][str(node_id)]
-        is_cpu_ok = node["resources_cpu_available"] >= pod["requirements"]["cpu"]
-        is_memory_ok = node["resources_memory_available"] >= pod["requirements"]["memory"]
-        is_different_from_original = node_id != pod["original_node"]
-
-        #If node is eligible, communicate with the simulator to reallocate the pod
-        if is_cpu_ok and is_memory_ok and is_different_from_original:
-            self.reallocate_pod(node_id, pod["pod_id"])
-            return True
-        else:
-            return False
-
 
     def step(self, action):
         self.steps += 1
@@ -90,17 +76,11 @@ class ChaosEnv(gym.Env):
         if self.state["evicted_pods"]:
             pod_to_reallocate = next(iter(self.state["evicted_pods"].values()))
             print(f"Pod to reallocate: {pod_to_reallocate}")
-        #First very simple reward structure
-        if self._is_node_eligible(selected_node_id, pod_to_reallocate):
-            print(f"Node {selected_node_id} is eligible to reallocate pod {pod_to_reallocate}")
+            self.reallocate_pod(selected_node_id, pod_to_reallocate["pod_id"])
+            reward_json = self._read_until_newline()
+            reward = json.loads(reward_json)
+            print(f"Reward: {reward}")
 
-            #TODO: Communicate with Ruby new allocation proposal --> selected_node.assign_resources(pod_to_reallocate)
-            # if positive response from the simulator, reward = 1, else penalty
-            
-            reward = 1  
-        else:
-            print(f"Node {selected_node_id} is not eligible to reallocate pod {pod_to_reallocate}")
-            reward = -1 
 
         #TODO: Check if the environment is done
         #done = self._check_done()
@@ -108,19 +88,6 @@ class ChaosEnv(gym.Env):
         info = {}
         return self.state, reward, info #done, info
 
-
-        #if action == 0:
-        #    self.state = 0
-        #elif action == 1:
-        #    self.state = 1
-        #else:
-        #    raise ValueError("Invalid action")
-        #if self.steps >= self.max_steps:
-        #   done = True
-        #else:
-        #    done = False
-        #return self.state, 0, done, {}
-        pass
     
     def calculate_reward(self, action):
         """

@@ -891,8 +891,41 @@ module KUBETWIN
                 new_pod_id = new_allocation["pod_id"]
                 new_node_id = new_allocation["node_id"]
 
-                puts "New Pod ID: #{new_pod_id}, New Node ID: #{new_node_id}"
+                evicted_pod_to_reallocate = @evicted_pods[new_pod_id]
+                puts "Evicted Pod to reallocate: #{evicted_pod_to_reallocate}"
+
+                target_node = nil
+                cluster_repository.each do |cluster_key, cluster|
+                  if cluster.nodes[new_node_id] != nil
+                    target_node = cluster.nodes[new_node_id]
+                  end
+                  break if target_node
+                end
+
+                puts "Target Node: #{target_node}"
+
+                sct = @microservice_types[evicted_pod_to_reallocate.label]
+                reqs_c = sct[:resources_requirements_cpu]
+                reqs_m = sct[:resources_requirements_memory]
+
+                if target_node.available_resources_cpu >= reqs_c && target_node.available_resources_memory >= reqs_m
+                  puts "Node resources before reallocation: #{target_node.available_resources_cpu} #{target_node.available_resources_memory}"
+                  # Reallocate pod to target node
+                  evicted_pod_to_reallocate.startUpPod(target_node)
+                  # assign resources for the pod
+                  target_node.assign_resources(evicted_pod_to_reallocate, reqs_c, reqs_m)
+                  puts "Node resources after reallocation: #{target_node.available_resources_cpu} #{target_node.available_resources_memory}"
+
+                  reward = 1
+                else
+                  puts "Node #{target_node.node_id} on cluster #{target_node.cluster_id} does not have enough resources to reallocate pod #{evicted_pod_to_reallocate.pod_id}"
+                  reward = -1
+                end
+
               end
+
+              # Send reward to RL Agent
+              sock.write(reward.to_json + "\n")
 
             rescue => error
               puts "Error in handling request"
