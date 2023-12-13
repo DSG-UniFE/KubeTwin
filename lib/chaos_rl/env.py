@@ -122,13 +122,14 @@ class ChaosEnv(gym.Env):
 if __name__ == "__main__":
     config = {}
     env = ChaosEnv(config)
-    result = env.read_state()
-    action = 30
-    print(f"Testing action: {action}")
+    while True:
+        result = env.read_state()
+        action = 30
+        print(f"Testing action: {action}")
 
-    new_state, reward, info = env.step(action) #done, info = env.step(action)
+        new_state, reward, info = env.step(action) #done, info = env.step(action)
 
-    print(f"New State: {new_state}")
-    print(f"Reward: {reward}")
-    #print(f"Done: {done}")
-    print(f"Info: {info}")
+        print(f"New State: {new_state}")
+        print(f"Reward: {reward}")
+        #print(f"Done: {done}")
+        print(f"Info: {info}")

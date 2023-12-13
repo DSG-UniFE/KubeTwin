@@ -49,6 +49,9 @@ module KUBETWIN
 
       @status = Pod::POD_RUNNING
       # "Pod started successfully"
+      
+      # We need to reallocate this pod on a new node
+      @node = node
     end
 
     def as_json

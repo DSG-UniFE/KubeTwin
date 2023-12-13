@@ -343,7 +343,7 @@ module KUBETWIN
         @configuration.cluster_faults.each do |k,v|
           fg = FaultGenerator.new(@configuration.cluster_faults[k])
           fault_attributes = fg.generate(@configuration.cluster_faults[k][:starting_time].to_i)
-          node = cluster_repository[fault_attributes[:cluster]].nodes.values.sample(1)
+          node = cluster_repository[fault_attributes[:cluster]].nodes.values.sample(1)[0]
           new_event(Event::ET_SHUTDOWN_NODE, node, req_attrs[:generation_time], fg)
         end
       end
@@ -407,7 +407,10 @@ module KUBETWIN
       @last_second = @current_time.to_i
       @req_in_sec = 0
 
-
+      # Socket Communication with RL Agent #
+      # Start the socket now and keep it until the end of the simulation
+      sock = @socket_sim.accept
+      
       #@allocation_bench << "Time,Component,Request,TTP,Pods\n"
 
       # launch simulation
@@ -736,7 +739,8 @@ module KUBETWIN
                   pod.startUpPod(node)
                   # assign resources for the pod
                   node.assign_resources(pod, reqs_c, reqs_m)
-                  s.assignPod(pod)
+                  # Filippo: do not need, pod is already there
+                  #s.assignPod(pod)
                   pod_id += 1
                 end
               else
@@ -840,7 +844,7 @@ module KUBETWIN
             
           #try to implement shutdown node event. Example --> select a random node and put ready to false
           when Event::ET_SHUTDOWN_NODE
-            node = e.data[0]
+            node = e.data
             next if node.ready == false
             node.ready = false
             node.pod_id_list.each do |pod_id|
@@ -860,7 +864,7 @@ module KUBETWIN
               puts "fault_attrs: #{fault_attrs}"
               cluster = fault_attrs[:cluster]
               puts "cluster: #{cluster}"
-              node = cluster_repository[fault_attrs[:cluster]].nodes.values.sample(1)
+              node = cluster_repository[fault_attrs[:cluster]].nodes.values.sample(1)[0]
               new_event(Event::ET_SHUTDOWN_NODE, node, fault_attrs[:generation_time], fg) if fault_attrs
             end
 
@@ -882,8 +886,7 @@ module KUBETWIN
             nodes_alive_json = nodes_alive_json.transform_values { |node| node.as_json }.to_json
             puts "Evicted Pods JSON: #{evicted_pods_json + "\n"}"
            
-            # Socket Communication with RL Agent #
-            sock = @socket_sim.accept
+
 
             begin
               sock.write(evicted_pods_json + "\n")  # Send evicted pods to RL Agent
@@ -941,8 +944,8 @@ module KUBETWIN
             rescue => error
               puts "Error in handling request"
               puts error
-            ensure
-              sock.close  # Close socket after request handled
+            #ensure
+            #  sock.close  # Close socket after request handled
             end
 
 
