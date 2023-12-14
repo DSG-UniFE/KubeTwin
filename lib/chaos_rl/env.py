@@ -33,6 +33,8 @@ class ChaosEnv(gym.Env):
     def read_state(self):
         print("Waiting for data from socket...")
         evicted_pods_json = self._read_until_newline()
+        if evicted_pods_json == "END":
+            return None
         nodes_alive_json = self._read_until_newline()
         evicted_pods = json.loads(evicted_pods_json)
         nodes_alive = json.loads(nodes_alive_json)
@@ -124,6 +126,9 @@ if __name__ == "__main__":
     env = ChaosEnv(config)
     while True:
         result = env.read_state()
+        if result is None:
+            print("Episode ended")
+            break
         action = 30
         print(f"Testing action: {action}")
 

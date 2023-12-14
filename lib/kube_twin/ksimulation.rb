@@ -785,6 +785,8 @@ module KUBETWIN
             until @event_queue.empty?
               e = @event_queue.shift
             end
+            sock.write("END\n")
+            sock.close
 
           # print some stats (useful to track simulation data)
           when Event::ET_STATS_PRINT
