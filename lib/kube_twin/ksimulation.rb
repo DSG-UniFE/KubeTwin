@@ -887,6 +887,7 @@ module KUBETWIN
 
             nodes_alive_json = nodes_alive_json.transform_values { |node| node.as_json }.to_json
             puts "Evicted Pods JSON: #{evicted_pods_json + "\n"}"
+            puts "Nodes Alive JSON: #{nodes_alive_json + "\n"}"
            
             begin
               sock.write(evicted_pods_json + "\n")  # Send evicted pods to RL Agent
@@ -901,7 +902,8 @@ module KUBETWIN
                 puts "New Allocation: #{new_allocation}"
 
                 new_pod_id = new_allocation["pod_id"]
-                new_node_id = new_allocation["node_id"]
+                new_node_id = new_allocation["node_id"].to_i
+                puts "New Node ID: #{new_node_id}"
 
                 evicted_pod_to_reallocate = @evicted_pods[new_pod_id]
                 puts "Evicted Pod to reallocate: #{evicted_pod_to_reallocate}"

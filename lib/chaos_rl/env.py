@@ -1,4 +1,5 @@
 import gym
+import random
 from gym import spaces
 import numpy as np
 import socket
@@ -49,7 +50,6 @@ class ChaosEnv(gym.Env):
         evicted_pods = json.loads(evicted_pods_json)
         nodes_alive = json.loads(nodes_alive_json)
         self.state = {"evicted_pods": evicted_pods, "nodes_alive": nodes_alive}
-        print("Data received from socket: ", self.state)
         self.define_action_space()
         return self.state
     
@@ -57,6 +57,7 @@ class ChaosEnv(gym.Env):
     def define_action_space(self):
         if self.state and "nodes_alive" in self.state:
             self.action_space = list(self.state["nodes_alive"].keys())
+            print(f"Action space: {self.action_space}")
 
     #Function to read from socket until newline --> separate Evicted Pods and Nodes Alive
     def _read_until_newline(self): 
@@ -84,6 +85,7 @@ class ChaosEnv(gym.Env):
 
         #TODO: Function to select node from action space
         selected_node_id = action
+        print(f"Selected node: {selected_node_id}")
 
         if self.state["evicted_pods"]:
             pod_to_reallocate = next(iter(self.state["evicted_pods"].values()))
@@ -153,12 +155,11 @@ if __name__ == "__main__":
         if result is None:
             print("Episode ended")
             break
-        action = 30
+        action = random.choice(env.action_space)
         print(f"Testing action: {action}")
 
         new_state, reward, info = env.step(action) #done, info = env.step(action)
 
-        print(f"New State: {new_state}")
         print(f"Reward: {reward}")
         #print(f"Done: {done}")
         print(f"Info: {info}")
