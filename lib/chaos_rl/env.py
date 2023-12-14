@@ -20,18 +20,24 @@ class ChaosEnv(gym.Env):
         self.state = None
         self.steps = 0
         self.max_steps = 100
+        self._connect_to_socket()
 
+
+    def _connect_to_socket(self):
+        
         self.sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         server_address = '/tmp/chaos_sim.sock'
-        while True:
+        max_attempts = 15
+        i = 0
+        while i < max_attempts:
             try:
+                i += 1
                 self.sock.connect(server_address)
             except socket.error:
                 print("Error in connecting to UNIX socket, retrying in 0.5 seconds...")
                 time.sleep(0.5)
             else:
                 break
-
 
     #Function to read state from socket
     def read_state(self):
@@ -111,6 +117,8 @@ class ChaosEnv(gym.Env):
         #self.steps = 0
         #self.state = 0
         #return self.state
+        #TODO: Reset the environment
+        #self._connect_to_socket()
         pass
 
     def render(self, mode="human"):
