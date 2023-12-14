@@ -856,7 +856,7 @@ module KUBETWIN
             end
 
             puts "Node #{node.node_id} on cluster #{node.cluster_id} is going to be deallocated"
-            new_event(Event::ET_DEALLOCATE_NODE, [node, cluster_repository[node.cluster_id]], @current_time, nil)
+            new_event(Event::ET_DEALLOCATE_NODE, [node, cluster_repository[node.cluster_id]], @current_time + 0.5, nil)
             
             # schedule generation of next faults
             if @current_time < cooldown_treshold
@@ -888,15 +888,11 @@ module KUBETWIN
             nodes_alive_json = nodes_alive_json.transform_values { |node| node.as_json }.to_json
             puts "Evicted Pods JSON: #{evicted_pods_json + "\n"}"
            
-
-
             begin
               sock.write(evicted_pods_json + "\n")  # Send evicted pods to RL Agent
               sock.write(nodes_alive_json + "\n")  # Send alive nodes to RL Agent
-
-              
+   
               # Receive new allocation from RL Agent
-              
               new_allocation = sock.recv(1024)
               unless new_allocation.empty?  # Legge fino a 1024 byte dalla socket
                 break if new_allocation.empty?

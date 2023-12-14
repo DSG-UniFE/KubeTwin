@@ -4,6 +4,7 @@ import numpy as np
 import socket
 import json
 import wandb
+import subprocess
 
 class ChaosEnv(gym.Env):
 
@@ -22,12 +23,15 @@ class ChaosEnv(gym.Env):
 
         self.sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         server_address = '/tmp/chaos_sim.sock'
+        while True:
+            try:
+                self.sock.connect(server_address)
+            except socket.error:
+                print("Error in connecting to UNIX socket, retrying in 0.5 seconds...")
+                time.sleep(0.5)
+            else:
+                break
 
-        try:
-            self.sock.connect(server_address)
-        except socket.error:
-            print("Error in connecting to UNIX socket")
-            exit(1)
 
     #Function to read state from socket
     def read_state(self):
@@ -121,8 +125,20 @@ class ChaosEnv(gym.Env):
         """
         pass
 
+def start_simulator(config_file="examples/example-hpa.conf"):
+    """
+    Start the ruby simulator as a separate subprocess
+    We need to change the working directory to ../.. because the simulator must be called with bundler
+    bundle exec bin/kube_twin example/example_hpa.conf
+    """
+    subprocess.Popen(["bundle", "exec", "bin/kube_twin", config_file], cwd="../..")
+    print("Simulator started")
+    
 if __name__ == "__main__":
     config = {}
+    # Start Simulator
+    start_simulator()
+    import time
     env = ChaosEnv(config)
     while True:
         result = env.read_state()

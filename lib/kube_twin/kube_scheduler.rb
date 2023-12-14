@@ -50,7 +50,8 @@ module KUBETWIN
                              price: c.fixed_hourly_cost_cpu,
                              available_resources_cpu: available_resources_cpu,
                              requested_resources: node.requested_resources[:cpu],
-                             deployed_pods: node.pod_id_list.length} if available_resources_cpu >= requirements
+                             deployed_pods: node.pod_id_list.length} \
+                              if available_resources_cpu >= requirements && node.ready == true
         end
       end
     end
