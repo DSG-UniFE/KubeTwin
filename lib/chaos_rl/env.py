@@ -21,6 +21,7 @@ class ChaosEnv(gym.Env):
         self.state = None
         self.steps = 0
         self.max_steps = 100
+        self.total_reward = 0
         self._connect_to_socket()
 
 
@@ -80,27 +81,38 @@ class ChaosEnv(gym.Env):
             exit(1)
     
 
-    def step(self, action):
+    def step(self):
         self.steps += 1
 
         #TODO: Function to select node from action space
-        selected_node_id = action
-        print(f"Selected node: {selected_node_id}")
-
         if self.state["evicted_pods"]:
-            pod_to_reallocate = next(iter(self.state["evicted_pods"].values()))
-            print(f"Pod to reallocate: {pod_to_reallocate}")
-            self.reallocate_pod(selected_node_id, pod_to_reallocate["pod_id"])
-            reward_json = self._read_until_newline()
-            reward = json.loads(reward_json)
-            print(f"Reward: {reward}")
+            for pod in self.state["evicted_pods"].values():
+                print(f"Current Pod to reallocate: {pod}")
+                action = random.choice(self.action_space)
+                print(f"Testing action: {action}")
+                print(f"Selected node: {action}")
+                self.reallocate_pod(action, pod["pod_id"])
+                reward_json = self._read_until_newline()
+                reward = json.loads(reward_json)
+                print(f"Pod Reward: {reward}")
+                self.total_reward += reward
+                print(f"Total Reward: {self.total_reward}")
+            
+            self.sock.sendall("END_PODS".encode('utf-8'))
+
+            #pod_to_reallocate = next(iter(self.state["evicted_pods"].values()))
+            #print(f"Pod to reallocate: {pod_to_reallocate}")
+            #self.reallocate_pod(selected_node_id, pod_to_reallocate["pod_id"])
+            #reward_json = self._read_until_newline()
+            #reward = json.loads(reward_json)
+            #print(f"Reward: {reward}")
 
 
         #TODO: Check if the environment is done
         #done = self._check_done()
         
         info = {}
-        return self.state, reward, info #done, info
+        return self.state, self.total_reward, info #done
 
     
     def calculate_reward(self, action):
@@ -155,10 +167,8 @@ if __name__ == "__main__":
         if result is None:
             print("Episode ended")
             break
-        action = random.choice(env.action_space)
-        print(f"Testing action: {action}")
-
-        new_state, reward, info = env.step(action) #done, info = env.step(action)
+        
+        new_state, reward, info = env.step() #done, info = env.step(action)
 
         print(f"Reward: {reward}")
         #print(f"Done: {done}")

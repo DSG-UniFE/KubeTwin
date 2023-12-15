@@ -886,8 +886,6 @@ module KUBETWIN
             end
 
             nodes_alive_json = nodes_alive_json.transform_values { |node| node.as_json }.to_json
-            puts "Evicted Pods JSON: #{evicted_pods_json + "\n"}"
-            puts "Nodes Alive JSON: #{nodes_alive_json + "\n"}"
            
             begin
               sock.write(evicted_pods_json + "\n")  # Send evicted pods to RL Agent
@@ -895,7 +893,7 @@ module KUBETWIN
    
               # Receive new allocation from RL Agent
               new_allocation = sock.recv(1024)
-              unless new_allocation.empty?  # Legge fino a 1024 byte dalla socket
+              until new_allocation.empty? or new_allocation.strip == "END_PODS"  # Legge fino a 1024 byte dalla socket
                 break if new_allocation.empty?
                 break if new_allocation.nil?
                 new_allocation = JSON.parse(new_allocation)
@@ -935,11 +933,13 @@ module KUBETWIN
                   puts "Node #{target_node.node_id} on cluster #{target_node.cluster_id} does not have enough resources to reallocate pod #{evicted_pod_to_reallocate.pod_id}"
                   reward = -1
                 end
+                # Send reward to RL Agent
+                sock.write(reward.to_json + "\n")
 
+                new_allocation = sock.recv(1024)
               end
 
-              # Send reward to RL Agent
-              sock.write(reward.to_json + "\n")
+              
 
             rescue => error
               puts "Error in handling request"
