@@ -6,6 +6,8 @@ import socket
 import json
 import wandb
 import subprocess
+import time
+
 
 class ChaosEnv(gym.Env):
 
@@ -17,12 +19,7 @@ class ChaosEnv(gym.Env):
         super(ChaosEnv, self).__init__()
         self.config = config 
         self.observation_space = spaces.Box(low=0, high=1, shape=(1,), dtype=np.float32) #TODO: Define observation space, maybe a matrix composed by node metrics?
-        self.action_space = None 
-        self.state = None
-        self.steps = 0
-        self.max_steps = 100
-        self.total_reward = 0
-        self._connect_to_socket()
+
 
 
     def _connect_to_socket(self):
@@ -133,7 +130,15 @@ class ChaosEnv(gym.Env):
         #return self.state
         #TODO: Reset the environment
         #self._connect_to_socket()
-        pass
+        start_simulator()
+        self._connect_to_socket()
+        self.action_space = None 
+        self.state = None
+        self.steps = 0
+        self.max_steps = 100
+        self.total_reward = 0
+
+
 
     def render(self, mode="human"):
         """
@@ -159,9 +164,9 @@ def start_simulator(config_file="examples/example-hpa.conf"):
 if __name__ == "__main__":
     config = {}
     # Start Simulator
-    start_simulator()
-    import time
+    # Just an episode example
     env = ChaosEnv(config)
+    env.reset()
     while True:
         result = env.read_state()
         if result is None:
