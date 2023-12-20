@@ -739,8 +739,6 @@ module KUBETWIN
                   pod.startUpPod(node)
                   # assign resources for the pod
                   node.assign_resources(pod, reqs_c, reqs_m)
-                  # Filippo: do not need, pod is already there
-                  #s.assignPod(pod)
                   pod_id += 1
                 end
               else
@@ -928,6 +926,9 @@ module KUBETWIN
                   target_node.assign_resources(evicted_pod_to_reallocate, reqs_c, reqs_m)
                   puts "Node resources after reallocation: #{target_node.available_resources_cpu} #{target_node.available_resources_memory}"
 
+                  #TODO: improve reward structure to a more informative and effective one
+                  # 1. Reward based on node resources usage (try to avoid overloading nodes)
+                  # 2. Reward based on pod TTP (try to avoid long TTP)
                   reward = 1
                 else
                   puts "Node #{target_node.node_id} on cluster #{target_node.cluster_id} does not have enough resources to reallocate pod #{evicted_pod_to_reallocate.pod_id}"
