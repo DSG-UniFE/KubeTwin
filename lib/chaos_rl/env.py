@@ -24,7 +24,7 @@ class ChaosEnv(gym.Env):
             "evicted_pods": spaces.Dict({
                 "pod_id": spaces.Discrete(100),  
                 "original_node": spaces.Discrete(100),
-                "node_affinity": spaces.Discrete(10), 
+                #"node_affinity": spaces.Discrete(10), 
                 "requirements": spaces.Dict({
                     "cpu": spaces.Box(low=0, high=np.inf, shape=(1,), dtype=np.float32),
                     "memory": spaces.Box(low=0, high=np.inf, shape=(1,), dtype=np.float32),
@@ -69,13 +69,14 @@ class ChaosEnv(gym.Env):
         for pod in state_dict["evicted_pods"].values():
             features.append(pod["pod_id"])
             features.append(pod["original_node"])
-            features.append(pod["node_affinity"])
+            #features.append(pod["node_affinity"])
             features.append(pod["requirements"]["cpu"])
 
         for node in state_dict["nodes_alive"].values():
             features.append(node["node_id"])
             features.append(node["resources_cpu_available"])
             features.append(node["resources_memory_available"])
+        print(f"Features Length: {len(features)}")
 
         return np.array(features, dtype=np.float32)
 
@@ -163,7 +164,6 @@ class ChaosEnv(gym.Env):
                     print(f"Total Reward: {self.total_reward}")
             
             self.sock.sendall("END_PODS".encode('utf-8'))
-            #print("Reallocation of pods ended --> Episode ended")
             print(f"Returning state: {self.state}")
             print(f"Returning reward: {self.total_reward}")
             print(f"Returning done: {self.episode_over}")
