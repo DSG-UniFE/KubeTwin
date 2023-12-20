@@ -44,42 +44,25 @@ class ChaosEnv(gym.Env):
 
 
     def _connect_to_socket(self):
-        
+        """
+        Connect to UNIX socket (simulator)
+        """    
         self.sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-
         server_address = '/tmp/chaos_sim.sock'
         max_attempts = 15
         i = 0
-        #delete socket if already exists
-        try:
-            self.sock.connect(server_address)
-        except socket.error:
-            pass
-        else:
-            self.sock.close()
-            subprocess.Popen(["rm", server_address])
-
         while i < max_attempts:
-            if self.sock:
-                self.sock.close()
-                try:
-                    i += 1
-                    self.sock.connect(server_address)
-                except socket.error:
-                    print("Error in connecting to UNIX socket, retrying in 0.5 seconds...")
-                    time.sleep(0.5)
-                else:
-                    break
+            try:
+                i += 1
+                self.sock.connect(server_address)
+            except socket.error:
+                print("Error in connecting to UNIX socket, retrying in 0.5 seconds...")
+                time.sleep(0.5)
             else:
-                try:
-                    i += 1
-                    self.sock.connect(server_address)
-                except socket.error:
-                    print("Error in connecting to UNIX socket, retrying in 0.5 seconds...")
-                    time.sleep(0.5)
-                else:
-                    break
-                
+                break
+        if i == max_attempts:
+            print("Error in connecting to UNIX socket, max attempts reached")
+            raise Exception("Error in connecting to UNIX socket, max attempts reached")                
 
     def dict_to_array(self, state_dict):
         features = []
@@ -101,7 +84,7 @@ class ChaosEnv(gym.Env):
         print("Waiting for data from socket...")
         evicted_pods_json = self._read_until_newline()
         if evicted_pods_json == "END":
-            return None
+            return None, None
         nodes_alive_json = self._read_until_newline()
         evicted_pods = json.loads(evicted_pods_json)
         nodes_alive = json.loads(nodes_alive_json)
@@ -149,13 +132,13 @@ class ChaosEnv(gym.Env):
 
     def step(self, action):
         self.steps += 1
-        self.state, evicted_pods = self.read_state()
 
-        if self.steps == self.max_steps:
+        state, evicted_pods = self.read_state()
+        if state is None:
             self.episode_over = True
-            self.sock.sendall("END".encode('utf-8'))
             print("Episode ended")
             return self.state, self.total_reward, self.episode_over, {}
+        self.state = state
         
         if action not in self.available_actions:
             print(f"Action {action} not in action space")
@@ -163,7 +146,6 @@ class ChaosEnv(gym.Env):
             self.total_reward += reward
             self.episode_over = True
             return self.state, self.total_reward, self.episode_over, {"error": "Action not in action space"}
-        
         else:
         #TODO: Function to select node from action space
             if evicted_pods:
@@ -202,7 +184,6 @@ class ChaosEnv(gym.Env):
         """
         Reset the environment
         """
-
         start_simulator()
         self._connect_to_socket()
         self.state = {}

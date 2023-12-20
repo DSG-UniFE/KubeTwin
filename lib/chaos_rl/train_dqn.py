@@ -8,7 +8,7 @@ model.learn(total_timesteps=10000)  # Model training
 
 # Testing
 obs = env.reset()
-for i in range(1000):
+for i in range(100):
     action, _states = model.predict(obs, deterministic=True)
     obs, reward, done, info = env.step(action)
     if done:
