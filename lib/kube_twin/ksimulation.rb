@@ -939,9 +939,6 @@ module KUBETWIN
 
                 new_allocation = sock.recv(1024)
               end
-
-              
-
             rescue => error
               puts "Error in handling request"
               puts error

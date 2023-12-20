@@ -137,6 +137,7 @@ class ChaosEnv(gym.Env):
         if state is None:
             self.episode_over = True
             print("Episode ended")
+            self.sock.close()
             return self.state, self.total_reward, self.episode_over, {}
         self.state = state
         
@@ -162,9 +163,7 @@ class ChaosEnv(gym.Env):
                     print(f"Total Reward: {self.total_reward}")
             
             self.sock.sendall("END_PODS".encode('utf-8'))
-            self.episode_over = True
-
-            print("Reallocation of pods ended --> Episode ended")
+            #print("Reallocation of pods ended --> Episode ended")
             print(f"Returning state: {self.state}")
             print(f"Returning reward: {self.total_reward}")
             print(f"Returning done: {self.episode_over}")
