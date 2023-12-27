@@ -8,7 +8,7 @@ import wandb
 import subprocess
 import time
 
-MAX_NUM_PODS = 100
+MAX_NUM_PODS = 20
 MAX_NUM_NODES = 100
 
 class ChaosEnv(gym.Env):
@@ -36,11 +36,11 @@ class ChaosEnv(gym.Env):
                 "resources_memory_available": spaces.Box(low=0, high=np.inf, shape=(1,), dtype=np.float32),
             }),
         }) #TODO: Define observation space, maybe a matrix composed by node metrics?
-        self.observation_space = spaces.Box(low=-np.inf, high=np.inf, shape=(275, ), dtype=np.float32) #4 as pod features, 6 as node features
+        self.observation_space = spaces.Box(low=-np.inf, high=np.inf, shape=(MAX_NUM_NODES*MAX_NUM_PODS, ), dtype=np.float32) #4 as pod features, 6 as node features
 
         self.episode_over = False
         self.action_space = spaces.Discrete(MAX_NUM_NODES)
-        self.available_actions = None
+        self.available_actions = np.arange(MAX_NUM_NODES)
 
 
     def _connect_to_socket(self):
@@ -78,6 +78,9 @@ class ChaosEnv(gym.Env):
             features.append(node["resources_memory_available"])
         print(f"Features Length: {len(features)}")
 
+        if len(features) < self.observation_space.shape[0]:
+            features.extend([0] * (self.observation_space.shape[0] - len(features)))
+
         return np.array(features, dtype=np.float32)
 
 
@@ -103,7 +106,13 @@ class ChaosEnv(gym.Env):
         else:
             print("No live nodes available to define action space.")
             self.available_actions = []
-
+    
+    #def action_masks(self):
+    #    masks = np.zeros(MAX_NUM_NODES)
+    #    for action in self.available_actions:
+    #        masks[action] = 1
+    #    return masks
+    
     #Function to read from socket until newline --> separate Evicted Pods and Nodes Alive
     def _read_until_newline(self): 
         data = []
