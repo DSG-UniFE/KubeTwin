@@ -43,7 +43,7 @@ if File.expand_path(__FILE__) == File.expand_path($0)
   # create a simulator and launch it
   sim = KUBETWIN::KSimulation.new(configuration: conf,
                               evaluator: KUBETWIN::Evaluator.new(conf))
-  res = sim.evaluate_allocation()#(vm_allocation)
+  res = sim.evaluate_allocation()
 
   # Print results
   puts 'Result:'

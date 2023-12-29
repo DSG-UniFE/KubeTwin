@@ -85,7 +85,7 @@ class ChaosEnv(gym.Env):
 
 
     def read_state(self):
-        print("Waiting for data from socket...")
+        print("RL: Waiting for data from socket...")
         evicted_pods_json = self._read_until_newline()
         if evicted_pods_json == "END":
             return None, None
@@ -94,7 +94,7 @@ class ChaosEnv(gym.Env):
         nodes_alive = json.loads(nodes_alive_json)
         self.state = self.dict_to_array({"evicted_pods": evicted_pods, "nodes_alive": nodes_alive})
         self.define_action_space(nodes_alive)
-        print(f"State read from socket: {self.state}")
+        print(f"RL: State read from socket: {self.state}")
         return self.state, evicted_pods
 
 
@@ -142,8 +142,8 @@ class ChaosEnv(gym.Env):
 
     def step(self, action):
         self.steps += 1
-
         state, evicted_pods = self.read_state()
+        
         if state is None:
             self.episode_over = True
             print("Episode ended")
@@ -153,12 +153,13 @@ class ChaosEnv(gym.Env):
         
         if action not in self.available_actions:
             print(f"Action {action} not in action space")
+            # threat this as a NULL action and penalize the agent
             reward = -1
             self.total_reward += reward
-            self.episode_over = True
+            #self.sock.sendall("END_SIMULATION".encode('utf-8'))
+            self.sock.sendall("END_PODS".encode('utf-8'))
             return self.state, self.total_reward, self.episode_over, {"error": "Action not in action space"}
         else:
-        #TODO: Function to select node from action space
             if evicted_pods:
                 for pod_id, pod_data in evicted_pods.items():
                     print(f"Current Pod to reallocate: {pod_id}")

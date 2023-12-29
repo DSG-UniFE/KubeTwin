@@ -19,6 +19,7 @@ require_relative './node'
 
 require 'json'
 require 'socket'
+require 'logger'
 
 #require 'pycall'
 #require 'pycall/import'
@@ -38,6 +39,8 @@ module KUBETWIN
     SEED = 123
 
     def initialize(opts = {})
+      @logger = Logger.new(STDOUT)
+      @logger.level = Logger::INFO
       @configuration = opts[:configuration]
       @evaluator     = opts[:evaluator]
       @results_dir   = opts[:results_dir]
@@ -55,7 +58,7 @@ module KUBETWIN
 
     def retrieve_mdn_model(name, rps)
       # if not create mdn
-      # puts "name: #{name} #{@microservice_mdn}"
+      # @logger.debug "name: #{name} #{@microservice_mdn}"
       unless @microservice_mdn[name][:st].key?(rps)
         numpy = PyCall.import_module("numpy")
         # here rember to set replica to the correct value
@@ -92,7 +95,7 @@ module KUBETWIN
       socket_path = path
       File.delete(socket_path) if File.exist?(socket_path)
       socket = UNIXServer.new(socket_path)
-      puts "Socket established at #{socket_path}"
+      @logger.debug "Socket established at #{socket_path}"
       return socket
     end
 
@@ -148,23 +151,23 @@ module KUBETWIN
 
       # information regarding microservices
       @microservice_types = mtt.nil? ? @configuration.microservice_types : mtt
-      puts "#{@microservice_types} #{@microservice_types.nil?}"
+      @logger.debug "#{@microservice_types} #{@microservice_types.nil?}"
 =begin
       @microservice_types.each do |k, v|
-        #puts "#{k} #{v}"
-        # puts "#{v[:mdn_file]}"
+        #@logger.debug "#{k} #{v}"
+        # @logger.debug "#{v[:mdn_file]}"
         #abort
         pyfrom :tensorflow, import: :keras
         unless v[:mdn_file].nil?
           model = keras.models.load_model(v[:mdn_file])
-          # puts "model: #{model}"
+          # @logger.debug "model: #{model}"
           @microservice_mdn[k] = {model: model, st: Hash.new }
-          # puts "v: #{@microservice_mdn}"
+          # @logger.debug "v: #{@microservice_mdn}"
         end
       end
 =end
 
-      puts "init mdns #{@microservice_mdn}"
+      @logger.debug "init mdns #{@microservice_mdn}"
 
       # information regarding customers
       customer_repository = @configuration.customers
@@ -230,7 +233,7 @@ module KUBETWIN
            conf[:replicas], nil)
       end
 
-      # puts @replica_sets
+      # @logger.debug @replica_sets
 
       @horizontal_pod_autoscaler_repo = {}
       unless @configuration.horizontal_pod_autoscalers.nil?
@@ -244,7 +247,7 @@ module KUBETWIN
         end
       end
 
-      #puts @horizontal_pod_autoscaler_repo
+      #@logger.debug @horizontal_pod_autoscaler_repo
 
       # Then create services and pods at startup
       # not simulating starup events in the MVP
@@ -293,10 +296,10 @@ module KUBETWIN
 
           pod = Pod.new(pod_id, "#{selector}_#{pod_id}", node, selector, sct)
           pod.startUpPod(node)
-          #puts "pod #{pod_id} created and ready to be assigned to node #{node.node_id}"
+          #@logger.debug "pod #{pod_id} created and ready to be assigned to node #{node.node_id}"
           # assign resources for the pod
           node.assign_resources(pod, reqs_c, reqs_m)
-          #puts "assigning pod #{pod_id} to node #{node.node_id}"
+          #@logger.debug "assigning pod #{pod_id} to node #{node.node_id}"
           # get the service here and assign the pod to the service
           # convert string to sym
           # we could also assing the service to the replica set
@@ -314,13 +317,13 @@ module KUBETWIN
       # this stores all simulation events
       @event_queue = SortedArray.new
 
-      # puts "========== Simulation Start =========="
+      # @logger.debug "========== Simulation Start =========="
       # generate first request
       # both R and ruby should work request_gen is written in Ruby
       # request_generation is csv or R
       @to_generate = 0
       if @configuration.request_gen.nil?
-        #puts "#{@configuration.request_generation}"
+        #@logger.debug "#{@configuration.request_generation}"
         rg = RequestGeneratorR.new(@configuration.request_generation)
         # this is to avoid mismatch when reproducing logs
         req_attrs = rg.generate(now)
@@ -365,7 +368,7 @@ module KUBETWIN
       if random_cluster.nodes.length >= 5
         # Selected cluster has enough nodes for chaos event
         random_nodes = random_cluster.nodes.values.sample(1)
-        puts "#{random_nodes} random nodes selected for chaos event"
+        @logger.debug "#{random_nodes} random nodes selected for chaos event"
         random_nodes.each do |node|
           new_event(Event::ET_SHUTDOWN_NODE, node, @current_time + 30, nil)
         end
@@ -376,14 +379,14 @@ module KUBETWIN
 =begin
       else
         #cluster selected not suitable for chaos event --> ending simulation
-        puts "Cluster selected not suitable for chaos event --> ending simulation"
+        @logger.debug "Cluster selected not suitable for chaos event --> ending simulation"
         new_event(Event::ET_END_OF_SIMULATION, nil, @configuration.end_time, nil)
 =end
 
       
       # schedule end of simulation
       unless @configuration.end_time.nil?
-        puts "Simulation ends at: #{@configuration.end_time} duration: #{@configuration.end_time - @start_time}"
+        @logger.debug "Simulation ends at: #{@configuration.end_time} duration: #{@configuration.end_time - @start_time}"
         new_event(Event::ET_END_OF_SIMULATION, nil, @configuration.end_time, nil)
       end
 
@@ -473,7 +476,7 @@ module KUBETWIN
                 req_attrs = rg.generate(@current_time)
                 new_event(Event::ET_REQUEST_GENERATION, req_attrs, req_attrs[:generation_time], rg) if req_attrs
             else
-              puts "Ending the simulation! Stopping generating requests!"
+              @logger.debug "Ending the simulation! Stopping generating requests!"
             end
 
 
@@ -493,7 +496,7 @@ module KUBETWIN
 
             # find next component name
             workflow = workflow_type_repository[req.workflow_type_id]
-            # puts "next_component_name #{next_component_name}, pod.label #{pod.label}"
+            # @logger.debug "next_component_name #{next_component_name}, pod.label #{pod.label}"
 
             # schedule request forwarding to pod
             @forwarded += 1
@@ -530,7 +533,7 @@ module KUBETWIN
             #print "Evicted pod #{pod.pod_id} received request #{req.rid}!\n" if pod.status == Pod::POD_EVICTED
             
             # here we should use the delegator
-            # puts "#{now},#{pod.container.containerId},#{pod.container.request_queue.length}\n"
+            # @logger.debug "#{now},#{pod.container.containerId},#{pod.container.request_queue.length}\n"
             pod.container.new_request(self, req, time)
 
 
@@ -627,7 +630,7 @@ module KUBETWIN
 
             # request is closed
             req.finished_processing(e.time)
-            #puts "#{req.arrival_time} #{now}"
+            #@logger.debug "#{req.arrival_time} #{now}"
             raise "Processing request after the simulation time current:#{now} end:#{@configuration.end_time}" if now >= @configuration.end_time
 
             # update stats
@@ -656,7 +659,7 @@ module KUBETWIN
             # is computed by taking the average of the given metric across
             # all Pods in the HorizontalPodAutoscaler's scale target
             # retrieve desired replica_set ...
-            # puts hname
+            # @logger.debug hname
 
             s = @services[hpa.name]
 
@@ -671,7 +674,7 @@ module KUBETWIN
             sva = 0.upto(100).collect { service_time_rv.sample }
             service_time = sva.sum / sva.length.to_f
             # while (service_time = service_time_rv.next) < 2E-3; end
-            # puts service_time
+            # @logger.debug service_time
 
             desired_metric = hpa.target_processing_percentage * service_time
 
@@ -683,22 +686,22 @@ module KUBETWIN
             s.pods[hpa.name].each do |pod|
               next if pod.container.served_request.zero?
               current_metric += pod.container.total_queue_processing_time / pod.container.served_request
-              # puts "total queue time: #{pod.container.total_queue_time}"
-              # puts "served request: #{pod.container.served_request}"
+              # @logger.debug "total queue time: #{pod.container.total_queue_time}"
+              # @logger.debug "served request: #{pod.container.served_request}"
               # reset container metric
               # calculate them each time period
               pod.container.reset_metrics
-              # puts "#{pod.container.current_processing_metric}"
+              # @logger.debug "#{pod.container.current_processing_metric}"
               pods += 1
             end
             current_metric /= pods.to_f
 
-            puts "**** Horizontal Pod Autoscaling ****"
-            puts "#{hpa.name} pods: #{pods} average processing_time: #{current_metric} desired_metric: #{desired_metric}"
-            puts "************************************"
+            @logger.debug "**** Horizontal Pod Autoscaling ****"
+            @logger.debug "#{hpa.name} pods: #{pods} average processing_time: #{current_metric} desired_metric: #{desired_metric}"
+            @logger.debug "************************************"
 
             if pods == 0
-              puts "Ending the simulation!"
+              @logger.warn "Ending the simulation with no pods!"
               #break
               #new_event(Event::ET_END_OF_SIMULATION, nil, now, nil)
               next
@@ -712,9 +715,9 @@ module KUBETWIN
 
             unless tolerance_range === scaling_ratio
               # then here implement the check to scale up or down the associated pods
-              puts "pods: #{pods} scaling_ratio: #{scaling_ratio}"
+              @logger.debug "pods: #{pods} scaling_ratio: #{scaling_ratio}"
               d_replicas = (pods * scaling_ratio).ceil
-              # puts "desired_replicas: #{d_replicas} current_replicas #{pods}"
+              # @logger.debug "desired_replicas: #{d_replicas} current_replicas #{pods}"
 
               if d_replicas > pods
 
@@ -744,10 +747,10 @@ module KUBETWIN
               else
                 # we need to select some pods to terminate
                 # deal with requests currently being processed
-                #puts "min #{hpa.min_replicas}"
+                #@logger.debug "min #{hpa.min_replicas}"
                 to_scale = d_replicas > hpa.min_replicas ? (pods - d_replicas) : 0
                 unless to_scale.zero?
-                  # puts "deactivating pods"
+                  # @logger.debug "deactivating pods"
                   ppl = s.pods[hpa.name].sample(to_scale)
                   ppl.each do |p|
                     p.deactivate_pod
@@ -760,16 +763,17 @@ module KUBETWIN
 
             allocation_map = {}
             cluster_repository.each do |_,c|
-               #puts "Allocation -- #{c.name} Pods: #{pods}"
+               #@logger.debug "Allocation -- #{c.name} Pods: #{pods}"
                pods = 0
                c.nodes.values.each do |n|
                 pods += n.pod_id_list.length
-                #puts "node_id: #{n.node_id}: pods: #{n.pod_id_list.length}"
+                #@logger.debug "node_id: #{n.node_id}: pods: #{n.pod_id_list.length}"
                end
                allocation_map[c.name] = {tier: c.tier, pods: pods}
-               #puts "Allocation -- #{c.name} Pods: #{pods}"
+               #@logger.debug "Allocation -- #{c.name} Pods: #{pods}"
             end
-            puts "Allocation_map: #{allocation_map}\n"
+
+            # @logger.debug "Allocation_map: #{allocation_map}\n"
 
 
             # schedule next control
@@ -779,7 +783,7 @@ module KUBETWIN
 
           when Event::ET_END_OF_SIMULATION
             # FOR NOW KEEP PROCESSING REQUEST
-            puts "#{e.time}: end simulation @event_queue size: #{@event_queue.length}"
+            @logger.debug "#{e.time}: end simulation @event_queue size: #{@event_queue.length}"
             until @event_queue.empty?
               e = @event_queue.shift
             end
@@ -795,11 +799,11 @@ module KUBETWIN
               pods_number = s.pods[s.selector].length
               pods_n += "#{k}: #{pods_number} "
               #@allocation_bench << "#{now},#{k},#{per_component_stats[k].received},#{per_component_stats[k].mean},#{pods_number}\n"
-              #puts "#{now},#{k},#{per_component_stats[k].received},#{per_component_stats[k].mean},#{pods_number}\n"
+              #@logger.debug "#{now},#{k},#{per_component_stats[k].received},#{per_component_stats[k].mean},#{pods_number}\n"
               # just to print the allocation map
             end
 
-            #puts "++++++++++++++++\n"+
+            #@logger.debug "++++++++++++++++\n"+
             #"#{now}\n" +
             #"#{stats.to_s}\n" +
             #"workflow_stats: #{per_workflow_and_customer_stats.to_s}\n"+
@@ -826,13 +830,13 @@ module KUBETWIN
           when Event::ET_NODE_CONTROL #periodically check nodes heartbeat signal
             check_node = e.data
             if check_node.ready == true
-              #puts "Node #{check_node.node_id} on cluster #{check_node.cluster_id} is alive"
+              #@logger.debug "Node #{check_node.node_id} on cluster #{check_node.cluster_id} is alive"
               check_node.eviction_count = 0
             else
-              #puts "Node #{check_node.node_id} on cluster #{check_node.cluster_id} is dead"
+              #@logger.debug "Node #{check_node.node_id} on cluster #{check_node.cluster_id} is dead"
               check_node.eviction_count += 1
               if check_node.eviction_count == check_node.eviction_threshold
-                #puts "Node #{check_node.node_id} on cluster #{check_node.cluster_id} is going to be evicted"
+                #@logger.debug "Node #{check_node.node_id} on cluster #{check_node.cluster_id} is going to be evicted"
                 new_event(Event::ET_SHUTDOWN_NODE, check_node, @current_time, nil)
               end
             end
@@ -853,7 +857,7 @@ module KUBETWIN
               new_event(Event::ET_EVICT_POD, [pod, node], @current_time, nil)
             end
 
-            puts "Node #{node.node_id} on cluster #{node.cluster_id} is going to be deallocated"
+            @logger.debug "Node #{node.node_id} on cluster #{node.cluster_id} is going to be deallocated"
             new_event(Event::ET_DEALLOCATE_NODE, [node, cluster_repository[node.cluster_id]], @current_time + 0.5, nil)
             
             # schedule generation of next faults
@@ -861,9 +865,9 @@ module KUBETWIN
               fg = e.destination
               fault_attrs = fg.generate(@current_time)
               next if fault_attrs.nil?
-              puts "fault_attrs: #{fault_attrs}"
+              @logger.debug "fault_attrs: #{fault_attrs}"
               cluster = fault_attrs[:cluster]
-              puts "cluster: #{cluster}"
+              @logger.debug "cluster: #{cluster}"
               node = cluster_repository[fault_attrs[:cluster]].nodes.values.sample(1)[0]
               new_event(Event::ET_SHUTDOWN_NODE, node, fault_attrs[:generation_time], fg) if fault_attrs
             end
@@ -873,8 +877,8 @@ module KUBETWIN
             nodes_alive_json = {}
             target_cluster.remove_node(node)
             target_cluster.node_number -= 1
-            puts "Cluster #{target_cluster.cluster_id} has now #{target_cluster.node_number} nodes"
-            puts "Node Deallocated: node_id: #{node.node_id} in cluster #{target_cluster.cluster_id} at time #{e.time}"
+            @logger.debug "Cluster #{target_cluster.cluster_id} has now #{target_cluster.node_number} nodes"
+            @logger.debug "Node Deallocated: node_id: #{node.node_id} in cluster #{target_cluster.cluster_id} at time #{e.time}"
             evicted_pods_json = @evicted_pods.transform_values { |pod| pod.as_json }.to_json
 
             cluster_repository.each do |k, cluster|
@@ -885,24 +889,48 @@ module KUBETWIN
 
             nodes_alive_json = nodes_alive_json.transform_values { |node| node.as_json }.to_json
            
+            bytes = 0
             begin
-              sock.write(evicted_pods_json + "\n")  # Send evicted pods to RL Agent
-              sock.write(nodes_alive_json + "\n")  # Send alive nodes to RL Agent
-   
+              bytes += sock.write(evicted_pods_json + "\n")  # Send evicted pods to RL Agent
+              bytes += sock.write(nodes_alive_json + "\n")  # Send alive nodes to RL Agent
+            rescue => e
+              @logger.error "Error in sending data to RL Agent: Written bytes: #{bytes}"
+              @logger.error "#{e}"
+              sock.close()
+              break 
+            end 
+            begin
               # Receive new allocation from RL Agent
               new_allocation = sock.recv(1024)
+            rescue => e 
+              @logger.error "Error in receiving new allocation from RL agent"
+              @logger.error "#{e}"
+              sock.close()
+              break 
+            end
+              # Here, the action space is of variable size, so we need to check if the action is valid
+              # if the action is not valid, we are going to do nothing, so what we receive from the RL agent would be END_PODS
+
               until new_allocation.empty? or new_allocation.strip == "END_PODS"  # Legge fino a 1024 byte dalla socket
-                break if new_allocation.empty?
+                # Running some checks here
+                # it should not be nil here
                 break if new_allocation.nil?
+
+                #if new_allocation.strip == "END_SIMULATION"
+                #  @logger.error "Ending the simulation, because the scheduler specified a wrong action!"
+                #  sock.close()
+                #  abort
+                #end
+
                 new_allocation = JSON.parse(new_allocation)
-                puts "New Allocation: #{new_allocation}"
+                @logger.debug "New Allocation: #{new_allocation}"
 
                 new_pod_id = new_allocation["pod_id"]
                 new_node_id = new_allocation["node_id"].to_i
-                puts "New Node ID: #{new_node_id}"
+                @logger.debug "New Node ID: #{new_node_id}"
 
                 evicted_pod_to_reallocate = @evicted_pods[new_pod_id]
-                puts "Evicted Pod to reallocate: #{evicted_pod_to_reallocate}"
+                @logger.debug "Evicted Pod to reallocate: #{evicted_pod_to_reallocate}"
 
                 target_node = nil
                 cluster_repository.each do |cluster_key, cluster|
@@ -912,80 +940,87 @@ module KUBETWIN
                   break if target_node
                 end
 
-                puts "Target Node: #{target_node}"
+                @logger.debug "Target Node: #{target_node}"
 
                 sct = @microservice_types[evicted_pod_to_reallocate.label]
                 reqs_c = sct[:resources_requirements_cpu]
                 reqs_m = sct[:resources_requirements_memory]
 
                 if target_node.available_resources_cpu >= reqs_c && target_node.available_resources_memory >= reqs_m
-                  puts "Node resources before reallocation: #{target_node.available_resources_cpu} #{target_node.available_resources_memory}"
+                  @logger.debug "Node resources before reallocation: #{target_node.available_resources_cpu} #{target_node.available_resources_memory}"
                   # Reallocate pod to target node
                   evicted_pod_to_reallocate.startUpPod(target_node)
                   # assign resources for the pod
                   target_node.assign_resources(evicted_pod_to_reallocate, reqs_c, reqs_m)
-                  puts "Node resources after reallocation: #{target_node.available_resources_cpu} #{target_node.available_resources_memory}"
+                  @logger.debug "Node resources after reallocation: #{target_node.available_resources_cpu} #{target_node.available_resources_memory}"
 
                   #TODO: improve reward structure to a more informative and effective one
                   # 1. Reward based on node resources usage (try to avoid overloading nodes)
                   # 2. Reward based on pod TTP (try to avoid long TTP)
                   reward = 1
                 else
-                  puts "Node #{target_node.node_id} on cluster #{target_node.cluster_id} does not have enough resources to reallocate pod #{evicted_pod_to_reallocate.pod_id}"
+                  @logger.debug "Node #{target_node.node_id} on cluster #{target_node.cluster_id} does not have enough resources to reallocate pod #{evicted_pod_to_reallocate.pod_id}"
                   reward = -1
                 end
+              begin  
                 # Send reward to RL Agent
                 sock.write(reward.to_json + "\n")
-
-                new_allocation = sock.recv(1024)
+              rescue => e
+                @logger.error "Error in sending reward to RL Agent"
+                @logger.error "#{e}"
+                sock.close()
+                break
               end
-            rescue => error
-              puts "Error in handling request"
-              puts error
-            #ensure
-            #  sock.close  # Close socket after request handled
-            end
-
+              begin
+                new_allocation = sock.recv(1024)
+              rescue => e
+                @logger.error "Error in receiving new allocation from RL agent" 
+                @logger.error "#{e}"
+                sock.close()
+                break
+              end
+              end
+              
 
           when Event::ET_EVICT_POD
             pod, node = e.data
             raise "Pod #{pod.pod_id} is not running on node #{node.node_id}" unless node.pod_id_list.include?(pod.pod_id)
-            puts "Pod #{pod.pod_id} is going to be evicted from node #{node.node_id}"
+            @logger.debug "Pod #{pod.pod_id} is going to be evicted from node #{node.node_id}"
             pod.evict_pod
             @evicted_pods[pod.pod_id] = pod
-            puts "Pod #{pod.pod_id} is now evicted"
+            @logger.debug "Pod #{pod.pod_id} is now evicted"
             
-            puts "Current Evicted Pods:"
+            @logger.debug "Current Evicted Pods:"
             @evicted_pods.each do |pod_id, pod|
-              puts "Pod ID: #{pod_id}, Name: #{pod.podName}, Original Node: #{pod.node&.node_id}"
+              @logger.debug "Pod ID: #{pod_id}, Name: #{pod.podName}, Original Node: #{pod.node&.node_id}"
             end
 
         end
       end
 
-      # puts "========== Simulation Finished =========="
+      # @logger.debug "========== Simulation Finished =========="
 
       # TODO -- IMPLEMENT COST EVALUATION HERE
       #costs = @evaluator.evaluate_fixed_costs_cpu(vm_allocation)
 
 
-     #puts "\n\n"
+     #@logger.debug "\n\n"
      #@sim_bench.close
-     #puts "Finished after #{now - @configuration.end_time}"
+     #@logger.debug "Finished after #{now - @configuration.end_time}"
 
       allocation_map = {}
       cluster_repository.each do |_,c|
-         #puts "Allocation -- #{c.name} Pods: #{pods}"
+         #@logger.debug "Allocation -- #{c.name} Pods: #{pods}"
          pods = 0
          c.nodes.values.each do |n|
           pods += n.pod_id_list.length
-          #puts "node_id: #{n.node_id}: pods: #{n.pod_id_list.length}"
+          #@logger.debug "node_id: #{n.node_id}: pods: #{n.pod_id_list.length}"
          end
          allocation_map[c.name] = {tier: c.tier, pods: pods}
-         #puts "Allocation -- #{c.name} Pods: #{pods}"
+         #@logger.debug "Allocation -- #{c.name} Pods: #{pods}"
       end
-      #puts "#{stats.to_csv}"
-     puts "====== Evaluating new allocation ======\n" +
+      #@logger.debug "#{stats.to_csv}"
+     @logger.info "====== Evaluating new allocation ======\n" +
            #"costs: #{costs}\n" +
            "generated: #{@generated} arrived #{@arrived}\n" +
            "stats: #{stats.to_s}\n" +
@@ -1002,12 +1037,12 @@ module KUBETWIN
       # -stats.mean
       #res = -per_workflow_and_customer_stats[1][1].longer_than[0.51] /
       #    per_workflow_and_customer_stats[1][1].closed.to_f
-      # puts "Res: #{res}"
+      # @logger.debug "Res: #{res}"
       # res
 
-      #puts "Percentage of requests within ms"
+      #@logger.debug "Percentage of requests within ms"
       #per_workflow_and_customer_stats[1][1].shorter_than.each_key do |t|
-      #  puts "#{(per_workflow_and_customer_stats[1][1].shorter_than[t] / per_workflow_and_customer_stats[1][1].closed.to_f) * 100}% #{t}s"
+      #  @logger.debug "#{(per_workflow_and_customer_stats[1][1].shorter_than[t] / per_workflow_and_customer_stats[1][1].closed.to_f) * 100}% #{t}s"
       #end
       #-stats.mean
       #return 0
@@ -1018,7 +1053,7 @@ module KUBETWIN
       #@allocation_bench.close
       #path_request = @request_profile.path
       #@request_profile.close
-      #puts "python figure_generator/tnsm-figure.py #{path_file} #{path_request}"
+      #@logger.debug "python figure_generator/tnsm-figure.py #{path_file} #{path_request}"
       #`python figure_generator/tnsm-figure.py #{path_file} #{path_request}`
       #return stats.to_csv # change this
     end
