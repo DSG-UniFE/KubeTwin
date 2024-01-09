@@ -42,6 +42,8 @@ class ChaosEnv(gym.Env):
         self.action_space = spaces.Discrete(MAX_NUM_NODES)
         self.available_actions = np.arange(MAX_NUM_NODES)
 
+        #self.reset()
+
 
     def _connect_to_socket(self):
         """
@@ -107,11 +109,11 @@ class ChaosEnv(gym.Env):
             print("No live nodes available to define action space.")
             self.available_actions = []
     
-    #def action_masks(self):
-    #    masks = np.zeros(MAX_NUM_NODES)
-    #    for action in self.available_actions:
-    #        masks[action] = 1
-    #    return masks
+    def action_masks(self):
+        masks = np.zeros(MAX_NUM_NODES)
+        for action in self.available_actions:
+            masks[action] = 1
+        return masks
     
     #Function to read from socket until newline --> separate Evicted Pods and Nodes Alive
     def _read_until_newline(self): 
@@ -154,10 +156,12 @@ class ChaosEnv(gym.Env):
         if action not in self.available_actions:
             print(f"Action {action} not in action space")
             # threat this as a NULL action and penalize the agent
-            reward = -1
+
+            self.sock.sendall("WRONG_ACTION".encode('utf-8'))
+            reward_json = self._read_until_newline()
+            reward = json.loads(reward_json)
+            print(f"Reward Wrong Action: {reward}")
             self.total_reward += reward
-            #self.sock.sendall("END_SIMULATION".encode('utf-8'))
-            self.sock.sendall("END_PODS".encode('utf-8'))
             return self.state, self.total_reward, self.episode_over, {"error": "Action not in action space"}
         else:
             if evicted_pods:
@@ -173,11 +177,11 @@ class ChaosEnv(gym.Env):
                     self.total_reward += reward
                     print(f"Total Reward: {self.total_reward}")
             
-            self.sock.sendall("END_PODS".encode('utf-8'))
-            print(f"Returning state: {self.state}")
-            print(f"Returning reward: {self.total_reward}")
-            print(f"Returning done: {self.episode_over}")
-            return self.state, self.total_reward, self.episode_over, {}  
+        self.sock.sendall("END_PODS".encode('utf-8'))
+        print(f"Returning state: {self.state}")
+        print(f"Returning reward: {self.total_reward}")
+        print(f"Returning done: {self.episode_over}")
+        return self.state, self.total_reward, self.episode_over, {}  
 
     
     def calculate_reward(self, action):

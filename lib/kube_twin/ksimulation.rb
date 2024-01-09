@@ -914,54 +914,60 @@ module KUBETWIN
               until new_allocation.empty? or new_allocation.strip == "END_PODS"  # Legge fino a 1024 byte dalla socket
                 # Running some checks here
                 # it should not be nil here
+                
                 break if new_allocation.nil?
 
-                #if new_allocation.strip == "END_SIMULATION"
-                #  @logger.error "Ending the simulation, because the scheduler specified a wrong action!"
-                #  sock.close()
-                #  abort
-                #end
-
-                new_allocation = JSON.parse(new_allocation)
-                @logger.debug "New Allocation: #{new_allocation}"
-
-                new_pod_id = new_allocation["pod_id"]
-                new_node_id = new_allocation["node_id"].to_i
-                @logger.debug "New Node ID: #{new_node_id}"
-
-                evicted_pod_to_reallocate = @evicted_pods[new_pod_id]
-                @logger.debug "Evicted Pod to reallocate: #{evicted_pod_to_reallocate}"
-
-                target_node = nil
-                cluster_repository.each do |cluster_key, cluster|
-                  if cluster.nodes[new_node_id] != nil
-                    target_node = cluster.nodes[new_node_id]
-                  end
-                  break if target_node
-                end
-
-                @logger.debug "Target Node: #{target_node}"
-
-                sct = @microservice_types[evicted_pod_to_reallocate.label]
-                reqs_c = sct[:resources_requirements_cpu]
-                reqs_m = sct[:resources_requirements_memory]
-
-                if target_node.available_resources_cpu >= reqs_c && target_node.available_resources_memory >= reqs_m
-                  @logger.debug "Node resources before reallocation: #{target_node.available_resources_cpu} #{target_node.available_resources_memory}"
-                  # Reallocate pod to target node
-                  evicted_pod_to_reallocate.startUpPod(target_node)
-                  # assign resources for the pod
-                  target_node.assign_resources(evicted_pod_to_reallocate, reqs_c, reqs_m)
-                  @logger.debug "Node resources after reallocation: #{target_node.available_resources_cpu} #{target_node.available_resources_memory}"
-
-                  #TODO: improve reward structure to a more informative and effective one
-                  # 1. Reward based on node resources usage (try to avoid overloading nodes)
-                  # 2. Reward based on pod TTP (try to avoid long TTP)
-                  reward = 1
+                if new_allocation.strip == "WRONG_ACTION"
+                  move_on = false
                 else
-                  @logger.debug "Node #{target_node.node_id} on cluster #{target_node.cluster_id} does not have enough resources to reallocate pod #{evicted_pod_to_reallocate.pod_id}"
-                  reward = -1
+                  move_on = true
                 end
+
+                if move_on 
+                  new_allocation = JSON.parse(new_allocation)
+                  @logger.debug "New Allocation: #{new_allocation}"
+
+                  new_pod_id = new_allocation["pod_id"]
+                  new_node_id = new_allocation["node_id"].to_i
+                  @logger.debug "New Node ID: #{new_node_id}"
+
+                  evicted_pod_to_reallocate = @evicted_pods[new_pod_id]
+                  @logger.debug "Evicted Pod to reallocate: #{evicted_pod_to_reallocate}"
+
+                  target_node = nil
+                  cluster_repository.each do |cluster_key, cluster|
+                    if cluster.nodes[new_node_id] != nil
+                      target_node = cluster.nodes[new_node_id]
+                    end
+                    break if target_node
+                  end
+
+                  @logger.debug "Target Node: #{target_node}"
+
+                  sct = @microservice_types[evicted_pod_to_reallocate.label]
+                  reqs_c = sct[:resources_requirements_cpu]
+                  reqs_m = sct[:resources_requirements_memory]
+
+                  if target_node.available_resources_cpu >= reqs_c && target_node.available_resources_memory >= reqs_m
+                    @logger.debug "Node resources before reallocation: #{target_node.available_resources_cpu} #{target_node.available_resources_memory}"
+                    # Reallocate pod to target node
+                    evicted_pod_to_reallocate.startUpPod(target_node)
+                    # assign resources for the pod
+                    target_node.assign_resources(evicted_pod_to_reallocate, reqs_c, reqs_m)
+                    @logger.debug "Node resources after reallocation: #{target_node.available_resources_cpu} #{target_node.available_resources_memory}"
+
+                    #TODO: improve reward structure to a more informative and effective one
+                    # 1. Reward based on node resources usage (try to avoid overloading nodes)
+                    # 2. Reward based on pod TTP (try to avoid long TTP)
+                    reward = 1
+                  else
+                    @logger.debug "Node #{target_node.node_id} on cluster #{target_node.cluster_id} does not have enough resources to reallocate pod #{evicted_pod_to_reallocate.pod_id}"
+                    reward = -1
+                  end
+                else
+                  @logger.debug "The action received from RL agent is not valid"
+                  reward = -2
+                end # if move_on
               begin  
                 # Send reward to RL Agent
                 sock.write(reward.to_json + "\n")
