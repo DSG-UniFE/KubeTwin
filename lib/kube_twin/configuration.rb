@@ -76,6 +76,7 @@ module KUBETWIN
                  :request_generation,
                  :request_gen,
                  :cluster_faults,
+                 :delay_model,
                  :microservice_types,
                  :seeds,
                  :start_time,

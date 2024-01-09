@@ -351,6 +351,17 @@ module KUBETWIN
         end
       end
 
+      unless @configuration.delay_model.nil?
+        @configuration.delay_model.each do |k,v|
+          loc1 = v[:loc1_id]
+          loc2 = v[:loc2_id]
+          delay = v[:delay]
+          start = v[:start].to_i
+          @logger.info "Delay model: #{loc1} #{loc2} #{delay} #{start}"
+          new_event(Event::ET_DELAY_MODEL, [loc1, loc2, delay], start, nil)
+        end
+      end
+
       #generate first heartbeat check
       cluster_repository.each do |k, cluster|
         cluster.nodes.each do |k, node|
@@ -362,27 +373,6 @@ module KUBETWIN
       @horizontal_pod_autoscaler_repo.each do | name, hpa|
         new_event(Event::ET_HPA_CONTROL, [name, hpa], @current_time + hpa.period_seconds, nil)
       end
-
-=begin
-      random_cluster = cluster_repository.values.sample
-      if random_cluster.nodes.length >= 5
-        # Selected cluster has enough nodes for chaos event
-        random_nodes = random_cluster.nodes.values.sample(1)
-        @logger.debug "#{random_nodes} random nodes selected for chaos event"
-        random_nodes.each do |node|
-          new_event(Event::ET_SHUTDOWN_NODE, node, @current_time + 30, nil)
-        end
-      end
-=end
-
-# Mattia: commented this part because we don't want to end the simulation when a cluster has less than 5 nodes
-=begin
-      else
-        #cluster selected not suitable for chaos event --> ending simulation
-        @logger.debug "Cluster selected not suitable for chaos event --> ending simulation"
-        new_event(Event::ET_END_OF_SIMULATION, nil, @configuration.end_time, nil)
-=end
-
       
       # schedule end of simulation
       unless @configuration.end_time.nil?
@@ -1001,7 +991,12 @@ module KUBETWIN
               @logger.debug "Pod ID: #{pod_id}, Name: #{pod.podName}, Original Node: #{pod.node&.node_id}"
             end
 
-        end
+          when Event::ET_DELAY_MODEL
+            loc1, loc2, delay = e.data
+            @logger.debug "Delay Model: #{loc1} #{loc2} #{delay}"
+            latency_manager.add_fixed_delay_between(loc1, loc2, delay)
+          end
+        
       end
 
       # @logger.debug "========== Simulation Finished =========="

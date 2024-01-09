@@ -29,6 +29,12 @@ module KUBETWIN
         lms.map{|x| x.mean }
       end
 
+      @delay_models_matrix = latency_models.map do |lms_conf|
+        lms_conf.map do |_|
+          0.0
+        end
+      end
+
       # latency in the same location is implemented as a truncated gaussian
       # with mean = 20ms, sd = 5ms, and a = 2ms
       @same_location_latency = ERV::RandomVariable.new(distribution: :gaussian, args: { mean: 20E-3, sd: 5E-3, seed: rng.rand(100_000_000) })
@@ -49,10 +55,15 @@ module KUBETWIN
         # NOTE for kubetwin we consider also intra latency model so
         # indexes become l1 and (l2-l1)
         while (lat = @latency_models_matrix[l1][l2-l1].next) <= 0.0; end
-        lat #/ 1000.0 # conversion from milliseconds to seconds
+        lat + @delay_models_matrix[l1][l2-l1] #/ 1000.0 # conversion from milliseconds to seconds
       #end
     end
 
+    def add_fixed_delay_between(loc1, loc2, delay)
+      l1, l2 = loc1 < loc2 ? [ loc1, loc2 ] : [ loc2, loc1 ]
+      @delay_models_matrix[l1][l2-l1] += delay
+    end
+    
     def average_latency_between(loc1, loc2)
       # the results returned by this method are not entirely accurate, because
       # rejection sampling changes the shape of the PDF. see, e.g.,

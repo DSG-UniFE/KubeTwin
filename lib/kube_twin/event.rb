@@ -13,12 +13,11 @@ module KUBETWIN
     ET_STATS_PRINT             = 6
     ET_NODE_CONTROL            = 7
     ET_SHUTDOWN_NODE           = 8
-    #ET_ALLOCATE_NODE           = 7
+    #ET_ALLOCATE_NODE          = 7
     ET_DEALLOCATE_NODE         = 9
-    ET_EVICT_POD              = 10
-    #ET_PASSING_WAIT            = 9
-    # ET_VM_SUSPEND              = 5
-    # ET_VM_RESUME               = 6
+    ET_EVICT_POD               = 10
+    #ET_PASSING_WAIT           = 9
+    ET_DELAY_MODEL             = 11
     ET_END_OF_SIMULATION       = 100
 
     # let the comparable mixin provide the < and > operators for us
