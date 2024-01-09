@@ -162,7 +162,7 @@ class ChaosEnv(gym.Env):
             reward = json.loads(reward_json)
             print(f"Reward Wrong Action: {reward}")
             self.total_reward += reward
-            return self.state, self.total_reward, self.episode_over, {"error": "Action not in action space"}
+            #return self.state, self.total_reward, self.episode_over, {"error": "Action not in action space"}
         else:
             if evicted_pods:
                 for pod_id, pod_data in evicted_pods.items():
