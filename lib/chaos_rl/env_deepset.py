@@ -134,6 +134,7 @@ class ChaosEnvDeepSet(gym.Env):
             print("Episode ended")
             self.sock.close()
             return self.state, self.total_reward, self.episode_over, {}
+        
         self.state = state
         
         if action not in self.available_actions:
@@ -180,6 +181,7 @@ class ChaosEnvDeepSet(gym.Env):
         """
         Reset the environment
         """
+        print("RL: Resetting environment")
         start_simulator()
         self._connect_to_socket()
         self.state = {}

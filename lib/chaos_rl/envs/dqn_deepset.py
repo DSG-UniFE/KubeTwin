@@ -161,6 +161,9 @@ class DQN_DeepSets(Algorithm):
                     print(f"global_step: {global_step}, episodic_return={item['episode']['r']},  "
                           f"episode_rew_mean={safe_mean(episode_rewards)}")
                     break
+            # Handle episode termination by resetting the environment
+            if terminated:
+                self.env.reset()
 
             # Save data to replay buffer; handle `final_observation`
             real_next_obs = next_obs.copy()
