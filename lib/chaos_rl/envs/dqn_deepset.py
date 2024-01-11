@@ -1,12 +1,14 @@
 import random
 import time
-import gym
-import gym.spaces
+#import gym
+#import gym.spaces
+import gymnasium as gym
 import numpy as np
 import numpy.typing as npt
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from env import ChaosEnv
 from typing import Optional, Union
 from copy import deepcopy
 import torch.nn.functional as F
@@ -45,7 +47,7 @@ def linear_schedule(start_e: float, end_e: float, duration: int, t: int):
 class DQN_DeepSets(Algorithm):
     def __init__(
             self,
-            env: Union[SubprocVecEnv, DummyVecEnv],
+            env = ChaosEnv(config={}),
             seed=1,
             torch_deterministic=True,
             num_steps: int = 100,
@@ -53,7 +55,7 @@ class DQN_DeepSets(Algorithm):
             buffer_size=10000,
             gamma=0.99,
             tau=1.0,
-            num_envs: int = 8,
+            num_envs: int = 1,
             n_minibatches: int = 4,
             target_network_frequency=500,
             batch_size=128,
@@ -63,10 +65,10 @@ class DQN_DeepSets(Algorithm):
             learning_starts=10000,
             train_frequency=10,
             device: str = "cpu",
-            tensorboard_log: str = "results/kubetwin/",
+            tensorboard_log: str = None,
     ):
         super().__init__(env, num_envs, num_steps, n_minibatches, tensorboard_log)
-        self.num_envs = env.num_envs
+        self.num_envs = 1
         self.num_steps = num_steps
         self.seed = seed
         self.torch_deterministic = torch_deterministic
@@ -84,6 +86,7 @@ class DQN_DeepSets(Algorithm):
         self.learning_starts = learning_starts
         self.train_frequency = train_frequency
         self.device = device
+        self.tensorboard_log = tensorboard_log
 
         random.seed(self.seed)
         np.random.seed(self.seed)
@@ -98,10 +101,11 @@ class DQN_DeepSets(Algorithm):
         self.optimizer = optim.Adam(self.q_network.parameters(), lr=self.learning_rate)
 
         # Initialize masks
-        self.masks = torch.zeros((self.num_envs, self.env.action_space.n), dtype=torch.bool).to(self.device)
+        #self.masks = torch.zeros((self.num_envs, self.env.action_space.n), dtype=torch.bool).to(self.device)
+        self.masks = torch.tensor(self.env.action_masks(), dtype=torch.bool).to(self.device)
 
         # Initialize actions
-        self.actions = torch.zeros((self.num_envs,) + self.env.action_space.shape).to(self.device)
+        self.actions = torch.zeros((self.num_envs, 1), dtype=torch.int64).to(self.device)
 
         # Initialize replay buffer
         self.rb = ReplayBuffer(
@@ -116,19 +120,21 @@ class DQN_DeepSets(Algorithm):
     def learn(self, total_timesteps: int = 500000):
         start_time = time.time()
         obs = self.env.reset()
-        next_masks = torch.tensor(np.array(self.env.env_method("action_masks")), dtype=torch.bool).to(self.device)
+        next_masks = torch.tensor(self.env.action_masks(), dtype=torch.bool).to(self.device)
         episode_rewards = []
 
         for global_step in range(total_timesteps):
             epsilon = linear_schedule(self.start_e, self.end_e, self.exploration_fraction * total_timesteps,
                                       global_step)
             self.masks = next_masks
-
             if random.random() < epsilon:
                 actions = []
                 for env_mask in self.masks:
                     valid_actions = np.where(env_mask)[0]
-                    action = np.random.choice(valid_actions)
+                    if valid_actions.size > 0:  # Controlla se ci sono azioni valide
+                        action = np.random.choice(valid_actions)
+                    else:
+                        action = 0
                     actions.append(action)
                 self.actions = torch.tensor(actions).to(self.device)
             else:
@@ -141,8 +147,9 @@ class DQN_DeepSets(Algorithm):
 
                 self.actions = torch.argmax(q_values, dim=1)
             # Execute the game and log data
-            next_obs, rewards, terminated, infos = self.env.step(self.actions.cpu().numpy())
-            next_masks = torch.tensor(np.array(self.env.env_method("action_masks")), dtype=torch.bool).to(self.device)
+                
+            next_obs, rewards, terminated, infos = self.env.step(self.actions.cpu().numpy()[0])
+            next_masks = torch.tensor(self.env.action_masks(), dtype=torch.bool).to(self.device)
 
             # Record rewards for plotting purposes
             for item in infos:
@@ -171,7 +178,7 @@ class DQN_DeepSets(Algorithm):
             #self.masks.reshape((-1, +self.env.action_space.n))
             '''
 
-            self.rb.add(obs, real_next_obs, self.actions.cpu().numpy().reshape(-1, 1), rewards, terminated, infos)
+            self.rb.add(obs, real_next_obs, self.actions.cpu().numpy()[0].reshape(-1, 1), rewards, terminated, infos)
 
             # return next_obs
             obs = next_obs

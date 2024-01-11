@@ -1,6 +1,6 @@
-import gym
+import gymnasium as gym
 import random
-from gym import spaces
+from gymnasium import spaces
 import numpy as np
 import socket
 import json
@@ -11,14 +11,14 @@ import time
 MAX_NUM_PODS = 20
 MAX_NUM_NODES = 100
 
-class ChaosEnv(gym.Env):
+class ChaosEnvDeepSet(gym.Env):
 
     """
     Environment for Chaos Engineering on KubeTwin
     """
 
     def __init__(self, config):
-        super(ChaosEnv, self).__init__()
+        super(ChaosEnvDeepSet, self).__init__()
         self.config = config 
         self.observation_space = spaces.Box(low=-np.inf, high=np.inf, shape=(MAX_NUM_NODES*MAX_NUM_PODS, ), dtype=np.float32) #4 as pod features, 6 as node features
         self.episode_over = False
@@ -88,6 +88,15 @@ class ChaosEnv(gym.Env):
         else:
             print("No live nodes available to define action space.")
             self.available_actions = []
+    
+    def action_masks(self):
+        masks = np.zeros(MAX_NUM_NODES, dtype=np.float32)
+        for action in self.available_actions:
+            if 0 <= action < len(masks):
+                masks[action] = 1
+            else:
+                print(f"Azione non valida: {action}")
+        return masks
     
     #Function to read from socket until newline --> separate Evicted Pods and Nodes Alive
     def _read_until_newline(self): 
@@ -174,8 +183,6 @@ class ChaosEnv(gym.Env):
         start_simulator()
         self._connect_to_socket()
         self.state = {}
-        #self.action_space = None 
-        self.state = None
         self.steps = 0
         self.max_steps = 100
         self.total_reward = 0

@@ -1,6 +1,7 @@
 from stable_baselines3 import DQN
 from env import ChaosEnv
 
+seed = 2
 env = ChaosEnv(config={})  
 
 model = DQN('MlpPolicy', env, verbose=1)  
