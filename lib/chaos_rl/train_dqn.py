@@ -1,10 +1,13 @@
 from stable_baselines3 import DQN
 from env import ChaosEnv
 
-seed = 2
+import time
+
+LOG_PATH = f"./results/dqn_{time.time()}/"
+
 env = ChaosEnv(config={})  
 
-model = DQN('MlpPolicy', env, verbose=1)  
+model = DQN('MlpPolicy', env, verbose=1, tensorboard_log=LOG_PATH)  
 model.learn(total_timesteps=10000)  # Model training
 
 # Testing
