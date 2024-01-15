@@ -56,12 +56,20 @@ class MLPAgent(nn.Module):
 class EquivariantLayer(nn.Module):
     def __init__(self, in_channels: int, out_channels: int):
         super().__init__()
+        self.in_channels = in_channels
+        self.out_channels = out_channels
         self.Gamma = nn.Linear(in_channels, out_channels, bias=False)
         self.Lambda = nn.Linear(in_channels, out_channels, bias=False)
 
     def forward(self, x: torch.Tensor):
         # x: (batch_size, n_elements, in_channels)
         # return: (batch_size, n_elements)
+        print('x: ', x)
+        print('x.shape: ', x.shape)
+        
+        if x.ndim == 1:
+            n_elements = x.shape[0] // self.in_channels
+            x = x.view(-1, n_elements, self.in_channels)
         xm, _ = torch.max(x, dim=1, keepdim=True)
         return self.Lambda(x) - self.Gamma(xm)
 
