@@ -32,7 +32,7 @@ if File.expand_path(__FILE__) == File.expand_path($0)
       do_abort("Missing simulator configuration files!")
     end
     # make sure simulator config file exists
-    unless File.exists? ARGV[0]
+    unless File.exist? ARGV[0]
       do_abort("Invalid simulator configuration file!")
     end
 end
@@ -143,5 +143,5 @@ k8s_log_files.each do |log_file|
 end
 fname = csv_logs.path
 csv_logs.close()
-system( "python comparison-fig.py #{fname}" )
+system( "python3 comparison-fig.py #{fname}" )
 

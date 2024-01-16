@@ -186,6 +186,7 @@ unless @path.nil?
 #=end
 # end was here
       #rps = @rps
+      #puts "RPS: #{rps}"
       @service_time = sim.retrieve_mdn_model(name, rps, @replica) unless @path.nil?
 =begin
         if @models.key?(rps)
@@ -201,7 +202,8 @@ unless @path.nil?
 =end
       @last_request_time = time
       while (st = @service_time.sample) <= 1E-6; end
-
+      # st = st / 1000.0
+      # puts "Service time: #{st}"
       # add concurrent execution
       #pod_executing = @node.pod_id_list.length
       #st *= Math::log(pod_executing) if pod_executing > 2
