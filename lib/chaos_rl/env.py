@@ -8,6 +8,8 @@ import wandb
 import subprocess
 import time
 
+from tensorboardX import SummaryWriter
+
 MAX_NUM_PODS = 20
 MAX_NUM_NODES = 100
 
@@ -24,6 +26,7 @@ class ChaosEnv(gym.Env):
         self.episode_over = False
         self.action_space = spaces.Discrete(MAX_NUM_NODES)
         self.available_actions = np.arange(MAX_NUM_NODES)
+        self.writer = SummaryWriter(f'/results/dqn_{int(time.time())}')
 
     def _connect_to_socket(self):
         """
@@ -123,6 +126,7 @@ class ChaosEnv(gym.Env):
         if state is None:
             self.episode_over = True
             print("Episode ended")
+            self.writer.add_scalar('Episodic return', self.total_reward, self.steps)
             self.sock.close()
             return self.state, self.total_reward, self.episode_over, {}
         self.state = state
@@ -155,6 +159,8 @@ class ChaosEnv(gym.Env):
         #print(f"Returning state: {self.state}")
         print(f"Returning reward: {self.total_reward}")
         print(f"Returning done: {self.episode_over}")
+
+        self.writer.add_scalar('Step Reward', self.total_reward, self.steps)
         return self.state, self.total_reward, self.episode_over, {}  
 
     
