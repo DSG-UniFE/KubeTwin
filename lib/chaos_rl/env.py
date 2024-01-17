@@ -140,7 +140,7 @@ class ChaosEnv(gym.Env):
             reward = json.loads(reward_json)
             print(f"Reward Wrong Action: {reward}")
             self.total_reward += reward
-            #return self.state, self.total_reward, self.episode_over, {"error": "Action not in action space"}
+
         else:
             if evicted_pods:
                 for pod_id, pod_data in evicted_pods.items():
@@ -181,7 +181,7 @@ class ChaosEnv(gym.Env):
         self._connect_to_socket()
         self.state = {}
         #self.action_space = None 
-        self.state = None
+        #self.state = None
         self.steps = 0
         self.max_steps = 100
         self.total_reward = 0
@@ -211,22 +211,3 @@ def start_simulator(config_file="examples/example-hpa.conf"):
     subprocess.Popen(["bundle", "exec", "bin/kube_twin", config_file], cwd="../..")
     print("Simulator started")
 
-'''   
-if __name__ == "__main__":
-    config = {}
-    # Start Simulator
-    # Just an episode example
-    env = ChaosEnv(config)
-    env.reset()
-    while True:
-        result = env.read_state()
-        if result is None:
-            print("Episode ended")
-            break
-        
-        new_state, reward, episode_over, info = env.step() 
-
-        print(f"Reward: {reward}")
-        #print(f"Done: {done}")
-        print(f"Info: {info}")
-'''
