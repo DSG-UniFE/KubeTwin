@@ -15,5 +15,5 @@ if __name__ == "__main__":
    #agent = PPO_DeepSets(envs, num_steps=100, n_minibatches=8, ent_coef=0.001, tensorboard_log=None, seed=SEED)
     agent = DQN_DeepSets(env=env, num_steps=100, n_minibatches=8, seed=SEED, tensorboard_log=LOG_PATH)
 
-    agent.learn(1500000)
+    agent.learn(50000)
     agent.save(f"./agents/dqn_deepset_{SEED}_plot.py")

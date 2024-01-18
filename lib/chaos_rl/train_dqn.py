@@ -8,7 +8,7 @@ LOG_PATH = f"./results/dqn_{time.time()}/"
 env = ChaosEnv(config={})  
 
 model = DQN('MlpPolicy', env, verbose=1, tensorboard_log=LOG_PATH)  
-model.learn(total_timesteps=10000)  # Model training
+model.learn(total_timesteps=50000)  # Model training
 
 # Testing
 obs = env.reset()

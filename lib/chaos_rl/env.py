@@ -26,7 +26,7 @@ class ChaosEnv(gym.Env):
         self.episode_over = False
         self.action_space = spaces.Discrete(MAX_NUM_NODES)
         self.available_actions = np.arange(MAX_NUM_NODES)
-        self.writer = SummaryWriter(f'/results/dqn_{int(time.time())}')
+        self.writer = SummaryWriter(f'results/dqn_{int(time.time())}')
 
     def _connect_to_socket(self):
         """
@@ -179,13 +179,15 @@ class ChaosEnv(gym.Env):
         """
         start_simulator()
         self._connect_to_socket()
-        self.state = {}
+        self.state = np.zeros((MAX_NUM_PODS*MAX_NUM_NODES,), dtype=np.float32)
         #self.action_space = None 
         #self.state = None
         self.steps = 0
         self.max_steps = 100
         self.total_reward = 0
         self.episode_over = False
+
+        return self.state
 
 
 
