@@ -184,11 +184,13 @@ class ChaosEnvDeepSet(gym.Env):
         print("RL: Resetting environment")
         start_simulator()
         self._connect_to_socket()
-        self.state = {}
+        self.state = np.zeros((MAX_NUM_PODS*MAX_NUM_NODES,), dtype=np.float32)
         self.steps = 0
         self.max_steps = 100
         self.total_reward = 0
         self.episode_over = False
+
+        return self.state
 
 
 
