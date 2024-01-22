@@ -122,8 +122,9 @@ k8s_log_files.each do |log_file|
   sim_conf.set_rgen(log_file, nil)
   mconf = sim_conf.microservice_types
   sim_conf.microservice_types.each do |k,v|
-    #v[:rps] = rps_f.ceil
+    v[:replica] = 1
     v[:rps] = rps_f * 10
+    #puts "log_compare: rps: #{v[:rps]}"
   end
 
   sim = KUBETWIN::KSimulation.new(configuration: sim_conf,

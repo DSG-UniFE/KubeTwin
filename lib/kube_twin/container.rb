@@ -125,26 +125,6 @@ module KUBETWIN
       @containers_to_free.shift
     end
 
-=begin
-    def get_gamma_mixture(mdn_ttr_model, rps, replica=1)
-      numpy = PyCall.import_module("numpy")
-      weight_pred, conc_pred, scale_pred = mdn_ttr_model.predict([numpy.array([rps,replica]), numpy.array([1,1])])
-      # convert numpy to python list
-      ws = weight_pred.tolist()
-      cps = conc_pred.tolist()
-      scs = scale_pred.tolist()
-      gamma_mix = []
-      ncomponents = ws[0].length - 1
-      (0..ncomponents).each do |i|
-        gamma_mix << ws[0][i].to_f
-        gamma_mix << cps[0][i].to_f
-        gamma_mix << scs[0][i].to_f
-      end
-      ERV::MixtureDistribution.new(
-                ERV::GammaMixtureHelper.RawParametersToMixtureArgsSeed(*gamma_mix, SEED))
-    end
-=end
-
     def reset_metrics
       @served_request = 0
       @total_queue_processing_time = 0
@@ -159,9 +139,9 @@ module KUBETWIN
 
       # improve this code in the future
       r.arrival_at_container = time
-# begin was here
-#=begin
-unless @path.nil?
+      # begin was here
+      #=begin
+      unless @path.nil?
         @arrival_times << time
         if @arrival_times.length < 2
           rps = 1
@@ -182,24 +162,12 @@ unless @path.nil?
       rps = rps * 10
       rps = 34 if rps > 34
       end
-      #puts rps
-#=end
+    #=end
 # end was here
       #rps = @rps
       #puts "RPS: #{rps}"
       @service_time = sim.retrieve_mdn_model(name, rps, @replica) unless @path.nil?
-=begin
-        if @models.key?(rps)
-          @service_time = @models[rps]
-        else
-          puts "#{rps}"
-          puts "#{@models.keys}"
-          model =  get_gamma_mixture(@mdn_ttr_model, rps)
-          @models[rps] = model
-          @service_time = model
-        end
-      #end
-=end
+
       @last_request_time = time
       while (st = @service_time.sample) <= 1E-6; end
       # st = st / 1000.0
