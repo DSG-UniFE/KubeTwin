@@ -27,6 +27,7 @@ class ChaosEnv(gym.Env):
         self.action_space = spaces.Discrete(MAX_NUM_NODES)
         self.available_actions = np.arange(MAX_NUM_NODES)
         self.writer = SummaryWriter(f'results/dqn_{int(time.time())}')
+        self.total_step = 0
 
     def _connect_to_socket(self):
         """
@@ -122,6 +123,7 @@ class ChaosEnv(gym.Env):
 
     def step(self, action):
         self.steps += 1
+        self.total_step += 1
         state, evicted_pods = self.read_state()
         
         if state is None:
@@ -129,8 +131,8 @@ class ChaosEnv(gym.Env):
             print("Episode ended")
             reward = float(evicted_pods)
             self.total_reward += reward
-            self.writer.add_scalar('Step Reward', reward, self.steps)
-            self.writer.add_scalar('Episodic return', self.total_reward, self.steps)
+            self.writer.add_scalar('Step Reward', reward, self.total_step)
+            self.writer.add_scalar('Episodic return', self.total_reward, self.total_step)
             self.sock.close()
             return self.state, reward, self.episode_over, {}
         self.state = state
@@ -164,7 +166,7 @@ class ChaosEnv(gym.Env):
         print(f"Returning reward: {self.total_reward}")
         print(f"Returning done: {self.episode_over}")
 
-        self.writer.add_scalar('Step Reward', reward, self.steps)
+        self.writer.add_scalar('Step Reward', reward, self.total_step)
         return self.state, reward, self.episode_over, {}  
 
     
