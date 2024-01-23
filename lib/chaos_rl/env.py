@@ -72,8 +72,9 @@ class ChaosEnv(gym.Env):
     def read_state(self):
         print("RL: Waiting for data from socket...")
         evicted_pods_json = self._read_until_newline()
-        if evicted_pods_json == "END":
-            return None, None
+        if evicted_pods_json.startswith("END"):
+            reward = evicted_pods_json.split(';')[1]
+            return None, reward
         nodes_alive_json = self._read_until_newline()
         evicted_pods = json.loads(evicted_pods_json)
         nodes_alive = json.loads(nodes_alive_json)
@@ -126,9 +127,12 @@ class ChaosEnv(gym.Env):
         if state is None:
             self.episode_over = True
             print("Episode ended")
+            reward = float(evicted_pods)
+            self.total_reward += reward
+            self.writer.add_scalar('Step Reward', reward, self.steps)
             self.writer.add_scalar('Episodic return', self.total_reward, self.steps)
             self.sock.close()
-            return self.state, self.total_reward, self.episode_over, {}
+            return self.state, reward, self.episode_over, {}
         self.state = state
         
         if action not in self.available_actions:
@@ -160,8 +164,8 @@ class ChaosEnv(gym.Env):
         print(f"Returning reward: {self.total_reward}")
         print(f"Returning done: {self.episode_over}")
 
-        self.writer.add_scalar('Step Reward', self.total_reward, self.steps)
-        return self.state, self.total_reward, self.episode_over, {}  
+        self.writer.add_scalar('Step Reward', reward, self.steps)
+        return self.state, reward, self.episode_over, {}  
 
     
     def calculate_reward(self, action):

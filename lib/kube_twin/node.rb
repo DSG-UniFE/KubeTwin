@@ -62,7 +62,7 @@ module KUBETWIN
     end
 
     def remove_resources(pod, resources_cpu, resources_memory)
-      raise "Pod not assigned to this node" unless @pod_id_list.include? pod.pod_id
+      raise "Pod not assigned to this node #{pod}" unless @pod_id_list.include? pod.pod_id
       # free resources
       @requested_resources[:cpu] -= resources_cpu
       @requested_resources[:memory] -= resources_memory

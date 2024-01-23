@@ -6,10 +6,10 @@ module KUBETWIN
   class Pod
     # states
     POD_PENDING         = 0     # The Pod has been accepted by the Kubernetes cluster, but one or more of the containers has not been set up and made ready to run
-    POD_RUNNING         = 0     # At least one container is still running, or is in the process of starting or restarting.
-    POD_SUCCEEDED       = 0     # All containers in the Pod have terminated in success, and will not be restarted.
-    POD_FAILED          = 0     # All containers in the Pod have terminated, and at least one container has terminated in failure
-    POD_EVICTED         = 0     # The Pod has been selected to be scheduled to another node due to a node failure or the node having insufficient free resources
+    POD_RUNNING         = 1     # At least one container is still running, or is in the process of starting or restarting.
+    POD_SUCCEEDED       = 2     # All containers in the Pod have terminated in success, and will not be restarted.
+    POD_FAILED          = 3     # All containers in the Pod have terminated, and at least one container has terminated in failure
+    POD_EVICTED         = 4     # The Pod has been selected to be scheduled to another node due to a node failure or the node having insufficient free resources
 
     # commenting podIP info for now :podIp
     attr_reader :pod_id, :podName, :node, :label, 

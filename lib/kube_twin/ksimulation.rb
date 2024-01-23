@@ -743,8 +743,10 @@ module KUBETWIN
                   # @logger.debug "deactivating pods"
                   ppl = s.pods[hpa.name].sample(to_scale)
                   ppl.each do |p|
-                    p.deactivate_pod
-                    s.delete_pod(s.selector, p)
+                    unless p.status == Pod::POD_EVICTED
+                      p.deactivate_pod 
+                      s.delete_pod(s.selector, p)
+                    end
                   end
                 end
               end
@@ -777,7 +779,12 @@ module KUBETWIN
             until @event_queue.empty?
               e = @event_queue.shift
             end
-            sock.write("END\n")
+            # calculate some statistics
+            ratio = stats.n / stats.received.to_f
+            med_ttr = stats.mean 
+            additional_reward = ratio / med_ttr.to_f 
+            @logger.info "ratio: #{ratio} med_ttr: #{med_ttr} additional_reward: #{additional_reward} string: END;#{additional_reward}"
+            sock.write("END;#{additional_reward}\n")
             sock.close
 
           # print some stats (useful to track simulation data)
@@ -938,21 +945,27 @@ module KUBETWIN
                   reqs_c = sct[:resources_requirements_cpu]
                   reqs_m = sct[:resources_requirements_memory]
 
-                  if target_node.available_resources_cpu >= reqs_c && target_node.available_resources_memory >= reqs_m
-                    @logger.debug "Node resources before reallocation: #{target_node.available_resources_cpu} #{target_node.available_resources_memory}"
-                    # Reallocate pod to target node
-                    evicted_pod_to_reallocate.startUpPod(target_node)
-                    # assign resources for the pod
-                    target_node.assign_resources(evicted_pod_to_reallocate, reqs_c, reqs_m)
-                    @logger.debug "Node resources after reallocation: #{target_node.available_resources_cpu} #{target_node.available_resources_memory}"
-
-                    #TODO: improve reward structure to a more informative and effective one
-                    # 1. Reward based on node resources usage (try to avoid overloading nodes)
-                    # 2. Reward based on pod TTP (try to avoid long TTP)
-                    reward = 1
+                  # TODO: check if target_node is in a ready state, if not assign a negative reward
+                  if target_node.ready == false
+                    @logger.debug "Node #{target_node.node_id} on cluster #{target_node.cluster_id} is not ready"
+                    reward = -3
                   else
-                    @logger.debug "Node #{target_node.node_id} on cluster #{target_node.cluster_id} does not have enough resources to reallocate pod #{evicted_pod_to_reallocate.pod_id}"
-                    reward = -1
+                    if target_node.available_resources_cpu >= reqs_c && target_node.available_resources_memory >= reqs_m
+                      @logger.debug "Node resources before reallocation: #{target_node.available_resources_cpu} #{target_node.available_resources_memory}"
+                      # Reallocate pod to target node
+                      evicted_pod_to_reallocate.startUpPod(target_node)
+                      # assign resources for the pod
+                      target_node.assign_resources(evicted_pod_to_reallocate, reqs_c, reqs_m)
+                      @logger.debug "Node resources after reallocation: #{target_node.available_resources_cpu} #{target_node.available_resources_memory}"
+
+                      #TODO: improve reward structure to a more informative and effective one
+                      # 1. Reward based on node resources usage (try to avoid overloading nodes)
+                      # 2. Reward based on pod TTP (try to avoid long TTP)
+                      reward = 1
+                    else
+                      @logger.debug "Node #{target_node.node_id} on cluster #{target_node.cluster_id} does not have enough resources to reallocate pod #{evicted_pod_to_reallocate.pod_id}"
+                      reward = -1
+                    end
                   end
                 else
                   @logger.debug "The action received from RL agent is not valid"
