@@ -876,7 +876,8 @@ module KUBETWIN
             target_cluster.node_number -= 1
             @logger.debug "Cluster #{target_cluster.cluster_id} has now #{target_cluster.node_number} nodes"
             @logger.debug "Node Deallocated: node_id: #{node.node_id} in cluster #{target_cluster.cluster_id} at time #{e.time}"
-            evicted_pods_json = @evicted_pods.transform_values { |pod| pod.as_json }.to_json
+            
+            #evicted_pods_json = @evicted_pods.transform_values { |pod| pod.as_json }.to_json
 
             cluster_repository.each do |k, cluster|
               cluster.nodes.each do |k, node|
@@ -886,29 +887,31 @@ module KUBETWIN
 
             nodes_alive_json = nodes_alive_json.transform_values { |node| node.as_json }.to_json
            
-            bytes = 0
-            begin
-              bytes += sock.write(evicted_pods_json + "\n")  # Send evicted pods to RL Agent
-              bytes += sock.write(nodes_alive_json + "\n")  # Send alive nodes to RL Agent
-            rescue => e
-              @logger.error "Error in sending data to RL Agent: Written bytes: #{bytes}"
-              @logger.error "#{e}"
-              sock.close()
-              break 
-            end 
-            begin
-              # Receive new allocation from RL Agent
-              new_allocation = sock.recv(1024)
-            rescue => e 
-              @logger.error "Error in receiving new allocation from RL agent"
-              @logger.error "#{e}"
-              sock.close()
-              break 
-            end
+            @evicted_pods.each do |pod_id, pod|
+              @logger.debug "Evicted Pod: #{pod}"
+              podj = pod.as_json.to_json
+              bytes = 0
+              begin
+                bytes += sock.write(podj + "\n")  # Send evicted pods to RL Agent
+                bytes += sock.write(nodes_alive_json + "\n")  # Send alive nodes to RL Agent
+              rescue => e
+                @logger.error "Error in sending data to RL Agent: Written bytes: #{bytes}"
+                @logger.error "#{e}"
+                sock.close()
+                break 
+              end 
+              begin
+                # Receive new allocation from RL Agent
+                new_allocation = sock.recv(1024)
+              rescue => e 
+                @logger.error "Error in receiving new allocation from RL agent"
+                @logger.error "#{e}"
+                sock.close()
+                break 
+              end
               # Here, the action space is of variable size, so we need to check if the action is valid
               # if the action is not valid, we are going to do nothing, so what we receive from the RL agent would be END_PODS
-
-              until new_allocation.empty? or new_allocation.strip == "END_PODS"  # Legge fino a 1024 byte dalla socket
+              unless new_allocation.empty? or new_allocation.strip == "END_PODS"  # Legge fino a 1024 byte dalla socket
                 # Running some checks here
                 # it should not be nil here
                 
@@ -921,6 +924,7 @@ module KUBETWIN
                 end
 
                 if move_on 
+                  # this is the id where to allocate the new node
                   new_allocation = JSON.parse(new_allocation)
                   @logger.debug "New Allocation: #{new_allocation}"
 
@@ -980,15 +984,8 @@ module KUBETWIN
                 sock.close()
                 break
               end
-              begin
-                new_allocation = sock.recv(1024)
-              rescue => e
-                @logger.error "Error in receiving new allocation from RL agent" 
-                @logger.error "#{e}"
-                sock.close()
-                break
-              end
-              end
+            end # ciclo for each pod
+            end
               
 
           when Event::ET_EVICT_POD
