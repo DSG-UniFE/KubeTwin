@@ -52,11 +52,10 @@ class ChaosEnv(gym.Env):
 
     def dict_to_array(self, state_dict):
         features = []
-        for pod in state_dict["evicted_pods"].values():
-            features.append(pod["pod_id"])
-            features.append(pod["original_node"])
-            #features.append(pod["node_affinity"])
-            features.append(pod["requirements"]["cpu"])
+        features.append(state_dict["evicted_pods"]["pod_id"])
+        features.append(state_dict["evicted_pods"]["original_node"])
+        #features.append(pod["node_affinity"])
+        features.append(state_dict["evicted_pods"]["requirements"]["cpu"])
 
         for node in state_dict["nodes_alive"].values():
             features.append(node["node_id"])
@@ -72,17 +71,17 @@ class ChaosEnv(gym.Env):
 
     def read_state(self):
         print("RL: Waiting for data from socket...")
-        evicted_pods_json = self._read_until_newline()
-        if evicted_pods_json.startswith("END"):
-            reward = evicted_pods_json.split(';')[1]
+        evicted_pod_json = self._read_until_newline()
+        if evicted_pod_json.startswith("END"):
+            reward = evicted_pod_json.split(';')[1]
             return None, reward
         nodes_alive_json = self._read_until_newline()
-        evicted_pods = json.loads(evicted_pods_json)
+        evicted_pod = json.loads(evicted_pod_json)
         nodes_alive = json.loads(nodes_alive_json)
-        self.state = self.dict_to_array({"evicted_pods": evicted_pods, "nodes_alive": nodes_alive})
+        self.state = self.dict_to_array({"evicted_pods": evicted_pod, "nodes_alive": nodes_alive})
         self.define_action_space(nodes_alive)
         print(f"RL: State read from socket: {self.state}")
-        return self.state, evicted_pods
+        return self.state, evicted_pod
 
 
     #Define action space based on the number of nodes in the cluster
@@ -98,7 +97,12 @@ class ChaosEnv(gym.Env):
     def _read_until_newline(self): 
         data = []
         while True:
-            chunk = self.sock.recv(1).decode('utf-8')
+            try:
+                chunk = self.sock.recv(1).decode('utf-8')
+            except socket.error as e:
+                print("Error in reading data from UNIX socket: {e}")
+                socket.close()
+                self.reset()
             if chunk == "\n":
                 break
             data.append(chunk)
@@ -149,20 +153,17 @@ class ChaosEnv(gym.Env):
 
         else:
             if evicted_pods:
-                for pod_id, pod_data in evicted_pods.items():
-                    print(f"Current Pod to reallocate: {pod_id}")
-                    #action = random.choice(self.action_space)
-                    print(f"Testing action: {action}")
-                    print(f"Selected node: {action}")
-                    self.reallocate_pod(action, pod_id)
-                    reward_json = self._read_until_newline()
-                    reward = json.loads(reward_json)
-                    print(f"Pod Reward: {reward}")
-                    self.total_reward += reward
-                    print(f"Total Reward: {self.total_reward}")
+                pod_id = evicted_pods["pod_id"]
+                print(f"Current Pod to reallocate: {pod_id}")
+                print(f"Testing action: {action}")
+                print(f"Selected node: {action}")
+                self.reallocate_pod(action, pod_id)
+                reward_json = self._read_until_newline()
+                reward = json.loads(reward_json)
+                print(f"Pod Reward: {reward}")
+                self.total_reward += reward
+                print(f"Total Reward: {self.total_reward}")
             
-        self.sock.sendall("END_PODS".encode('utf-8'))
-        #print(f"Returning state: {self.state}")
         print(f"Returning reward: {self.total_reward}")
         print(f"Returning done: {self.episode_over}")
 
