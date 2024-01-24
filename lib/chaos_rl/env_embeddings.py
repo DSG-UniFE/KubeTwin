@@ -118,7 +118,11 @@ class ChaosEnv(gym.Env):
     def _read_until_newline(self): 
         data = []
         while True:
-            chunk = self.sock.recv(1).decode('utf-8')
+            try:
+                chunk = self.sock.recv(1).decode('utf-8')
+            except socket.error as e:
+                print("Error in reading data from UNIX socket: {e}")
+                next
             if chunk == "\n":
                 break
             data.append(chunk)
