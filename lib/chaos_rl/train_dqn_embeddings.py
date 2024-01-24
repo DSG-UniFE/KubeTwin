@@ -8,7 +8,7 @@ LOG_PATH = f"./results/dqn_{time.time()}/"
 
 env = ChaosEnv(config={})  
 
-model = DQN('MlpPolicy', env, verbose=1, tensorboard_log=LOG_PATH)  
+model = DQN('MlpPolicy', env, verbose=1, tensorboard_log=LOG_PATH, exploration_fraction=0.4)  
 model.learn(total_timesteps=15000)  # Model training
 model.save("models/DQN__totalSteps_" + str(25000) + str(datetime.today().strftime('%Y%m%d%H%M%S')))
 # Testing

@@ -973,7 +973,7 @@ module KUBETWIN
                   end
                 else
                   @logger.debug "The action received from RL agent is not valid"
-                  reward = -0.1
+                  reward = -0.2
                 end # if move_on
               begin  
                 # Send reward to RL Agent
