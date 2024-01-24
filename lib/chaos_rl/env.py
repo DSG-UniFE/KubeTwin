@@ -101,7 +101,7 @@ class ChaosEnv(gym.Env):
                 chunk = self.sock.recv(1).decode('utf-8')
             except socket.error as e:
                 print("Error in reading data from UNIX socket: {e}")
-                socket.close()
+                self.sock.close()
                 self.reset()
             if chunk == "\n":
                 break
