@@ -40,6 +40,7 @@ class ChaosEnv(gym.Env):
         """    
         self.sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         server_address = '/tmp/chaos_sim.sock'
+        time.sleep(0.25)
         max_attempts = 15
         i = 0
         while i < max_attempts:
@@ -92,6 +93,8 @@ class ChaosEnv(gym.Env):
     def read_state(self):
         print("RL: Waiting for data from socket...")
         evicted_pod_json = self._read_until_newline()
+        if evicted_pod_json is None:
+            return None, None
         if evicted_pod_json.startswith("END"):
             reward = evicted_pod_json.split(';')[1]
             return None, reward
@@ -122,8 +125,8 @@ class ChaosEnv(gym.Env):
                 chunk = self.sock.recv(1).decode('utf-8')
             except socket.error as e:
                 print("Error in reading data from UNIX socket: {e}")
-                socket.close()
-                self.reset()
+                self.sock.close()
+                return None
             if chunk == "\n":
                 break
             data.append(chunk)
@@ -150,6 +153,15 @@ class ChaosEnv(gym.Env):
         self.steps += 1
         self.total_step += 1
         state, evicted_pods = self.read_state()
+
+        if state is None and evicted_pods is None:
+            self.episode_over = True
+            print("Episode ended")
+            reward = 0
+            self.writer.add_scalar('Step Reward', reward, self.total_step)
+            self.writer.add_scalar('Episodic return', self.total_reward, self.total_step)
+            self.sock.close()
+            return self.state, reward, self.episode_over, {}
         
         if state is None:
             self.episode_over = True
@@ -168,6 +180,7 @@ class ChaosEnv(gym.Env):
 
             self.sock.sendall("WRONG_ACTION".encode('utf-8'))
             reward_json = self._read_until_newline()
+
             reward = json.loads(reward_json)
             print(f"Reward Wrong Action: {reward}")
             self.total_reward += reward

@@ -784,8 +784,12 @@ module KUBETWIN
             med_ttr = stats.mean 
             additional_reward = ratio / med_ttr.to_f 
             @logger.info "ratio: #{ratio} med_ttr: #{med_ttr} additional_reward: #{additional_reward} string: END;#{additional_reward}"
-            sock.write("END;#{additional_reward}\n")
-            sock.close
+            begin
+              sock.write("END;#{additional_reward}\n")
+              sock.close
+            rescue => e
+              @logger.error "Error in sending data to RL Agent"
+            end
 
           # print some stats (useful to track simulation data)
           when Event::ET_STATS_PRINT
