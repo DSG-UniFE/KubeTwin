@@ -99,6 +99,8 @@ class ChaosEnv(gym.Env):
             reward = evicted_pod_json.split(';')[1]
             return None, reward
         nodes_alive_json = self._read_until_newline()
+        if nodes_alive_json is None:
+            return None, None
         evicted_pod = json.loads(evicted_pod_json)
         nodes_alive = json.loads(nodes_alive_json)
         self.state = self.dict_to_embedding({"evicted_pods": evicted_pod, "nodes_alive": nodes_alive}, self.tokenizer, self.model)
