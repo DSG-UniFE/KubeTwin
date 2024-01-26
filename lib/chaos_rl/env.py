@@ -80,10 +80,10 @@ class ChaosEnv(gym.Env):
             reward = evicted_pod_json.split(';')[3]
             ratio = evicted_pod_json.split(';')[1]
             med_ttr= evicted_pod_json.split(';')[2]
-            self.writer.add_scalar('Testing Ratio', float(ratio), self.total_step)
-            self.writer.add_scalar('Testing Med TTR', float(med_ttr), self.total_step)
-            self.writer.add_scalar('Testing Pods Received', self.pod_received, self.total_step)
-            self.writer.add_scalar('Testing Pods Reallocated', self.pod_reallocated, self.total_step)
+            self.writer.add_scalar('Testing_Ratio', float(ratio), self.total_step)
+            self.writer.add_scalar('Testing_Med_TTR', float(med_ttr), self.total_step)
+            self.writer.add_scalar('Testing_Pods_Received', self.pod_received, self.total_step)
+            self.writer.add_scalar('Testing_Pods_Reallocated', self.pod_reallocated, self.total_step)
             #self.writer.add_scalar('Testing Pods Reallocated Ratio', self.pod_reallocated/self.pod_received, self.total_step)
             return None, reward
         nodes_alive_json = self._read_until_newline()
@@ -103,6 +103,7 @@ class ChaosEnv(gym.Env):
         else:
             print("No live nodes available to define action space.")
             self.available_actions = []
+        self.action_space = np.array(self.available_actions)
     
     #Function to read from socket until newline --> separate Evicted Pods and Nodes Alive
     def _read_until_newline(self): 
@@ -194,7 +195,7 @@ class ChaosEnv(gym.Env):
         print(f"Returning reward: {self.total_reward}")
         print(f"Returning done: {self.episode_over}")
 
-        self.writer.add_scalar('Step Reward', reward, self.total_step)
+        self.writer.add_scalar('Step_Reward', reward, self.total_step)
         return self.state, reward, self.episode_over, {}  
 
     

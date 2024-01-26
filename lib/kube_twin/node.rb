@@ -42,9 +42,9 @@ module KUBETWIN
         "node_id": @node_id,
         "resources_cpu_available": available_resources_cpu,
         "resources_memory_available": available_resources_memory,
-        "cluster_id": @cluster_id,
-        "pods": @pods,
-        "pod_id_list": @pod_id_list,
+        #"cluster_id": @cluster_id,
+        #"pods": @pods,
+        #"pod_id_list": @pod_id_list,
       }
     end
 

@@ -6,7 +6,7 @@ from torch.utils.tensorboard import SummaryWriter
 
 # Carica il tuo ambiente e modello salvato
 env = ChaosEnv(config={})
-model = DQN.load("models/DQN__totalSteps_5000020240125120858.zip")
+model = DQN.load("models/DQN__totalSteps_5000020240125222450.zip")
 
 # Crea un writer di Tensorboard
 #writer = SummaryWriter(log_dir='results/testing')
@@ -19,7 +19,7 @@ num_steps = 100
 for test in range(num_tests):
     obs = env.reset()
     total_reward = 0
-    for step in range(num_steps):
+    while True:
         action, _states = model.predict(obs, deterministic=True)
         obs, reward, done, info = env.step(action)
         total_reward += reward

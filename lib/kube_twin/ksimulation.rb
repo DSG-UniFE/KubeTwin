@@ -956,7 +956,7 @@ module KUBETWIN
                   # TODO: check if target_node is in a ready state, if not assign a negative reward
                   if target_node.ready == false
                     @logger.debug "Node #{target_node.node_id} on cluster #{target_node.cluster_id} is not ready"
-                    reward = -0.2
+                    reward = -0.5
                   else
                     if target_node.available_resources_cpu >= reqs_c && target_node.available_resources_memory >= reqs_m
                       @logger.debug "Node resources before reallocation: #{target_node.available_resources_cpu} #{target_node.available_resources_memory}"
@@ -972,12 +972,12 @@ module KUBETWIN
                       reward = 1
                     else
                       @logger.debug "Node #{target_node.node_id} on cluster #{target_node.cluster_id} does not have enough resources to reallocate pod #{evicted_pod_to_reallocate.pod_id}"
-                      reward = 0
+                      reward = -0.8
                     end
                   end
                 else
                   @logger.debug "The action received from RL agent is not valid"
-                  reward = -0.2
+                  reward = -1
                 end # if move_on
               begin  
                 # Send reward to RL Agent

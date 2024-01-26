@@ -58,7 +58,7 @@ module KUBETWIN
       {
         "pod_id": @pod_id,
         "original_node": @node.node_id,
-        "node_affinity": @node_affinity,
+        #"node_affinity": @node_affinity,
         "requirements": @requirements,
       }
     end
