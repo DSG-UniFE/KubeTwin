@@ -28,6 +28,8 @@ class ChaosEnv(gym.Env):
         self.available_actions = np.arange(MAX_NUM_NODES)
         self.writer = SummaryWriter(f'results/dqn_{int(time.time())}')
         self.total_step = 0
+        self.pod_received = 0
+        self.pod_reallocated = 0
 
     def _connect_to_socket(self):
         """
@@ -75,7 +77,14 @@ class ChaosEnv(gym.Env):
         if evicted_pod_json is None:
             return None, None
         if evicted_pod_json.startswith("END"):
-            reward = evicted_pod_json.split(';')[1]
+            reward = evicted_pod_json.split(';')[3]
+            ratio = evicted_pod_json.split(';')[1]
+            med_ttr= evicted_pod_json.split(';')[2]
+            self.writer.add_scalar('Testing Ratio', float(ratio), self.total_step)
+            self.writer.add_scalar('Testing Med TTR', float(med_ttr), self.total_step)
+            self.writer.add_scalar('Testing Pods Received', self.pod_received, self.total_step)
+            self.writer.add_scalar('Testing Pods Reallocated', self.pod_reallocated, self.total_step)
+            #self.writer.add_scalar('Testing Pods Reallocated Ratio', self.pod_reallocated/self.pod_received, self.total_step)
             return None, reward
         nodes_alive_json = self._read_until_newline()
         evicted_pod = json.loads(evicted_pod_json)
@@ -132,6 +141,8 @@ class ChaosEnv(gym.Env):
         self.steps += 1
         self.total_step += 1
         state, evicted_pods = self.read_state()
+        if evicted_pods:
+            self.pod_received += 1
         
         if state is None and evicted_pods is None:
             self.episode_over = True
@@ -149,11 +160,13 @@ class ChaosEnv(gym.Env):
             self.total_reward += reward
             self.writer.add_scalar('Step Reward', reward, self.total_step)
             self.writer.add_scalar('Episodic return', self.total_reward, self.total_step)
+            #self.writer.add_scalar('Testing Pods Reallocated Ratio', self.pod_reallocated/self.pod_received, self.total_step)
             self.sock.close()
             return self.state, reward, self.episode_over, {}
         self.state = state
         
         if action not in self.available_actions:
+            
             print(f"Action {action} not in action space")
             # threat this as a NULL action and penalize the agent
 
@@ -173,6 +186,8 @@ class ChaosEnv(gym.Env):
                 reward_json = self._read_until_newline()
                 reward = json.loads(reward_json)
                 print(f"Pod Reward: {reward}")
+                if reward > 0:
+                    self.pod_reallocated += 1
                 self.total_reward += reward
                 print(f"Total Reward: {self.total_reward}")
             
@@ -205,6 +220,8 @@ class ChaosEnv(gym.Env):
         self.max_steps = 100
         self.total_reward = 0
         self.episode_over = False
+        self.pod_received = 0
+        self.pod_reallocated = 0
 
         return self.state
 
