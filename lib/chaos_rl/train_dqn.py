@@ -4,13 +4,13 @@ from datetime import datetime
 
 import time
 
-LOG_PATH = f"./results/ppo_{time.time()}/"
+LOG_PATH = f"./results/dqn_{time.time()}/"
 
 env = ChaosEnv(config={})  
 
-model = PPO('MlpPolicy', env, verbose=1, tensorboard_log=LOG_PATH)  
-model.learn(total_timesteps=50000)  # Model training
-model.save("models/PPO__totalSteps_" + str(50000) + str(datetime.today().strftime('%Y%m%d%H%M%S')))
+model = DQN('MlpPolicy', env, verbose=1, tensorboard_log=LOG_PATH)  
+model.learn(total_timesteps=15000)  # Model training
+model.save("models/DQN__totalSteps_" + str(15000) + str(datetime.today().strftime('%Y%m%d%H%M%S')))
 '''
 # Testing
 obs = env.reset()

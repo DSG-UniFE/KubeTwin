@@ -1,15 +1,16 @@
 import gym
 import numpy as np
+import random
 from env import ChaosEnv
 from stable_baselines3 import DQN, PPO
 from torch.utils.tensorboard import SummaryWriter
 
-num_tests = 20
+num_tests = 25
 
 for i in range(num_tests):
     # Carica il tuo ambiente e modello salvato
     env = ChaosEnv(config={})
-    model = PPO.load("models/PPO__totalSteps_5000020240126183537.zip")
+    #model = DQN.load("models/DQN__totalSteps_1500020240129112302.zip")
 
     # Numero di run di test e numero di step per ogni test
     num_episodes = 50
@@ -19,8 +20,9 @@ for i in range(num_tests):
     for test in range(num_episodes):
         obs = env.reset()
         total_reward = 0
-        for step in range(num_steps):
-            action, _ = model.predict(obs, deterministic=False)
+        while True:
+            #action, _ = model.predict(obs, deterministic=False)
+            action = random.choice(env.action_space)
             obs, reward, done, info = env.step(action)
             total_reward += reward
             if done:
