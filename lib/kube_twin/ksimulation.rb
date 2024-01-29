@@ -973,6 +973,7 @@ module KUBETWIN
                       # 2. Reward based on pod TTP (try to avoid long TTP)
                       reward = 1
                       @pod_reallocated += 1
+                      @evicted_pods.delete(evicted_pod_to_reallocate.pod_id)
                     else
                       @logger.debug "Node #{target_node.node_id} on cluster #{target_node.cluster_id} does not have enough resources to reallocate pod #{evicted_pod_to_reallocate.pod_id}"
                       reward = -0.2
