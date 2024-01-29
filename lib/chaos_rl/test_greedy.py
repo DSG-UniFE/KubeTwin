@@ -5,15 +5,13 @@ from stable_baselines3 import DQN, PPO
 from torch.utils.tensorboard import SummaryWriter
 import numpy as np
 
-num_tests = 20
+num_tests = 1
 
 ''''
 Random test to compare our solution with rl-ones
 '''
 for i in range(num_tests):
     # Carica il tuo ambiente e modello salvato
-    env = ChaosEnv(config={})
-
     # Numero di run di test e numero di step per ogni test
     num_episodes = 50
     num_steps = 100
@@ -30,6 +28,7 @@ for i in range(num_tests):
     '''
     # Esegui le run di test
     for test in range(num_episodes):
+        env = ChaosEnv(config={})
         first = True
         obs = env.reset()
         total_reward = 0

@@ -49,6 +49,7 @@ module KUBETWIN
       @results_dir += '/' unless @results_dir.nil?
       @microservice_mdn = Hash.new
       @socket_sim = establish_socket_connection("/tmp/chaos_sim.sock")
+      @total_evicted = 0
       #pyfrom :tensorflow, import: :keras
       #keras.utils.disable_interactive_logging()
       #os = PyCall.import_module("os")
@@ -781,7 +782,7 @@ module KUBETWIN
               e = @event_queue.shift
             end
             # calculate some statistics
-            ratio = @pod_reallocated.to_f / @evicted_pods.length.to_f
+            ratio = @pod_reallocated.to_f / @total_evicted.to_f
             med_ttr = stats.mean 
             additional_reward = ratio / med_ttr.to_f 
             @logger.info "ratio: #{ratio} med_ttr: #{med_ttr} additional_reward: #{additional_reward} string: END;#{additional_reward}"
@@ -1000,6 +1001,7 @@ module KUBETWIN
             @logger.debug "Pod #{pod.pod_id} is going to be evicted from node #{node.node_id}"
             pod.evict_pod
             @evicted_pods[pod.pod_id] = pod
+            @total_evicted += 1
             @logger.debug "Pod #{pod.pod_id} is now evicted"
             
             @logger.debug "Current Evicted Pods:"
