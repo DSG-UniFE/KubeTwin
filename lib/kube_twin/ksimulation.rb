@@ -217,6 +217,7 @@ module KUBETWIN
 
       @replica_sets = {}
       @evicted_pods = {}
+      @pod_reallocated = 0
 
       # init from simulation or optimizator
       if rss.nil?
@@ -780,7 +781,7 @@ module KUBETWIN
               e = @event_queue.shift
             end
             # calculate some statistics
-            ratio = stats.n / stats.received.to_f
+            ratio = @pod_reallocated.to_f / @evicted_pods.length.to_f
             med_ttr = stats.mean 
             additional_reward = ratio / med_ttr.to_f 
             @logger.info "ratio: #{ratio} med_ttr: #{med_ttr} additional_reward: #{additional_reward} string: END;#{additional_reward}"
@@ -970,14 +971,15 @@ module KUBETWIN
                       # 1. Reward based on node resources usage (try to avoid overloading nodes)
                       # 2. Reward based on pod TTP (try to avoid long TTP)
                       reward = 1
+                      @pod_reallocated += 1
                     else
                       @logger.debug "Node #{target_node.node_id} on cluster #{target_node.cluster_id} does not have enough resources to reallocate pod #{evicted_pod_to_reallocate.pod_id}"
-                      reward = 0
+                      reward = -0.2
                     end
                   end
                 else
                   @logger.debug "The action received from RL agent is not valid"
-                  reward = -0.2
+                  reward = -0.5
                 end # if move_on
               begin  
                 # Send reward to RL Agent

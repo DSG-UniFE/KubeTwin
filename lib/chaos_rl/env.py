@@ -26,7 +26,7 @@ class ChaosEnv(gym.Env):
         self.episode_over = False
         self.action_space = spaces.Discrete(MAX_NUM_NODES)
         self.available_actions = np.arange(MAX_NUM_NODES)
-        self.writer = SummaryWriter(f'results/dqn_{int(time.time())}')
+        self.writer = SummaryWriter(f'results/random_{int(time.time())}')
         self.total_step = 0
         self.pod_received = 0
         self.pod_reallocated = 0
@@ -80,6 +80,7 @@ class ChaosEnv(gym.Env):
             reward = evicted_pod_json.split(';')[3]
             ratio = evicted_pod_json.split(';')[1]
             med_ttr= evicted_pod_json.split(';')[2]
+            
             self.writer.add_scalar('Testing Ratio', float(ratio), self.total_step)
             self.writer.add_scalar('Testing Med TTR', float(med_ttr), self.total_step)
             self.writer.add_scalar('Testing Pods Received', self.pod_received, self.total_step)
@@ -90,7 +91,7 @@ class ChaosEnv(gym.Env):
         evicted_pod = json.loads(evicted_pod_json)
         nodes_alive = json.loads(nodes_alive_json)
         self.state = self.dict_to_array({"evicted_pods": evicted_pod, "nodes_alive": nodes_alive})
-        self.define_action_space(nodes_alive)
+        self.action_space = self.define_action_space(nodes_alive)
         print(f"RL: State read from socket: {self.state}")
         return self.state, evicted_pod
 
@@ -103,6 +104,7 @@ class ChaosEnv(gym.Env):
         else:
             print("No live nodes available to define action space.")
             self.available_actions = []
+        return np.array(self.available_actions)
     
     #Function to read from socket until newline --> separate Evicted Pods and Nodes Alive
     def _read_until_newline(self): 
@@ -137,10 +139,11 @@ class ChaosEnv(gym.Env):
         return False
     
 
-    def step(self, action):
+    def step(self):
         self.steps += 1
         self.total_step += 1
         state, evicted_pods = self.read_state()
+        action = np.random.choice(self.available_actions)
         if evicted_pods:
             self.pod_received += 1
         
