@@ -94,8 +94,16 @@ module KUBETWIN
 
     def establish_socket_connection(path)
       socket_path = path
-      File.delete(socket_path) if File.exist?(socket_path)
-      socket = UNIXServer.new(socket_path)
+      while true
+        begin
+          File.delete(socket_path) if File.exist?(socket_path)
+          socket = UNIXServer.new(socket_path)
+          break
+        rescue => e
+          @logger.error "Error in establishing socket connection: #{e}, retrying..."
+          sleep(0.5)
+        end
+      end
       @logger.debug "Socket established at #{socket_path}"
       return socket
     end
