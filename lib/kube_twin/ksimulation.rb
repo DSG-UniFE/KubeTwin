@@ -788,7 +788,7 @@ module KUBETWIN
             @logger.info "ratio: #{ratio} med_ttr: #{med_ttr} additional_reward: #{additional_reward}"
             begin
               sock.write("END;#{ratio};#{med_ttr};#{additional_reward}\n")
-              #sock.close
+              sock.close
             rescue => e
               @logger.error "Error in sending data to RL Agent"
             end
@@ -899,6 +899,8 @@ module KUBETWIN
               bytes = 0
               begin
                 bytes += sock.write(podj + "\n")  # Send evicted pods to RL Agent
+                ack = sock.recv(128)
+                @logger.debug "ACK: #{ack}"
                 bytes += sock.write(nodes_alive_json + "\n")  # Send alive nodes to RL Agent
               rescue => e
                 @logger.error "Error in sending data to RL Agent: Written bytes: #{bytes}"

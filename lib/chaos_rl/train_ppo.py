@@ -7,7 +7,7 @@ seed = 2
 env = ChaosEnv(config=[LOG_PATH])  
 
 model = PPO('MlpPolicy', env, verbose=1, tensorboard_log=LOG_PATH)  
-model.learn(total_timesteps=10000)  # Model training
+model.learn(total_timesteps=50000)  # Model training
 model.save("chaos_scheduler_ppo")
 
 
