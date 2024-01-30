@@ -92,7 +92,7 @@ class ChaosEnv(gym.Env):
             self.writer.add_scalar('Testing Pods Reallocated', self.pod_reallocated, self.total_step)
             #self.writer.add_scalar('Testing Pods Reallocated Ratio', self.pod_reallocated/self.pod_received, self.total_step)
             return None, reward
-        self.sock.write("OK\n".encode('utf-8'))
+        self.sock.send("OK\n".encode('utf-8'))
         nodes_alive_json = self._read_until_newline()
         evicted_pod = json.loads(evicted_pod_json)
         nodes_alive = json.loads(nodes_alive_json)
@@ -119,8 +119,8 @@ class ChaosEnv(gym.Env):
             try:
                 chunk = self.sock.recv(1).decode('utf-8')
             except socket.error as e:
-                print("Error in reading data from UNIX socket: {e}")
-                self.sock.close()
+                print(f"Error in reading data from UNIX socket: {e}")
+                #self.sock.close()
                 #self.reset()
                 return None
             if chunk == "\n":
