@@ -117,8 +117,9 @@ class ChaosEnv(gym.Env):
         data = []
         while True:
             try:
+                self.sock.settimeout(10.0)
                 chunk = self.sock.recv(1).decode('utf-8')
-            except socket.error as e:
+            except (socket.error, socket.timeout) as e:
                 print(f"Error in reading data from UNIX socket: {e}")
                 #self.sock.close()
                 #self.reset()
