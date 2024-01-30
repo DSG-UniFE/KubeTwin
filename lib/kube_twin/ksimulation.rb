@@ -785,10 +785,10 @@ module KUBETWIN
             ratio = @pod_reallocated.to_f / @total_evicted.to_f
             med_ttr = stats.mean 
             additional_reward = ratio / med_ttr.to_f 
-            @logger.info "ratio: #{ratio} med_ttr: #{med_ttr} additional_reward: #{additional_reward} string: END;#{additional_reward}"
+            @logger.info "ratio: #{ratio} med_ttr: #{med_ttr} additional_reward: #{additional_reward}"
             begin
               sock.write("END;#{ratio};#{med_ttr};#{additional_reward}\n")
-              sock.close
+              #sock.close
             rescue => e
               @logger.error "Error in sending data to RL Agent"
             end
