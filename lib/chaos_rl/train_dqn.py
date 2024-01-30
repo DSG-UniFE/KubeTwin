@@ -6,11 +6,11 @@ import time
 
 LOG_PATH = f"./results/dqn_{time.time()}/"
 
-env = ChaosEnv(config={})  
-
+env = ChaosEnv(config=[LOG_PATH])  
+num_steps = 25000
 model = DQN('MlpPolicy', env, verbose=1, tensorboard_log=LOG_PATH)  
-model.learn(total_timesteps=15000)  # Model training
-model.save("models/DQN__totalSteps_" + str(15000) + str(datetime.today().strftime('%Y%m%d%H%M%S')))
+model.learn(total_timesteps=num_steps)  # Model training
+model.save("models/DQN__totalSteps_" + str(num_steps) + str(datetime.today().strftime('%Y%m%d%H%M%S')))
 '''
 # Testing
 obs = env.reset()

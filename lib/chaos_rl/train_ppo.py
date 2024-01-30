@@ -2,11 +2,12 @@ from stable_baselines3 import PPO
 from env import ChaosEnv
 import time 
 
+LOG_PATH = f"./results/ppo_{time.time()}/"
 seed = 2
-env = ChaosEnv(config={})  
+env = ChaosEnv(config=[LOG_PATH])  
 
-model = PPO('MlpPolicy', env, verbose=1, tensorboard_log="./t_log")  
-model.learn(total_timesteps=10000, tb_log_name=f"{time.time()}_run")  # Model training
+model = PPO('MlpPolicy', env, verbose=1, tensorboard_log=LOG_PATH)  
+model.learn(total_timesteps=10000)  # Model training
 model.save("chaos_scheduler_ppo")
 
 

@@ -22,12 +22,16 @@ class ChaosEnv(gym.Env):
     def __init__(self, config):
         super(ChaosEnv, self).__init__()
         self.config = config 
+        if self.config:
+            LOG_PATH = self.config[0]
+        else:
+            LOG_PATH = f"./results/{time.time()}/"
         self.observation_space = spaces.Box(low=-np.inf, high=np.inf, shape=(MAX_NUM_NODES*MAX_NUM_PODS, ), dtype=np.float32) #4 as pod features, 6 as node features
         self.episode_over = False
-        #self.action_space = spaces.Discrete(MAX_NUM_NODES)
-        self.action_space = [i for i in range(90)]
+        self.action_space = spaces.Discrete(MAX_NUM_NODES)
+        #self.action_space = [i for i in range(90)]
         self.available_actions = np.arange(MAX_NUM_NODES)
-        self.writer = SummaryWriter(f'results/random_{int(time.time())}')
+        self.writer = SummaryWriter(LOG_PATH)
         self.total_step = 0
         self.pod_received = 0
         self.pod_reallocated = 0
@@ -92,7 +96,7 @@ class ChaosEnv(gym.Env):
         evicted_pod = json.loads(evicted_pod_json)
         nodes_alive = json.loads(nodes_alive_json)
         self.state = self.dict_to_array({"evicted_pods": evicted_pod, "nodes_alive": nodes_alive})
-        #self.action_space = self.define_action_space(nodes_alive)
+        self.action_space = self.define_action_space(nodes_alive)
         print(f"RL: State read from socket: {self.state}")
         return self.state, evicted_pod
 
@@ -193,6 +197,8 @@ class ChaosEnv(gym.Env):
                     self.pod_reallocated += 1
                 self.total_reward += reward
                 print(f"Total Reward: {self.total_reward}")
+            else:
+                print("No pods to reallocate")
             
         print(f"Returning reward: {self.total_reward}")
         print(f"Returning done: {self.episode_over}")
@@ -217,7 +223,8 @@ class ChaosEnv(gym.Env):
         start_simulator()
         self._connect_to_socket()
         self.state = np.zeros((MAX_NUM_PODS*MAX_NUM_NODES,), dtype=np.float32)
-        self.action_space = [i for i in range(90)] 
+        self.action_space = spaces.Discrete(MAX_NUM_NODES)
+        #self.action_space = [i for i in range(90)] 
         #self.state = None
         self.steps = 0
         self.max_steps = 100
