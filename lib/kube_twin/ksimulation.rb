@@ -48,7 +48,7 @@ module KUBETWIN
       @num_reqs = DEFAULT_NUM_REQS if @num_reqs.nil?
       @results_dir += '/' unless @results_dir.nil?
       @microservice_mdn = Hash.new
-      @socket_sim = establish_socket_connection("/tmp/chaos_sim.sock")
+      @socket_sim = establish_socket_connection("/tmp/chaos_telka.sock")
       @total_evicted = 0
       #pyfrom :tensorflow, import: :keras
       #keras.utils.disable_interactive_logging()
@@ -996,6 +996,8 @@ module KUBETWIN
               begin  
                 # Send reward to RL Agent
                 sock.write(reward.to_json + "\n")
+                ack = sock.recv(128)
+                @logger.debug "ACK: #{ack}"
               rescue => e
                 @logger.error "Error in sending reward to RL Agent"
                 @logger.error "#{e}"

@@ -41,7 +41,7 @@ class ChaosEnv(gym.Env):
         Connect to UNIX socket (simulator)
         """    
         self.sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        server_address = '/tmp/chaos_sim.sock'
+        server_address = '/tmp/chaos_telka.sock'
         max_attempts = 15
         i = 0
         while i < max_attempts:
@@ -117,8 +117,9 @@ class ChaosEnv(gym.Env):
         data = []
         while True:
             try:
+                self.sock.settimeout(5)
                 chunk = self.sock.recv(1).decode('utf-8')
-            except socket.error as e:
+            except (socket.error, TimeoutError) as e:
                 print(f"Error in reading data from UNIX socket: {e}")
                 #self.sock.close()
                 #self.reset()
@@ -149,12 +150,12 @@ class ChaosEnv(gym.Env):
         self.steps += 1
         self.total_step += 1
         state, evicted_pods = self.read_state()
-        if evicted_pods:
-            self.pod_received += 1
+
         
         if state is None and evicted_pods is None:
             self.episode_over = True
-            print("Episode ended")
+            print("Episode ended", state, evicted_pods)
+            exit(0)
             reward = 0
             self.writer.add_scalar('Step Reward', reward, self.total_step)
             self.writer.add_scalar('Episodic return', self.total_reward, self.total_step)
@@ -163,7 +164,7 @@ class ChaosEnv(gym.Env):
         
         if state is None:
             self.episode_over = True
-            print("Episode ended")
+            print("Episode ended", state, evicted_pods)
             reward = float(evicted_pods)
             self.total_reward += reward
             self.writer.add_scalar('Step Reward', reward, self.total_step)
@@ -171,7 +172,11 @@ class ChaosEnv(gym.Env):
             #self.writer.add_scalar('Testing Pods Reallocated Ratio', self.pod_reallocated/self.pod_received, self.total_step)
             self.sock.close()
             return self.state, reward, self.episode_over, {}
+        
         self.state = state
+
+        if evicted_pods:
+            self.pod_received += 1
         
         if action not in self.available_actions:
             
@@ -183,6 +188,7 @@ class ChaosEnv(gym.Env):
             reward = json.loads(reward_json)
             print(f"Reward Wrong Action: {reward}")
             self.total_reward += reward
+            self.sock.sendall("OK\n".encode('utf-8'))
 
         else:
             if evicted_pods:
@@ -198,6 +204,7 @@ class ChaosEnv(gym.Env):
                     self.pod_reallocated += 1
                 self.total_reward += reward
                 print(f"Total Reward: {self.total_reward}")
+                self.sock.sendall("OK\n".encode('utf-8'))
             else:
                 print("No pods to reallocate")
             

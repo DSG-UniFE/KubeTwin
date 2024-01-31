@@ -5,11 +5,11 @@ from env import ChaosEnv
 from stable_baselines3 import DQN, PPO
 from torch.utils.tensorboard import SummaryWriter
 
-num_tests = 25
+num_tests = 1
 
 for i in range(num_tests):
     # Carica il tuo ambiente e modello salvato
-    env = ChaosEnv(config={})
+    model = PPO.load("/home/filippo/code/KubeTwin/lib/chaos_rl/chaos_scheduler_ppo.zip")
     #model = DQN.load("models/DQN__totalSteps_1500020240129112302.zip")
 
     # Numero di run di test e numero di step per ogni test
@@ -18,11 +18,12 @@ for i in range(num_tests):
 
     # Esegui le run di test
     for test in range(num_episodes):
+        env = ChaosEnv(config={})
         obs = env.reset()
         total_reward = 0
         while True:
             #action, _ = model.predict(obs, deterministic=False)
-            action = random.choice(env.action_space)
+            action, _ = model.predict(obs, deterministic=False)
             obs, reward, done, info = env.step(action)
             total_reward += reward
             if done:
