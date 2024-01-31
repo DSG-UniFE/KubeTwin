@@ -266,4 +266,3 @@ def start_simulator(config_file="examples/example-hpa.conf"):
     """
     subprocess.Popen(["bundle", "exec", "bin/kube_twin", config_file], cwd="../..")
     print("Simulator started")
-
