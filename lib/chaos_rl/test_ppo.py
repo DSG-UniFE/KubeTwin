@@ -9,7 +9,7 @@ num_tests = 1
 
 for i in range(num_tests):
     # Carica il tuo ambiente e modello salvato
-    model = PPO.load("/home/filippo/code/KubeTwin/lib/chaos_rl/chaos_scheduler_ppo.zip")
+    model = PPO.load("chaos_scheduler_ppo.zip")
     #model = DQN.load("models/DQN__totalSteps_1500020240129112302.zip")
 
     # Numero di run di test e numero di step per ogni test

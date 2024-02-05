@@ -893,15 +893,21 @@ module KUBETWIN
             
             #evicted_pods_json = @evicted_pods.transform_values { |pod| pod.as_json }.to_json
 
-            cluster_repository.each do |k, cluster|
-              cluster.nodes.each do |k, node|
-                nodes_alive_json[node.node_id] = node
-              end
-            end
 
-            nodes_alive_json = nodes_alive_json.transform_values { |node| node.as_json }.to_json
+
            
             @evicted_pods.each do |pod_id, pod|
+              
+              nodes_alive_json = {}
+
+              cluster_repository.each do |k, cluster|
+                cluster.nodes.each do |_, node|
+                  nodes_alive_json[node.node_id] = node
+                end
+              end
+              
+              nodes_alive_json = nodes_alive_json.transform_values { |node| node.as_json }.to_json
+
               @logger.debug "Evicted Pod: #{pod}"
               podj = pod.as_json.to_json
               bytes = 0

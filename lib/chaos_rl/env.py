@@ -155,7 +155,6 @@ class ChaosEnv(gym.Env):
         if state is None and evicted_pods is None:
             self.episode_over = True
             print("Episode ended", state, evicted_pods)
-            exit(0)
             reward = 0
             self.writer.add_scalar('Step Reward', reward, self.total_step)
             self.writer.add_scalar('Episodic return', self.total_reward, self.total_step)
