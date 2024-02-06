@@ -44,6 +44,7 @@ class ChaosEnv(gym.Env):
         server_address = '/tmp/chaos_telka.sock'
         max_attempts = 15
         i = 0
+        time.sleep(0.5)
         while i < max_attempts:
             try:
                 i += 1
