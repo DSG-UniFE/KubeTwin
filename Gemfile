@@ -4,4 +4,4 @@ source 'https://rubygems.org'
 gemspec
 
 gem 'pycall'
-gem 'mhl',   path: File.join(File.dirname(__FILE__), '..','fpoltronieri','ruby-mhl')
+gem 'mhl',   git: 'https://github.com/DSG-UniFE/ruby-mhl'
