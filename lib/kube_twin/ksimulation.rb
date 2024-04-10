@@ -411,10 +411,30 @@ module KUBETWIN
       @req_in_sec = 0
 
       # Socket Communication with RL Agent #
-      # Start the socket now and keep it until the end of the simulation
       sock = @socket_sim.accept
-      
-      #@allocation_bench << "Time,Component,Request,TTP,Pods\n"
+
+      # Once a connection is established, we can send data to the RL Agent
+      nodes_alive_json = {}
+
+      cluster_repository.each do |k, cluster|
+        cluster.nodes.each do |_, node|
+          nodes_alive_json[node.node_id] = node
+        end
+      end
+
+      nodes_alive_json = nodes_alive_json.transform_values { |node| node.as_json }.to_json
+    
+      bytes = 0
+      begin
+        bytes += sock.write(nodes_alive_json + "\n")  # Send alive nodes to RL Agent
+        ack = sock.recv(128)
+        @logger.debug "ACK: #{ack}"
+      rescue => e
+        @logger.error "Error in sending state to the RL Agent: Written bytes: #{bytes}"
+        @logger.error "#{e}"
+        sock.close()
+        abort 
+      end
 
       # launch simulation
       until @event_queue.empty?
@@ -856,7 +876,6 @@ module KUBETWIN
             if @current_time + check_node.heartbeat_period < cooldown_treshold
               new_event(Event::ET_NODE_CONTROL, check_node, @current_time + check_node.heartbeat_period, nil)
             end
-            
           #try to implement shutdown node event. Example --> select a random node and put ready to false
           when Event::ET_SHUTDOWN_NODE
             node = e.data
@@ -885,9 +904,9 @@ module KUBETWIN
 
           when Event::ET_DEALLOCATE_NODE
             node, target_cluster = e.data
-            nodes_alive_json = {}
-            target_cluster.remove_node(node)
-            target_cluster.node_number -= 1
+            node.deallocate_node 
+            #target_cluster.remove_node(node)
+            #target_cluster.node_number -= 1
             @logger.debug "Cluster #{target_cluster.cluster_id} has now #{target_cluster.node_number} nodes"
             @logger.debug "Node Deallocated: node_id: #{node.node_id} in cluster #{target_cluster.cluster_id} at time #{e.time}"
             
@@ -1066,34 +1085,6 @@ module KUBETWIN
            "component_stats: #{per_component_stats.to_s}\n" +
            "allocation_map: #{allocation_map}\n" +
            "=======================================\n"
-      # debug info here
-      # we want to minimize the cost, so we define fitness as the opposite of
-      # the sum of all costs incurred
-      # -costs.values.inject(0.0){|s,x| s += x }
-      # 99-th percentile ttr + closed_request +
-      # (- 0.99 )
-      # -stats.mean
-      #res = -per_workflow_and_customer_stats[1][1].longer_than[0.51] /
-      #    per_workflow_and_customer_stats[1][1].closed.to_f
-      # @logger.debug "Res: #{res}"
-      # res
-
-      #@logger.debug "Percentage of requests within ms"
-      #per_workflow_and_customer_stats[1][1].shorter_than.each_key do |t|
-      #  @logger.debug "#{(per_workflow_and_customer_stats[1][1].shorter_than[t] / per_workflow_and_customer_stats[1][1].closed.to_f) * 100}% #{t}s"
-      #end
-      #-stats.mean
-      #return 0
-      #return stats.to_csv
-      #@sim_bench << stats.to_csv
-      #@sim_bench.close
-      #path_file = @allocation_bench.path
-      #@allocation_bench.close
-      #path_request = @request_profile.path
-      #@request_profile.close
-      #@logger.debug "python figure_generator/tnsm-figure.py #{path_file} #{path_request}"
-      #`python figure_generator/tnsm-figure.py #{path_file} #{path_request}`
-      #return stats.to_csv # change this
     end
   end
 end

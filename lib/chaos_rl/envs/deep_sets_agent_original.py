@@ -64,8 +64,6 @@ class EquivariantLayer(nn.Module):
     def forward(self, x: torch.Tensor):
         # x: (batch_size, n_elements, in_channels)
         # return: (batch_size, n_elements)
-        print('x: ', x)
-        print('x.shape: ', x.shape)
         
         if x.ndim == 1:
             n_elements = x.shape[0] // self.in_channels
@@ -77,6 +75,7 @@ class EquivariantLayer(nn.Module):
 class EquivariantDeepSet(nn.Module):
     def __init__(self, in_channels: int, hidden_channels: int = 64) -> None:
         super().__init__()
+        print('in_channels: ', in_channels)
         self.net = nn.Sequential(
             EquivariantLayer(in_channels, hidden_channels),
             nn.ReLU(),
@@ -117,7 +116,7 @@ class InvariantDeepSet(nn.Module):
 class DeepSetAgent(nn.Module):
     def __init__(self, envs: gym.vector.VectorEnv) -> None:
         super().__init__()
-        in_channels = envs.observation_space.shape[0]
+        in_channels = envs.observation_space.shape[1]
 
         # Actor outputs pi(a|s)
         self.actor = EquivariantDeepSet(in_channels)

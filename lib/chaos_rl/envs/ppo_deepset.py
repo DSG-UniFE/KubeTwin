@@ -159,6 +159,7 @@ class PPO_DeepSets(Algorithm):
 
             for step in range(0, self.num_steps):
                 global_step += 1 * self.num_envs
+                print(f"{self.obs.shape=}, {next_obs.shape=}")
                 self.obs[step] = next_obs
                 self.dones[step] = next_done
                 self.masks[step] = next_masks

@@ -37,11 +37,16 @@ module KUBETWIN
       @ready = true # the node is ready to accept pods
     end
 
+    def deallocate_node
+      @ready = false # the node is not ready to accept pods
+    end
+
     def as_json
       {
         "node_id": @node_id,
         "resources_cpu_available": available_resources_cpu,
         "resources_memory_available": available_resources_memory,
+        "operational_status": @ready,
         "cluster_id": @cluster_id,
         "pods": @pods,
         "pod_id_list": @pod_id_list,

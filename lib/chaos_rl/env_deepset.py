@@ -7,9 +7,14 @@ import json
 import wandb
 import subprocess
 import time
+import torch
+import logging
+from tensorboardX import SummaryWriter
+
 
 MAX_NUM_PODS = 20
-MAX_NUM_NODES = 100
+MAX_NUM_NODES = 90
+NUM_FEATURES = 7
 
 class ChaosEnvDeepSet(gym.Env):
 
@@ -20,19 +25,29 @@ class ChaosEnvDeepSet(gym.Env):
     def __init__(self, config):
         super(ChaosEnvDeepSet, self).__init__()
         self.config = config 
-        self.observation_space = spaces.Box(low=-np.inf, high=np.inf, shape=(MAX_NUM_NODES*MAX_NUM_PODS, ), dtype=np.float32) #4 as pod features, 6 as node features
+        if self.config:
+            LOG_PATH = self.config[0]
+        else:
+            LOG_PATH = f"./results/{time.time()}/"
+        self.observation_space = spaces.Box(low=0, high=100.0, shape=(MAX_NUM_NODES, NUM_FEATURES), dtype=np.float32) #4 as pod features, 6 as node features
+        print(self.observation_space.shape)
         self.episode_over = False
         self.action_space = spaces.Discrete(MAX_NUM_NODES)
         self.available_actions = np.arange(MAX_NUM_NODES)
+        self.writer = SummaryWriter(LOG_PATH)
+        self.total_step = 0
+        self.pod_received = 0
+        self.pod_reallocated = 0
 
     def _connect_to_socket(self):
         """
         Connect to UNIX socket (simulator)
         """    
         self.sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        server_address = '/tmp/chaos_sim.sock'
+        server_address = '/tmp/chaos_telka.sock'
         max_attempts = 15
         i = 0
+        time.sleep(0.5)
         while i < max_attempts:
             try:
                 i += 1
@@ -44,50 +59,57 @@ class ChaosEnvDeepSet(gym.Env):
                 break
         if i == max_attempts:
             print("Error in connecting to UNIX socket, max attempts reached")
-            raise Exception("Error in connecting to UNIX socket, max attempts reached")                
+            raise Exception("Error in connecting to UNIX socket, max attempts reached")                 
 
     def dict_to_array(self, state_dict):
         features = []
-        for pod in state_dict["evicted_pods"].values():
-            features.append(pod["pod_id"])
-            features.append(pod["original_node"])
-            #features.append(pod["node_affinity"])
-            features.append(pod["requirements"]["cpu"])
-
+        pod = state_dict["evicted_pods"]
+        # Create a dummy pod if no pod is evicted is given... this allows us to described the initial state
+        if pod is None:
+            pod = {"pod_id": -1, "original_node": -1, "requirements": {"cpu": -1}}
+        print(f"Pod: {pod}")
         for node in state_dict["nodes_alive"].values():
-            features.append(node["node_id"])
-            features.append(node["resources_cpu_available"])
-            features.append(node["resources_memory_available"])
+            features.append([node["node_id"], node["resources_cpu_available"], 
+                             node["resources_memory_available"], node["operational_status"],pod["pod_id"], pod["original_node"],
+                             pod["requirements"]["cpu"]])
+        
         print(f"Features Length: {len(features)}")
-
-        if len(features) < self.observation_space.shape[0]:
-            features.extend([0] * (self.observation_space.shape[0] - len(features)))
 
         return np.array(features, dtype=np.float32)
 
 
-    def read_state(self):
-        print("RL: Waiting for data from socket...")
-        evicted_pods_json = self._read_until_newline()
-        if evicted_pods_json == "END":
-            return None, None
+    def read_initial_state(self):
+        logging.info("RL: Waiting for the initial state from socket...")
         nodes_alive_json = self._read_until_newline()
-        evicted_pods = json.loads(evicted_pods_json)
+        # sending ack to socket
+        self.sock.send("OK\n".encode('utf-8'))
         nodes_alive = json.loads(nodes_alive_json)
-        self.state = self.dict_to_array({"evicted_pods": evicted_pods, "nodes_alive": nodes_alive})
-        self.define_action_space(nodes_alive)
-        print(f"RL: State read from socket: {self.state}")
-        return self.state, evicted_pods
+        self.state = self.dict_to_array({"evicted_pods": None, "nodes_alive": nodes_alive})        
 
 
-    #Define action space based on the number of nodes in the cluster
-    def define_action_space(self, nodes_alive):
-        if nodes_alive:
-            self.available_actions = list(int(i) for i in nodes_alive.keys())
-            print(f"Available actions: {self.available_actions}")
-        else:
-            print("No live nodes available to define action space.")
-            self.available_actions = []
+    def read_state(self):
+        #print("RL: Waiting for data from socket...")
+        evicted_pod_json = self._read_until_newline()
+        if evicted_pod_json is None:
+            return None, None
+        if evicted_pod_json.startswith("END"):
+            reward = evicted_pod_json.split(';')[3]
+            ratio = evicted_pod_json.split(';')[1]
+            med_ttr= evicted_pod_json.split(';')[2]
+            
+            self.writer.add_scalar('Testing Ratio', float(ratio), self.total_step)
+            self.writer.add_scalar('Testing Med TTR', float(med_ttr), self.total_step)
+            self.writer.add_scalar('Testing Pods Received', self.pod_received, self.total_step)
+            self.writer.add_scalar('Testing Pods Reallocated', self.pod_reallocated, self.total_step)
+            #self.writer.add_scalar('Testing Pods Reallocated Ratio', self.pod_reallocated/self.pod_received, self.total_step)
+            return None, reward
+        self.sock.send("OK\n".encode('utf-8'))
+        nodes_alive_json = self._read_until_newline()
+        evicted_pod = json.loads(evicted_pod_json)
+        nodes_alive = json.loads(nodes_alive_json)
+        self.state = self.dict_to_array({"evicted_pods": evicted_pod, "nodes_alive": nodes_alive})
+        #print(f"RL: State read from socket: {self.state} {self.state.shape}")
+        return self.state, evicted_pod
     
     def action_masks(self):
         masks = np.zeros(MAX_NUM_NODES, dtype=np.float32)
@@ -102,7 +124,14 @@ class ChaosEnvDeepSet(gym.Env):
     def _read_until_newline(self): 
         data = []
         while True:
-            chunk = self.sock.recv(1).decode('utf-8')
+            try:
+                self.sock.settimeout(5)
+                chunk = self.sock.recv(1).decode('utf-8')
+            except (socket.error, TimeoutError) as e:
+                print(f"Error in reading data from UNIX socket: {e}")
+                #self.sock.close()
+                #self.reset()
+                return None
             if chunk == "\n":
                 break
             data.append(chunk)
@@ -127,15 +156,33 @@ class ChaosEnvDeepSet(gym.Env):
 
     def step(self, action):
         self.steps += 1
+        self.total_step += 1
         state, evicted_pods = self.read_state()
+
+        
+        if state is None and evicted_pods is None:
+            self.episode_over = True
+            print("Episode ended", state, evicted_pods)
+            reward = 0
+            self.writer.add_scalar('Step Reward', reward, self.total_step)
+            self.writer.add_scalar('Episodic return', self.total_reward, self.total_step)
+            self.sock.close()
+            return self.state, reward, self.episode_over, False, {}
         
         if state is None:
             self.episode_over = True
-            print("Episode ended")
+            print("Episode ended", state, evicted_pods)
+            reward = float(evicted_pods)
+            self.total_reward += reward
+            self.writer.add_scalar('Step Reward', reward, self.total_step)
+            self.writer.add_scalar('Episodic return', self.total_reward, self.total_step)
             self.sock.close()
-            return self.state, self.total_reward, self.episode_over, {}
+            return self.state, reward, self.episode_over, False, {}
         
         self.state = state
+
+        if evicted_pods:
+            self.pod_received += 1
         
         if action not in self.available_actions:
             print(f"Action {action} not in action space")
@@ -146,26 +193,34 @@ class ChaosEnvDeepSet(gym.Env):
             reward = json.loads(reward_json)
             print(f"Reward Wrong Action: {reward}")
             self.total_reward += reward
-            #return self.state, self.total_reward, self.episode_over, {"error": "Action not in action space"}
+            self.sock.sendall("OK\n".encode('utf-8'))
+
         else:
             if evicted_pods:
-                for pod_id, pod_data in evicted_pods.items():
-                    print(f"Current Pod to reallocate: {pod_id}")
-                    #action = random.choice(self.action_space)
-                    print(f"Testing action: {action}")
-                    print(f"Selected node: {action}")
-                    self.reallocate_pod(action, pod_id)
-                    reward_json = self._read_until_newline()
-                    reward = json.loads(reward_json)
-                    print(f"Pod Reward: {reward}")
-                    self.total_reward += reward
-                    print(f"Total Reward: {self.total_reward}")
+                pod_id = evicted_pods["pod_id"]
+                print(f"Current Pod to reallocate: {pod_id}")
+                print(f"Testing action: {action}")
+                print(f"Selected node: {action}")
+                self.reallocate_pod(action, pod_id)
+                reward_json = self._read_until_newline()
+                reward = json.loads(reward_json)
+                print(f"Pod Reward: {reward}")
+                if reward > 0:
+                    self.pod_reallocated += 1
+                self.total_reward += reward
+                print(f"Total Reward: {self.total_reward}")
+                self.sock.sendall("OK\n".encode('utf-8'))
+            else:
+                print("No pods to reallocate")
             
-        self.sock.sendall("END_PODS".encode('utf-8'))
-        #print(f"Returning state: {self.state}")
         print(f"Returning reward: {self.total_reward}")
         print(f"Returning done: {self.episode_over}")
-        return self.state, self.total_reward, self.episode_over, {}  
+
+        self.writer.add_scalar('Step Reward', reward, self.total_step)
+        """
+        False stands for truncated here
+        """
+        return self.state, reward, self.episode_over, False, {}  
 
     
     def calculate_reward(self, action):
@@ -177,20 +232,35 @@ class ChaosEnvDeepSet(gym.Env):
         """
         pass
 
-    def reset(self):
+    def reset(self, seed=None, **options):
         """
         Reset the environment
         """
         print("RL: Resetting environment")
         start_simulator()
         self._connect_to_socket()
-        self.state = np.zeros((MAX_NUM_PODS*MAX_NUM_NODES,), dtype=np.float32)
+        self.action_space = spaces.Discrete(MAX_NUM_NODES)
+        #self.state = None
+        # Calling read initial state to initialize the self.state
+        self.read_initial_state()
+        logging.warning(f"RL: Read initial state, shape: {self.state.shape}")
+        logging.warning(f"RL: Read initial state, {self.state}")
         self.steps = 0
         self.max_steps = 100
         self.total_reward = 0
         self.episode_over = False
+        self.pod_received = 0
+        self.pod_reallocated = 0
+        print("RL: Environment reset", f"{self.state.shape}")
 
-        return self.state
+        return self.state, {}
+    
+    def seed(self, seed=None):
+        """
+        Generate a random seed
+        """
+        seed = random.randint(0, 100)
+        return [seed]
 
 
 
