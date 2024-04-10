@@ -83,7 +83,8 @@ module KUBETWIN
                  :warmup_duration,
                  :cooldown_duration,
                  :workflow_types,
-                 :seed
+                 :seed,
+                 :env_id
   end
 
   class Configuration
@@ -91,10 +92,11 @@ module KUBETWIN
     include Logging
     using TimeExtensions unless defined? JRUBY_VERSION
 
-    attr_accessor :filename
+    attr_accessor :filename, :env_id
 
     def initialize(filename)
       @filename = filename
+      @env_id = 1
     end
 
     def end_time

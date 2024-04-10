@@ -26,8 +26,10 @@ class ChaosEnvDeepSet(gym.Env):
         super(ChaosEnvDeepSet, self).__init__()
         self.config = config 
         if self.config:
-            LOG_PATH = self.config[0]
+            self.env_id = self.config["env_id"]
+            LOG_PATH = self.config["log"]
         else:
+            self.env_id = 1
             LOG_PATH = f"./results/{time.time()}/"
         self.observation_space = spaces.Box(low=0, high=100.0, shape=(MAX_NUM_NODES, NUM_FEATURES), dtype=np.float32) #4 as pod features, 6 as node features
         print(self.observation_space.shape)
@@ -39,12 +41,12 @@ class ChaosEnvDeepSet(gym.Env):
         self.pod_received = 0
         self.pod_reallocated = 0
 
-    def _connect_to_socket(self):
+    def _connect_to_socket(self, env_id=1):
         """
         Connect to UNIX socket (simulator)
         """    
         self.sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        server_address = '/tmp/chaos_telka.sock'
+        server_address = f"/tmp/chaos_telka_{str(env_id)}.sock"
         max_attempts = 15
         i = 0
         time.sleep(0.5)
@@ -53,7 +55,7 @@ class ChaosEnvDeepSet(gym.Env):
                 i += 1
                 self.sock.connect(server_address)
             except socket.error:
-                print("Error in connecting to UNIX socket, retrying in 0.5 seconds...")
+                print("Error in connecting to UNIX socket, retrying in 0.5 seconds...", server_address)
                 time.sleep(0.5)
             else:
                 break
@@ -237,8 +239,8 @@ class ChaosEnvDeepSet(gym.Env):
         Reset the environment
         """
         print("RL: Resetting environment")
-        start_simulator()
-        self._connect_to_socket()
+        start_simulator(self.env_id)
+        self._connect_to_socket(self.env_id)
         self.action_space = spaces.Discrete(MAX_NUM_NODES)
         #self.state = None
         # Calling read initial state to initialize the self.state
@@ -277,13 +279,14 @@ class ChaosEnvDeepSet(gym.Env):
         pass
 
 
-def start_simulator(config_file="examples/example-hpa.conf"):
+def start_simulator(env_id=1, config_file="examples/example-hpa.conf"):
     """
     Start the ruby simulator as a separate subprocess
     We need to change the working directory to ../.. because the simulator must be called with bundler
     bundle exec bin/kube_twin example/example_hpa.conf
     """
-    subprocess.Popen(["bundle", "exec", "bin/kube_twin", config_file], cwd="../..")
+    print(f"About to start the simulator: {env_id}")
+    subprocess.Popen(["bundle", "exec", "bin/kube_twin", config_file, str(env_id)], cwd="../..")
     print("Simulator started")
 
 '''   

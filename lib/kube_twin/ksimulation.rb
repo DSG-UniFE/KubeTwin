@@ -48,7 +48,9 @@ module KUBETWIN
       @num_reqs = DEFAULT_NUM_REQS if @num_reqs.nil?
       @results_dir += '/' unless @results_dir.nil?
       @microservice_mdn = Hash.new
-      @socket_sim = establish_socket_connection("/tmp/chaos_telka.sock")
+      @env_id = @configuration.env_id
+      puts "Simulator:: env_id: #{@env_id}"
+      @socket_sim = establish_socket_connection("/tmp/chaos_telka_#{@env_id}.sock")
       @total_evicted = 0
       #pyfrom :tensorflow, import: :keras
       #keras.utils.disable_interactive_logging()
