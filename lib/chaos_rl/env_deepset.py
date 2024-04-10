@@ -32,7 +32,7 @@ class ChaosEnvDeepSet(gym.Env):
             self.env_id = 1
             LOG_PATH = f"./results/{time.time()}/"
         self.observation_space = spaces.Box(low=0, high=100.0, shape=(MAX_NUM_NODES, NUM_FEATURES), dtype=np.float32) #4 as pod features, 6 as node features
-        print(self.observation_space.shape)
+        print(self.observation_space.shape, self.env_id)
         self.episode_over = False
         self.action_space = spaces.Discrete(MAX_NUM_NODES)
         self.available_actions = np.arange(MAX_NUM_NODES)
