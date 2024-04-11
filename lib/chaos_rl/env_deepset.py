@@ -27,12 +27,13 @@ class ChaosEnvDeepSet(gym.Env):
         self.config = config 
         if self.config:
             self.env_id = self.config["env_id"]
-            LOG_PATH = self.config["log"]
+            #LOG_PATH = self.config["log"]
         else:
             self.env_id = 1
-            LOG_PATH = f"./results/{time.time()}/"
+        LOG_PATH = f"./results/ppo_ds_{time.time()}/"
         self.observation_space = spaces.Box(low=0, high=100.0, shape=(MAX_NUM_NODES, NUM_FEATURES), dtype=np.float32) #4 as pod features, 6 as node features
         print(self.observation_space.shape, self.env_id)
+        print(LOG_PATH)
         self.episode_over = False
         self.action_space = spaces.Discrete(MAX_NUM_NODES)
         self.available_actions = np.arange(MAX_NUM_NODES)
@@ -99,10 +100,10 @@ class ChaosEnvDeepSet(gym.Env):
             ratio = evicted_pod_json.split(';')[1]
             med_ttr= evicted_pod_json.split(';')[2]
             
-            self.writer.add_scalar('Testing Ratio', float(ratio), self.total_step)
-            self.writer.add_scalar('Testing Med TTR', float(med_ttr), self.total_step)
-            self.writer.add_scalar('Testing Pods Received', self.pod_received, self.total_step)
-            self.writer.add_scalar('Testing Pods Reallocated', self.pod_reallocated, self.total_step)
+            self.writer.add_scalar('Testing_Ratio', float(ratio), self.total_step)
+            self.writer.add_scalar('Testing_Med_TTR', float(med_ttr), self.total_step)
+            self.writer.add_scalar('Testing_Pods_Received', self.pod_received, self.total_step)
+            self.writer.add_scalar('Testing_Pods_Reallocated', self.pod_reallocated, self.total_step)
             #self.writer.add_scalar('Testing Pods Reallocated Ratio', self.pod_reallocated/self.pod_received, self.total_step)
             return None, reward
         self.sock.send("OK\n".encode('utf-8'))
@@ -166,8 +167,8 @@ class ChaosEnvDeepSet(gym.Env):
             self.episode_over = True
             print("Episode ended", state, evicted_pods)
             reward = 0
-            self.writer.add_scalar('Step Reward', reward, self.total_step)
-            self.writer.add_scalar('Episodic return', self.total_reward, self.total_step)
+            self.writer.add_scalar('Step_Reward', reward, self.total_step)
+            self.writer.add_scalar('Episodic_return', self.total_reward, self.total_step)
             self.sock.close()
             return self.state, reward, self.episode_over, False, {}
         
@@ -176,8 +177,8 @@ class ChaosEnvDeepSet(gym.Env):
             print("Episode ended", state, evicted_pods)
             reward = float(evicted_pods)
             self.total_reward += reward
-            self.writer.add_scalar('Step Reward', reward, self.total_step)
-            self.writer.add_scalar('Episodic return', self.total_reward, self.total_step)
+            self.writer.add_scalar('Step_Reward', reward, self.total_step)
+            self.writer.add_scalar('Episodic_return', self.total_reward, self.total_step)
             self.sock.close()
             return self.state, reward, self.episode_over, False, {}
         
@@ -218,7 +219,7 @@ class ChaosEnvDeepSet(gym.Env):
         print(f"Returning reward: {self.total_reward}")
         print(f"Returning done: {self.episode_over}")
 
-        self.writer.add_scalar('Step Reward', reward, self.total_step)
+        self.writer.add_scalar('Step_Reward', reward, self.total_step)
         """
         False stands for truncated here
         """
@@ -245,15 +246,15 @@ class ChaosEnvDeepSet(gym.Env):
         #self.state = None
         # Calling read initial state to initialize the self.state
         self.read_initial_state()
-        logging.warning(f"RL: Read initial state, shape: {self.state.shape}")
-        logging.warning(f"RL: Read initial state, {self.state}")
+        #logging.warning(f"RL: Read initial state, shape: {self.state.shape}")
+        #logging.warning(f"RL: Read initial state, {self.state}")
         self.steps = 0
         self.max_steps = 100
         self.total_reward = 0
         self.episode_over = False
         self.pod_received = 0
         self.pod_reallocated = 0
-        print("RL: Environment reset", f"{self.state.shape}")
+        #print("RL: Environment reset", f"{self.state.shape}")
 
         return self.state, {}
     

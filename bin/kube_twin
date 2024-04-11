@@ -33,8 +33,16 @@ if File.expand_path(__FILE__) == File.expand_path($0)
     do_abort("Invalid simulator configuration file!")
   end
 
+  if ARGV.size > 1 && !ARGV[1].nil?
+    env_id = ARGV[1]
+  else
+    env_id = 1
+  end
+
   # load simulation configuration
   conf = KUBETWIN::Configuration.load_from_file(ARGV[0])
+  puts "BIN: ENV ID: #{env_id}"
+  conf.env_id = env_id
 
   # load vm allocationß
   # keep track of this for futre references
