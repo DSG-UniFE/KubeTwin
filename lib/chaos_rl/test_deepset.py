@@ -1,64 +1,54 @@
 import numpy as np
-from stable_baselines3.common.vec_env import DummyVecEnv, SubprocVecEnv, VecMonitor, VecNormalize
+from stable_baselines3.common.vec_env import DummyVecEnv, SubprocVecEnv, VecMonitor
 from tqdm import tqdm
-from envs.karmada_scheduling_env import KarmadaSchedulingEnv
-from envs.dqn_deepset import DQN_DeepSets
+from env_deepset import ChaosEnvDeepSet
 from envs.ppo_deepset import PPO_DeepSets
+import time
+import argparse
 
 SEED = 2
-env_kwargs = {"n_nodes": 10, "arrival_rate_r": 100, "call_duration_r": 1, "episode_length": 100}
-MONITOR_PATH = f"./results/test/ppo_deepset_{SEED}_n{env_kwargs['n_nodes']}_lam{env_kwargs['arrival_rate_r']}_mu{env_kwargs['call_duration_r']}.monitor.csv"
+
+
+SEED = 2
+LOG_PATH = f"./results/ppo_deepset_test_{time.time()}/"
+NUM_ENVS = 1
+
+def parse_parameters():
+    """
+    Parse some parameters from the command line
+    :return: (argparse.Namespace) the parsed arguments
+    """
+    parser = argparse.ArgumentParser(description="Test DeepSets")
+    parser.add_argument("--model", type=str, default=None, help="Model to use (ppo or dqn)")
+    parser.add_argument("--num_nodes", type=int, default=1, help="Number of nodes")
+    args = parser.parse_args()
+    return args
 
 if __name__ == "__main__":
-    # Define here variables for testing
-    num_clusters = [4, 8, 12, 16, 25, 32, 48, 64, 80, 128]
-    reward_function = 'latency'
-    alg = 'dqn'
 
+    args = parse_parameters()
+    num_nodes = args.num_nodes
+    model_path = args.model
+    if model_path is None:
+        raise ValueError("Please provide a model path to test your model!")    
     i = 0
-    for c in num_clusters:
-        env = KarmadaSchedulingEnv(num_clusters=c, arrival_rate_r=100, call_duration_r=1,
-                                   episode_length=100, reward_function=reward_function,
-                                   file_results_name=str(i) + 'karmada_gym_results_num_clusters_' + str(c))
-        env.reset()
-        _, _, _, info = env.step(0)
-        info_keywords = tuple(info.keys())
+    num_nodes = 1
+    for c in num_nodes:
+        env = SubprocVecEnv([lambda ne=ne: ChaosEnvDeepSet(config={"env_id": ne, "log": LOG_PATH}) for ne in range(NUM_ENVS)])
 
-        envs = DummyVecEnv([lambda: KarmadaSchedulingEnv(
-            num_clusters=c,
-            arrival_rate_r=100,
-            call_duration_r=1,
-            episode_length=100,
-            reward_function=reward_function,
-            file_results_name=str(i) + '_karmada_gym_results_num_clusters_' + str(c))
-                            ])
-        envs = VecMonitor(envs, MONITOR_PATH, info_keywords=info_keywords)
-
-        # PPO or DQN
-        agent = None
-        if alg == "ppo":
-            agent = PPO_DeepSets(envs, seed=SEED, tensorboard_log=None)
-        elif alg == 'dqn':
-            agent = DQN_DeepSets(envs, seed=SEED, tensorboard_log=None)
-        else:
-            print('Invalid algorithm!')
-
-        # Adapt the path accordingly
-        agent.load(f"./results/karmada/"
-                   + reward_function + "/" + alg + "_deepsets_env_karmada_num_clusters_4_reward_"
-                   + reward_function + "_totalSteps_200000_run_2/"
-                   + alg + "_deepsets_env_karmada_num_clusters_4_reward_"
-                   + reward_function + "_totalSteps_200000")
-
+        agent = PPO_DeepSets(env, num_steps=100, n_minibatches=8, ent_coef=0.001, num_envs=NUM_ENVS, tensorboard_log=LOG_PATH)
+        #agent = DQN_DeepSets(env=env, num_steps=100, n_minibatches=8, seed=SEED, tensorboard_log=LOG_PATH)
+        
+        agent.load(f"./agents/ppo_deepset_{time.time()}.py")
         # Test the agent for 100 episodes
+
         for _ in tqdm(range(100)):
-            obs = envs.reset()
-            action_mask = np.array(envs.env_method("action_masks"))
+            obs = env.reset()
+            action_mask = np.array(env.env_method("action_masks"))
             done = False
             while not done:
                 action = agent.predict(obs, action_mask)
-                obs, reward, dones, info = envs.step(action)
-                action_mask = np.array(envs.env_method("action_masks"))
+                obs, reward, dones, info = env.step(action)
+                action_mask = np.array(env.env_method("action_masks"))
                 done = dones[0]
-
         i += 1

@@ -1,8 +1,6 @@
-from stable_baselines3.common.vec_env import SubprocVecEnv, VecMonitor, VecNormalize, DummyVecEnv
+from stable_baselines3.common.vec_env import SubprocVecEnv
 from env_deepset import ChaosEnvDeepSet
-from envs.dqn_deepset import DQN_DeepSets
 from envs.ppo_deepset import PPO_DeepSets
-import time
 
 import time
 
