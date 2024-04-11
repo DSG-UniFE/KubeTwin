@@ -432,7 +432,7 @@ module KUBETWIN
         ack = sock.recv(128)
         @logger.debug "ACK: #{ack}"
       rescue => e
-        @logger.error "Error in sending state to the RL Agent: Written bytes: #{bytes}"
+        @logger.error "Error in sending initial state to the RL Agent: Written bytes: #{bytes}"
         @logger.error "#{e}"
         sock.close()
         abort 
@@ -938,10 +938,11 @@ module KUBETWIN
                 @logger.debug "ACK: #{ack}"
                 bytes += sock.write(nodes_alive_json + "\n")  # Send alive nodes to RL Agent
               rescue => e
-                @logger.error "Error in sending data to RL Agent: Written bytes: #{bytes}"
+                @logger.error "Error in sending data to RL Agent: Written bytes: #{bytes} #{pod}"
                 @logger.error "#{e}"
                 sock.close()
-                break 
+                # exit! here
+                exit! 
               end 
               begin
                 # Receive new allocation from RL Agent
@@ -1026,7 +1027,7 @@ module KUBETWIN
                 ack = sock.recv(128)
                 @logger.debug "ACK: #{ack}"
               rescue => e
-                @logger.error "Error in sending reward to RL Agent"
+                @logger.error "Error in sending reward to RL Agent (REWARD)"
                 @logger.error "#{e}"
                 sock.close()
                 break

@@ -31,20 +31,18 @@ if __name__ == "__main__":
     if model_path is None:
         raise ValueError("Please provide a model path to test your model!")    
 
-    for c in num_episodes:
-        env = SubprocVecEnv([lambda ne=ne: ChaosEnvDeepSet(config={"env_id": ne, "log": LOG_PATH}) for ne in range(NUM_ENVS)])
+    for c in range(num_episodes):
+        env = DummyVecEnv([lambda ne=ne: ChaosEnvDeepSet(config={"env_id": ne, "log": LOG_PATH}) for ne in range(NUM_ENVS)])
         agent = PPO_DeepSets(env, num_steps=100, n_minibatches=8, ent_coef=0.001, num_envs=NUM_ENVS, tensorboard_log=LOG_PATH)
         #agent = DQN_DeepSets(env=env, num_steps=100, n_minibatches=8, seed=SEED, tensorboard_log=LOG_PATH)
-        agent.load(f"./agents/ppo_deepset_{time.time()}.py")
+        agent.load(model_path)
         # Test the agent for 100 episodes
-        while True:
-            obs = env.reset()
+        obs = env.reset()
+        action_mask = np.array(env.env_method("action_masks"))
+        done = False
+        while not done:
+            action = agent.predict(obs, action_mask)
+            obs, reward, dones, info = env.step(action)
             action_mask = np.array(env.env_method("action_masks"))
-            done = False
-            while not done:
-                action = agent.predict(obs, action_mask)
-                obs, reward, dones, info = env.step(action)
-                action_mask = np.array(env.env_method("action_masks"))
-                done = dones[0]
-                if done:
-                    break
+            print("Dones: ", dones)
+            done = dones[0]
