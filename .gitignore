@@ -2,6 +2,7 @@
 *.svg
 *.csv
 ms*.txt
+*.txt
 sim*.csv
 req*.csv
 *.png
