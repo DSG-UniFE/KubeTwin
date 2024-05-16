@@ -211,7 +211,7 @@ module KUBETWIN
            conf[:replicas], nil)
       end
 
-      # puts @replica_sets
+      #puts @replica_sets
 
       @horizontal_pod_autoscaler_repo = {}
       unless @configuration.horizontal_pod_autoscalers.nil?
@@ -283,7 +283,6 @@ module KUBETWIN
           s = @services[selector]
           s.assignPod(pod)
           pod_id += 1
-
 
         end
       end
@@ -400,6 +399,7 @@ module KUBETWIN
               # the closest_dc stuff should be implmented within a load balancer / service 
               # here we cloud implement different policies rather than random policy
               pod = service.get_pod(first_component_name) # same as selector
+              #puts "first_component_name #{first_component_name} pod #{pod}"
               # we need to get a reference to the cluster where the pod is running
               cluster_id = pod.node.cluster_id
               cluster = cluster_repository[cluster_id]
@@ -501,6 +501,7 @@ module KUBETWIN
             # register step completion
             #component_name = workflow[:component_sequence][req.worked_step][:name]
             current_step_services = workflow[:component_sequence][req.worked_step][:services]
+            puts "current_step_services: #{current_step_services}"
             current_step_services.each do |service_name|
                 # register step completion for each service
                 per_component_stats[service_name].record_request(req, now) if per_component_stats[service_name]
