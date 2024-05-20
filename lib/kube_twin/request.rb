@@ -19,7 +19,8 @@ module KUBETWIN
                 :workflow_type_id,
                 :worked_step,
                 :step_queue_time,
-                :steps_ttr
+                :steps_ttr,
+                :services_completed
 
     attr_accessor :arrival_at_container
 
@@ -53,6 +54,7 @@ module KUBETWIN
       @working_time = 0.0
       @step_queue_time = 0.0
       @steps_ttr = []
+      @services_completed = []
     end
 
     def update_queuing_time(duration)
@@ -67,6 +69,7 @@ module KUBETWIN
     def step_completed(duration)
       @working_time += duration
       @worked_step = @next_step
+      puts "Request #{@rid} step #{@worked_step} completed in #{duration} seconds"
       @next_step += 1
     end
 

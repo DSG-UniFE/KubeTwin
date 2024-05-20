@@ -20,8 +20,8 @@ module KUBETWIN
   class Container
 
     SEED = 123
-    pyfrom :tensorflow, import: :keras
-    pyfrom :sklearn, import: :mixture
+    #pyfrom :tensorflow, import: :keras
+    #pyfrom :sklearn, import: :mixture
 
     # states
     CONTAINER_WAITING      = 0      # still running the operations it requires in order to complete start up

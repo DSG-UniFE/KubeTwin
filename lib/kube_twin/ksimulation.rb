@@ -42,8 +42,8 @@ module KUBETWIN
       @num_reqs = DEFAULT_NUM_REQS if @num_reqs.nil?
       @results_dir += '/' unless @results_dir.nil?
       @microservice_mdn = Hash.new
-      pyfrom :tensorflow, import: :keras
-      keras.utils.disable_interactive_logging()
+      #pyfrom :tensorflow, import: :keras
+      #skeras.utils.disable_interactive_logging()
       os = PyCall.import_module("os")
       os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
       
@@ -211,7 +211,7 @@ module KUBETWIN
            conf[:replicas], nil)
       end
 
-      #puts @replica_sets
+      puts @replica_sets
 
       @horizontal_pod_autoscaler_repo = {}
       unless @configuration.horizontal_pod_autoscalers.nil?
@@ -472,8 +472,11 @@ module KUBETWIN
             services = workflow[:component_sequence][req.next_step][:services]
 
             services.each do |service_name|
-              per_component_stats[service_name].request_received if per_component_stats.key?(service_name)
+              service = @kube_dns.lookup(service_name)
+              pod = service.get_pod(service_name)
 
+              per_component_stats[service_name].request_received if per_component_stats.key?(service_name)
+              puts "Request #{req.rid} forwarded to service #{service_name}"
               # here we should use the delegator
               # puts "#{now},#{pod.container.containerId},#{pod.container.request_queue.length}\n"
               pod.container.new_request(self, req, time)
@@ -484,16 +487,10 @@ module KUBETWIN
             # retrieve request and vm
             req = e.data
             container  = e.destination
-            @processed += 1
+            current_step_services = workflow[:component_sequence][req.next_step][:services]
+            puts "Current step services: #{current_step_services}"
+            #req.services_completed << current_step_services
             
-            # unless next_ms
-            container.request_finished(self, e.time) if container.wait_for.empty?
-
-            # tell the old container that it can start processing another request
-            # if microservice should wait for one other
-            oc = container.free_linked_container
-            oc.request_finished(self, e.time) if oc
-
             current_cluster = cluster_repository[req.data_center_id]
             # find the next workflow
             workflow = workflow_type_repository[req.workflow_type_id]
@@ -501,7 +498,7 @@ module KUBETWIN
             # register step completion
             #component_name = workflow[:component_sequence][req.worked_step][:name]
             current_step_services = workflow[:component_sequence][req.worked_step][:services]
-            puts "current_step_services: #{current_step_services}"
+            
             current_step_services.each do |service_name|
                 # register step completion for each service
                 per_component_stats[service_name].record_request(req, now) if per_component_stats[service_name]
@@ -518,16 +515,13 @@ module KUBETWIN
 =end
             # check if there are other steps left to complete the workflow
             if req.next_step < workflow[:component_sequence].size
-
-              # find next component name
-              #next_component_name = workflow[:component_sequence][req.next_step][:name]
-              # retrieve all the next components
-              next_components = workflow[:component_sequence][req.next_step][:services]
-              # print next_components
-              #puts "Next components: #{next_components}"
-
-              next_components.each do |component_name|
-                # resolve the next component name
+              
+              workflow[:component_sequence][req.next_step][:services].each do |service_name|
+                req.services_completed << service_name
+              end
+              
+              until req.services_completed.empty?
+                component_name = req.services_completed.shift
                 service = @kube_dns.lookup(component_name)
 
                 # e.time should be equivalent to @current_time
@@ -551,16 +545,40 @@ module KUBETWIN
                 # make sure we actually found a pod
                 raise "Cannot find a Pod running a component of type " +
                       "#{component_name} in any cluster!" unless pod
-
-                # schedule request forwarding to pod
-                @forwarded += 1
-                
-                # http chained microservices
-                # if the current microservice is the one which the old was waiting, free the old container
-                pod.container.to_free(container) unless container.wait_for.empty?
-
-                new_event(Event::ET_REQUEST_FORWARDING, req, forwarding_time, pod)
               end
+
+              # schedule request forwarding to pod
+              @forwarded += 1
+                
+              # http chained microservices
+              # if the current microservice is the one which the old was waiting, free the old container
+              pod.container.to_free(container) unless container.wait_for.empty?
+
+              new_event(Event::ET_REQUEST_FORWARDING, req, forwarding_time, pod)
+              puts "Request #{req.rid} step number #{req.next_step} on #{workflow[:component_sequence].size}"
+              @processed += 1
+          
+              # unless next_ms
+              container.request_finished(self, e.time) if container.wait_for.empty?
+
+              # tell the old container that it can start processing another request
+              # if microservice should wait for one other
+              oc = container.free_linked_container
+              oc.request_finished(self, e.time) if oc
+
+              # find next component name
+              #next_component_name = workflow[:component_sequence][req.next_step][:name]
+              # retrieve all the next components
+              
+              # print next_components
+              #puts "Request #{req.rid} Next components: #{next_components}"
+
+              #next_components.each do |component_name|
+                # resolve the next component name
+              #  service = @kube_dns.lookup(component_name)
+
+                
+              #end
 
             else # workflow is finished
               # calculate transmission time
@@ -578,7 +596,7 @@ module KUBETWIN
 
               # keep track of transmission time
               req.update_transfer_time(transmission_time)
-
+              puts "Request #{req.rid} finished at #{now} with TTR #{req.ttr(@current_time)}"
               # schedule request closure
               new_event(Event::ET_REQUEST_CLOSURE, req, e.time + transmission_time, nil)
             end
