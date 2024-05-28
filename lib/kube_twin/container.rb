@@ -136,7 +136,6 @@ module KUBETWIN
     end
 
     def new_request(sim, r, time)
-
       # improve this code in the future
       r.arrival_at_container = time
       # begin was here
@@ -179,7 +178,7 @@ module KUBETWIN
 
       ri = RequestInfo.new(r, st, time)
       @request_queue << ri
-
+      
       if @trace
         puts "***"
         @request_queue.each_cons(2) do |x, y|
@@ -188,20 +187,19 @@ module KUBETWIN
         end
         puts "***"
       end
-
-
+      #puts "Request #{r.rid} arrived at container #{@containerId} at #{time} --> busy: #{@busy}"
       try_servicing_new_request(sim, time) unless @busy
     end
 
     def request_finished(sim, time)
       @busy = false
       # update also the metrics
+      #puts "Request finished at #{time} --> busy: #{@busy}"
       @served_request += 1
       try_servicing_new_request(sim, time) unless @busy
     end
 
     def try_servicing_new_request(sim, time) 
-      
       if @busy
         raise "Container is currently processing another request (id: #{@containerId})"
       end
@@ -216,23 +214,28 @@ module KUBETWIN
         end
         #puts "Start: #{time}"
         ri = @request_queue.shift
-        # puts "#{containerId} #{@request_queue.length} sr: #{served_request} #{time - ri.arrival_time}" if @request_queue.length > 2
         
         req = ri.request
         # update the request's working information
 
         #req.update_queuing_time(time - ri.arrival_time)
         req.update_queuing_time(time - req.arrival_at_container)
-
-        req.step_completed(ri.service_time)
+        if req.services_pending.empty?
+          req.step_completed(ri.service_time)
         
-        # update container-based metric here
-        @total_queue_time += time - ri.arrival_time
-        # raise "We are looking at two different times" if req.queuing_time != (time - ri.arrival_time)
-        @total_queue_processing_time += ri.service_time + (time - ri.arrival_time)
-        # schedule completion of workflow step
-        # puts "Finished #{time + ri.service_time} #{@request_queue.length}"
-        sim.new_event(Event::ET_WORKFLOW_STEP_COMPLETED, req, time + ri.service_time, self)
+        
+          # update container-based metric here
+          @total_queue_time += time - ri.arrival_time
+          # raise "We are looking at two different times" if req.queuing_time != (time - ri.arrival_time)
+          @total_queue_processing_time += ri.service_time + (time - ri.arrival_time)
+          # schedule completion of workflow step
+          # puts "Finished #{time + ri.service_time} #{@request_queue.length}"
+        
+          sim.new_event(Event::ET_WORKFLOW_STEP_COMPLETED, req, time + ri.service_time, self)
+        else #retrieve the next service in the workflow step and service it
+          puts "Request #{req.rid} has services pending --> forwarding to next service to complete the workflow step"
+          sim.new_event(Event::ET_REQUEST_FORWARDING, req, time, self)
+        end
       end
     end
 

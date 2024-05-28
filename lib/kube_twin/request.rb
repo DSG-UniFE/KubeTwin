@@ -20,13 +20,14 @@ module KUBETWIN
                 :worked_step,
                 :step_queue_time,
                 :steps_ttr,
-                :services_completed
+                :services_pending
 
     attr_accessor :arrival_at_container
 
     # the data_center_id attribute is updated as requests move from a Cloud
     # data center to another
     attr_accessor :data_center_id
+    attr_accessor :services_pending
 
     def initialize(rid:,
                    generation_time:,
@@ -54,7 +55,7 @@ module KUBETWIN
       @working_time = 0.0
       @step_queue_time = 0.0
       @steps_ttr = []
-      @services_completed = []
+      @services_pending = []
     end
 
     def update_queuing_time(duration)
@@ -69,7 +70,6 @@ module KUBETWIN
     def step_completed(duration)
       @working_time += duration
       @worked_step = @next_step
-      puts "Request #{@rid} step #{@worked_step} completed in #{duration} seconds"
       @next_step += 1
     end
 
@@ -94,7 +94,7 @@ module KUBETWIN
     end
 
     def to_s
-      "rid: #{@rid}, generation_time: #{@generation_time}, data_center_id: #{@data_center_id}, arrival_time: #{@arrival_time}, queuing_time #{@queuing_time}"
+      "rid: #{@rid}, generation_time: #{@generation_time}, data_center_id: #{@data_center_id}, arrival_time: #{@arrival_time}, queuing_time #{@queuing_time}, services_pending: #{@services_pending}"
     end
   end
 
