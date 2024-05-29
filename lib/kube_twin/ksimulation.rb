@@ -482,8 +482,15 @@ module KUBETWIN
             container.request_finished(self, e.time) if container.wait_for.empty?
             # tell the old container that it can start processing another request
             # if microservice should wait for one other
-            oc = container.free_linked_container
-            oc.request_finished(self, e.time) if oc
+
+            # Filippo: I am moving this code at the end of the workflow
+            # container to free
+            # cf = container.containers_to_free
+            #cf.each do |c|
+            #  puts "Container #{container.name} #{c.name}"
+            # end
+            # oc = container.free_linked_container
+            # oc.request_finished(self, e.time) if oc
 
             current_cluster = cluster_repository[req.data_center_id]
             # find the next workflow
@@ -539,11 +546,24 @@ module KUBETWIN
                 @forwarded += 1
                 # http chained microservices
                 # if the current microservice is the one which the old was waiting, free the old container
+                #puts "#{pod.container.name} is about to block container #{container.name}"
                 pod.container.to_free(container) unless container.wait_for.empty?
                 new_event(Event::ET_REQUEST_FORWARDING, req, forwarding_time, pod)
               end
 
             elsif req.next_step == size # workflow is finished
+              oc = container.free_linked_container
+              while true
+                break if oc.nil?
+                #puts "Releasing container #{oc.name}"
+                oc.request_finished(self, e.time) 
+                oc = oc.containers_to_free.shift
+              end
+
+              #end
+              #oc = container.free_linked_container
+              #oc.request_finished(self, e.time) if oc
+
               # calculate transmission time
               transmission_time =
                 latency_manager.sample_latency_between(
@@ -575,14 +595,11 @@ module KUBETWIN
             if req.arrival_time > warmup_threshold && now < @configuration.end_time
               # decrease the number of requests being worked on
               requests_being_worked_on -= 1
-              puts "Request #{req.rid} finished at #{now} with TTR #{req.ttr(@current_time)}"
-
+              # puts "Request #{req.rid} finished at #{now} with TTR #{req.ttr(@current_time)}"
               # collect request statistics
               stats.record_request(req, @current_time)
-
               # collect request statistics in per_workflow_and_customer_stats
               per_workflow_and_customer_stats[req.workflow_type_id][req.customer_id].record_request(req, @current_time)
-              #@benchmark << "#{req.rid},#{req.ttr(@current_time)}\n"
             end
 
             # schedule generation of next request
@@ -612,9 +629,6 @@ module KUBETWIN
             # rejection sampling to implement (crudely) PDF truncation
             sva = 0.upto(100).collect { service_time_rv.sample }
             service_time = sva.sum / sva.length.to_f
-            # while (service_time = service_time_rv.next) < 2E-3; end
-            # puts service_time
-          
             desired_metric = hpa.target_processing_percentage * service_time
 
             current_metric = 0
@@ -836,7 +850,11 @@ module KUBETWIN
       #@request_profile.close
       #puts "python figure_generator/tnsm-figure.py #{path_file} #{path_request}"
       #`python figure_generator/tnsm-figure.py #{path_file} #{path_request}`
-      return stats.to_csv # change this
+
+      # --- what to return here?
+      # Filippo - just return 0 now for debugging purposes
+      # return stats.to_csv # change this
+      return 0
     end
   end
 end

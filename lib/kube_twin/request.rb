@@ -91,7 +91,7 @@ module KUBETWIN
 
     def ttr_step(time, step_name)
       ts = time - @arrival_at_container
-      puts "TTR Step: #{step_name} - #{ts}"
+      #puts "TTR Step rid #{@rid}: #{step_name} - #{ts}"
       @steps_ttr << ts # unless @steps_ttr.include? ts
       ts
     end

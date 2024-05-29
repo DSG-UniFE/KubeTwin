@@ -39,6 +39,7 @@ module KUBETWIN
                 :request_queue,
                 :served_request,
                 :total_queue_time,
+                :containers_to_free,
                 :total_queue_processing_time # endCode = 0 if all operations successfull, 0 if there's any kind of error
 
     Guaranteed = Struct.new(:cpu, :memory)
