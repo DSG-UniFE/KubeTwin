@@ -83,20 +83,6 @@ module KUBETWIN
       @service_time = nil
       @arrival_times = []
       @service_time = ERV::RandomVariable.new(st_distribution) if @path.nil?
-=begin
-      @models = Hash.new
-      unless @path.nil? && @rps.nil?
-        pyfrom :tensorflow, import: :keras
-        @mdn_ttr_model= keras.models.load_model(@path)
-        # seed should alreay be here
-        # @service_time = ERV::RandomVariable.new(st_distribution)
-        @tfd = pyfrom :tensorflow_probability, import: :distributions
-        @service_time = get_gamma_mixture(@mdn_ttr_model, @rps)
-        @arrival_times = []
-      else
-        @service_time = ERV::RandomVariable.new(st_distribution)
-      end
-=end
     end
 
     def check_rps(interval=8)
@@ -212,30 +198,25 @@ module KUBETWIN
         else
           @busy = false
         end
-        #puts "Start: #{time}"
+
         ri = @request_queue.shift
-        
         req = ri.request
         # update the request's working information
-
         #req.update_queuing_time(time - ri.arrival_time)
         req.update_queuing_time(time - req.arrival_at_container)
-        if req.services_pending.empty?
-          req.step_completed(ri.service_time)
-        
-        
-          # update container-based metric here
-          @total_queue_time += time - ri.arrival_time
-          # raise "We are looking at two different times" if req.queuing_time != (time - ri.arrival_time)
-          @total_queue_processing_time += ri.service_time + (time - ri.arrival_time)
-          # schedule completion of workflow step
-          # puts "Finished #{time + ri.service_time} #{@request_queue.length}"
-        
-          sim.new_event(Event::ET_WORKFLOW_STEP_COMPLETED, req, time + ri.service_time, self)
-        else #retrieve the next service in the workflow step and service it
-          puts "Request #{req.rid} has services pending --> forwarding to next service to complete the workflow step"
-          sim.new_event(Event::ET_REQUEST_FORWARDING, req, time, self)
-        end
+
+        req.step_completed(ri.service_time)
+      
+      
+        # update container-based metric here
+        @total_queue_time += time - ri.arrival_time
+        # raise "We are looking at two different times" if req.queuing_time != (time - ri.arrival_time)
+        @total_queue_processing_time += ri.service_time + (time - ri.arrival_time)
+        # schedule completion of workflow step
+        # puts "Finished #{time + ri.service_time} #{@request_queue.length}"
+      
+        sim.new_event(Event::ET_WORKFLOW_STEP_COMPLETED, req, time + ri.service_time, self)
+
       end
     end
 

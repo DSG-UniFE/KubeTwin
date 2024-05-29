@@ -15,6 +15,7 @@ require_relative './latency_manager'
 require_relative './kube_dns'
 require_relative './kube_scheduler'
 require_relative './node'
+require_relative './workflow_node'
 
 
 require 'pycall'
@@ -184,6 +185,11 @@ module KUBETWIN
         end
       ]
 
+      @workflows = Hash.new
+      workflow_type_repository.each do |k, v|
+        @workflows[k] = WorkflowNode.build_workflow(k, v)
+      end
+
       # Initialize Kubernetes internal objects/services
   
       @kube_dns = KubeDns.new
@@ -210,8 +216,6 @@ module KUBETWIN
         @replica_sets[name] = ReplicaSet.new(name, conf[:selector],
            conf[:replicas], nil)
       end
-
-      puts @replica_sets
 
       @horizontal_pod_autoscaler_repo = {}
       unless @configuration.horizontal_pod_autoscalers.nil?
@@ -299,7 +303,7 @@ module KUBETWIN
       # generate first request
       # both R and ruby should work request_gen is written in Ruby
       # request_generation is csv or R
-      @to_generate = 1000
+      @to_generate = 0
       if @configuration.request_gen.nil? 
         #puts "#{@configuration.request_generation}"
         rg = RequestGeneratorR.new(@configuration.request_generation)
@@ -373,7 +377,6 @@ module KUBETWIN
             if @current_time.to_i == @last_second
               @req_in_sec += 1
             elsif @current_time.to_i == @last_second + 1
-              #@request_profile << "#{@current_time.to_i},#{@req_in_sec}\n"
               @req_in_sec = 1
               @last_second = @current_time.to_i
             elsif  (@current_time.to_i - 1) > @last_second
@@ -387,19 +390,16 @@ module KUBETWIN
 
             # find first component name for requested workflow
             workflow = workflow_type_repository[req_attrs[:workflow_type_id]]
-            first_component_name = workflow[:component_sequence][0][:services][0]
-            
-            # first we need to resolve the component name using
-            # the kubernetes DNS
-            # TODO -- modeling internal service time
-            # this code can be split into two when
-            
+
+            first_component_name = @workflows[req_attrs[:workflow_type_id]].children.first.name
+
+            # first we need to resolve the component name using the kubernetes DNS
+
             service = @kube_dns.lookup(first_component_name)
 
-            # the closest_dc stuff should be implmented within a load balancer / service 
             # here we cloud implement different policies rather than random policy
             pod = service.get_pod(first_component_name) # same as selector
-            #puts "first_component_name #{first_component_name} pod #{pod}"
+
             # we need to get a reference to the cluster where the pod is running
             cluster_id = pod.node.cluster_id
             cluster = cluster_repository[cluster_id]
@@ -409,18 +409,18 @@ module KUBETWIN
 
             # generate the request here
             new_req = Request.new(**req_attrs.merge!(initial_data_center_id: cluster_id,
-                                                    arrival_time: arrival_time))
+                                                    arrival_time: arrival_time,
+                                                    component: first_component_name))
 
             # schedule arrival of current request
             new_event(Event::ET_REQUEST_ARRIVAL, [new_req, pod], arrival_time, nil)
 
             # schedule generation of next request
-            if @current_time < cooldown_treshold && @generated < @to_generate#warmup_threshold
-                rg = e.destination
-                req_attrs = rg.generate(@current_time)
-                new_event(Event::ET_REQUEST_GENERATION, req_attrs, req_attrs[:generation_time], rg) if req_attrs
+            if @current_time < cooldown_treshold && @generated < @to_generate #warmup_threshold
+              rg = e.destination
+              req_attrs = rg.generate(@current_time)
+              new_event(Event::ET_REQUEST_GENERATION, req_attrs, req_attrs[:generation_time], rg) if req_attrs
             end
-            
 
           when Event::ET_REQUEST_ARRIVAL
             # get request
@@ -429,19 +429,11 @@ module KUBETWIN
             # do not consider warmup here
             if req.arrival_time > warmup_threshold && req.arrival_time < cooldown_treshold
 
-                # get the pod here, we do not need thr cluster
+              # get the pod here, we do not need thr cluster
               @arrived += 1
 
-              workflow[:component_sequence][req.worked_step][:services].each do |service_name|
-                req.services_pending << service_name
-              end
-              #cluster = cluster_repository[req.data_center_id]
               # update reqs_received_per_workflow_and_customer
               reqs_received_per_workflow_and_customer[req.workflow_type_id][req.customer_id] += 1
-
-              # find next component name
-              workflow = workflow_type_repository[req.workflow_type_id]
-              # puts "next_component_name #{next_component_name}, pod.label #{pod.label}"
 
               # schedule request forwarding to pod
               @forwarded += 1
@@ -468,69 +460,26 @@ module KUBETWIN
             # done everything in the previous one
             req  = e.data
             time = e.time
-            destination  = e.destination
+            pod = e.destination
 
-            if destination.is_a?(KUBETWIN::Container)
-              destination.request_finished(self, e.time) if destination.wait_for.empty?
-              # tell the old container that it can start processing another request
-              # if microservice should wait for one other
-              oc = destination.free_linked_container
-              oc.request_finished(self, e.time) if oc
-            end
-
-            current_cluster = cluster_repository[req.data_center_id]
             # increase count of received requests in per_component_stats
-            workflow = workflow_type_repository[req.workflow_type_id]
-            #component_name = workflow[:component_sequence][req.next_step][:name]
-            component_name = req.services_pending.shift
-            
-            puts "Component name: #{component_name}"
-            service = @kube_dns.lookup(component_name)
-
-            # e.time should be equivalent to @current_time
-            forwarding_time = e.time
-
-            # get a pod from the one available
-            pod = service.get_pod(component_name) # same as selector
-                
-            # we need to get a reference to the cluster where the pod is running
-            cluster_id = pod.node.cluster_id
-            cluster = cluster_repository[cluster_id]
-
-            transmission_time =
-              latency_manager.sample_latency_between(current_cluster.location_id, cluster.location_id)
-            req.update_transfer_time(transmission_time)
-            forwarding_time += transmission_time
-
-            # update request's current data_center_id / cluster_id
-            req.data_center_id = cluster.cluster_id
-
-            # make sure we actually found a pod
-            raise "Cannot find a Pod running a component of type " +
-                  "#{component_name} in any cluster!" unless pod
+            component_name = req.next_component.nil? ? req.component : req.next_component
 
             per_component_stats[component_name].request_received if per_component_stats.key?(component_name)
-   
             # here we should use the delegator
             #puts "#{now},#{pod.container.containerId},#{pod.container.request_queue.length}\n"
             pod.container.new_request(self, req, time)
-            
 
           when Event::ET_WORKFLOW_STEP_COMPLETED
 
             # retrieve request and vm
             req = e.data
             container  = e.destination
-            current_step_services = workflow[:component_sequence][req.worked_step][:services]
-            puts "Current step services: #{current_step_services}"
+            # check the current step here --- it's an array
             #req.services_completed << current_step_services
             @processed += 1
-          
-            # unless next_ms
-            puts "Step processed"
+
             container.request_finished(self, e.time) if container.wait_for.empty?
-
-
             # tell the old container that it can start processing another request
             # if microservice should wait for one other
             oc = container.free_linked_container
@@ -538,78 +487,64 @@ module KUBETWIN
 
             current_cluster = cluster_repository[req.data_center_id]
             # find the next workflow
-            workflow = workflow_type_repository[req.workflow_type_id]
+            workflow_id = req.workflow_type_id
 
 
-            # register step completion
-            #component_name = workflow[:component_sequence][req.worked_step][:name]
-            
-            current_step_services.each do |service_name|
-                # register step completion for each service
-                per_component_stats[service_name].record_request(req, now)
+            # register step completion for the current step, the nme
+            # of the request is the name of the container
+            per_component_stats[container.name].record_request(req, now)
+            req.ttr_step(now, container.name)
 
-            end
-            
-            req.ttr_step(@current_time)
-=begin
-            if component_name == "MS1"
-              @benchmark_ms1 << "#{req.rid},#{req.ttr_step(@current_time)}\n"
-            elsif component_name == "MS2"
-              @benchmark_ms2 << "#{req.rid},#{req.ttr_step(@current_time)}\n"
-            end
-=end
             # check if there are other steps left to complete the workflow
-            if req.next_step < workflow[:component_sequence].size
-              
-              workflow[:component_sequence][req.next_step][:services].each do |service_name|
-                req.services_pending << service_name
+            size = @workflows[workflow_id].size 
+            # next step info 
+            tmp_current_name = req.next_component.nil? ? req.component : container.name
+            services = @workflows[workflow_id].get_child_of(tmp_current_name)
+            has_children = !services.nil?
+
+            if req.next_step < size && has_children
+              # get the children of the current node
+              services.children.each do |s|
+
+                next_component_name = s.name
+                req.component = req.next_component unless req.next_component.nil?
+                req.next_component = next_component_name
+
+                # resolve the next component name
+                service = @kube_dns.lookup(next_component_name)
+  
+                # e.time should be equivalent to @current_time
+                forwarding_time = e.time
+  
+                # get a pod from the one available
+                pod = service.get_pod(next_component_name) # same as selector
+  
+                # we need to get a reference to the cluster where the pod is running
+                cluster_id = pod.node.cluster_id
+                cluster = cluster_repository[cluster_id]
+  
+                transmission_time =
+                  latency_manager.sample_latency_between(current_cluster.location_id, cluster.location_id)
+                req.update_transfer_time(transmission_time)
+                forwarding_time += transmission_time
+  
+                # update request's current data_center_id / cluster_id
+                req.data_center_id = cluster.cluster_id
+  
+                # make sure we actually found a pod
+                raise "Cannot find a Pod running a component of type " +
+                      "#{next_component_name} in any cluster!" unless pod
+                forwarding_time = e.time
+                # schedule request forwarding to pod
+                @forwarded += 1
+                # http chained microservices
+                # if the current microservice is the one which the old was waiting, free the old container
+                pod.container.to_free(container) unless container.wait_for.empty?
+                new_event(Event::ET_REQUEST_FORWARDING, req, forwarding_time, pod)
               end
-               
-              # find next component name
-              next_component_name = first_component_name = workflow[:component_sequence][req.next_step][:services][0]
 
-              # resolve the next component name
-              service = @kube_dns.lookup(next_component_name)
- 
-              # e.time should be equivalent to @current_time
-              forwarding_time = e.time
- 
-              # get a pod from the one available
-              pod = service.get_pod(next_component_name) # same as selector
- 
-              # we need to get a reference to the cluster where the pod is running
-              cluster_id = pod.node.cluster_id
-              cluster = cluster_repository[cluster_id]
- 
-              transmission_time =
-                latency_manager.sample_latency_between(current_cluster.location_id, cluster.location_id)
-              req.update_transfer_time(transmission_time)
-              forwarding_time += transmission_time
- 
-              # update request's current data_center_id / cluster_id
-              req.data_center_id = cluster.cluster_id
- 
-              # make sure we actually found a pod
-              raise "Cannot find a Pod running a component of type " +
-                    "#{next_component_name} in any cluster!" unless pod
-              
-              forwarding_time = e.time
-              # schedule request forwarding to pod
-              @forwarded += 1
-                
-              # http chained microservices
-              # if the current microservice is the one which the old was waiting, free the old container
-              pod.container.to_free(container) unless container.wait_for.empty?
-              new_event(Event::ET_REQUEST_FORWARDING, req, forwarding_time, pod)
-                
-                
-              
-              puts "Request #{req.rid} step number #{req.next_step} on #{workflow[:component_sequence].size}"
-             
-
-            else # workflow is finished
+            elsif req.next_step == size # workflow is finished
               # calculate transmission time
-              puts "Workflow #{req.workflow_type_id} finished at #{now}"
               transmission_time =
                 latency_manager.sample_latency_between(
                   # data center location
@@ -621,10 +556,8 @@ module KUBETWIN
               unless transmission_time >= 0.0
                 raise "Negative transmission time (#{transmission_time})!"
               end
-
               # keep track of transmission time
               req.update_transfer_time(transmission_time)
-              puts "Request #{req.rid} finished at #{now} with TTR #{req.ttr(@current_time)}"
               # schedule request closure
               new_event(Event::ET_REQUEST_CLOSURE, req, e.time + transmission_time, nil)
             end
@@ -642,6 +575,7 @@ module KUBETWIN
             if req.arrival_time > warmup_threshold && now < @configuration.end_time
               # decrease the number of requests being worked on
               requests_being_worked_on -= 1
+              puts "Request #{req.rid} finished at #{now} with TTR #{req.ttr(@current_time)}"
 
               # collect request statistics
               stats.record_request(req, @current_time)
