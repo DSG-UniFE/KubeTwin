@@ -541,7 +541,7 @@ module KUBETWIN
                 # make sure we actually found a pod
                 raise "Cannot find a Pod running a component of type " +
                       "#{next_component_name} in any cluster!" unless pod
-                forwarding_time = e.time
+                      
                 # schedule request forwarding to pod
                 @forwarded += 1
                 # http chained microservices
