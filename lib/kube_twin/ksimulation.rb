@@ -16,6 +16,7 @@ require_relative './kube_dns'
 require_relative './kube_scheduler'
 require_relative './node'
 require_relative './workflow_node'
+require 'logger'
 
 
 require 'pycall'
@@ -47,6 +48,8 @@ module KUBETWIN
       #skeras.utils.disable_interactive_logging()
       os = PyCall.import_module("os")
       os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
+      @logger = Logger.new(STDOUT)
+      @logger.level = Logger::DEBUG
       
     end
 
@@ -137,7 +140,7 @@ module KUBETWIN
 
       # information regarding microservices
       @microservice_types = mtt.nil? ? @configuration.microservice_types : mtt
-      #puts "#{@microservice_types} #{@microservice_types.nil?}"
+      #@logger.debug "#{@microservice_types} #{@microservice_types.nil?}"
 
       @microservice_types.each do |k, v|
         unless v[:mdn_file].nil?
@@ -147,7 +150,7 @@ module KUBETWIN
         end
       end
 
-      #puts "init mdns #{@microservice_mdn}"
+      #@logger.debug "init mdns #{@microservice_mdn}"
 
       # information regarding customers
       customer_repository = @configuration.customers
@@ -229,7 +232,7 @@ module KUBETWIN
         end
       end
 
-      #puts @horizontal_pod_autoscaler_repo
+      #@logger.debug @horizontal_pod_autoscaler_repo
 
       # Then create services and pods at startup
       # not simulating starup events in the MVP
@@ -299,13 +302,13 @@ module KUBETWIN
       # this stores all simulation events
       @event_queue = SortedArray.new
 
-      # puts "========== Simulation Start =========="      
+      # @logger.debug "========== Simulation Start =========="      
       # generate first request
       # both R and ruby should work request_gen is written in Ruby
       # request_generation is csv or R
       @to_generate = 0
       if @configuration.request_gen.nil? 
-        #puts "#{@configuration.request_generation}"
+        #@logger.debug "#{@configuration.request_generation}"
         rg = RequestGeneratorR.new(@configuration.request_generation)
         # this is to avoid mismatch when reproducing logs
         req_attrs = rg.generate(now)
@@ -329,7 +332,7 @@ module KUBETWIN
 
       # schedule end of simulation
       unless @configuration.end_time.nil?
-        # puts "Simulation ends at: #{@configuration.end_time}"
+        # @logger.debug "Simulation ends at: #{@configuration.end_time}"
         new_event(Event::ET_END_OF_SIMULATION, nil, @configuration.end_time, nil)
       end
 
@@ -464,10 +467,10 @@ module KUBETWIN
 
             # increase count of received requests in per_component_stats
             component_name = req.next_component.nil? ? req.component : req.next_component
-
+            #@logger.debug("component_name: #{component_name} #{per_component_stats.key?(component_name)}")
             per_component_stats[component_name].request_received if per_component_stats.key?(component_name)
             # here we should use the delegator
-            #puts "#{now},#{pod.container.containerId},#{pod.container.request_queue.length}\n"
+            #@logger.debug "#{now},#{pod.container.containerId},#{pod.container.request_queue.length}\n"
             pod.container.new_request(self, req, time)
 
           when Event::ET_WORKFLOW_STEP_COMPLETED
@@ -483,15 +486,6 @@ module KUBETWIN
             # tell the old container that it can start processing another request
             # if microservice should wait for one other
 
-            # Filippo: I am moving this code at the end of the workflow
-            # container to free
-            # cf = container.containers_to_free
-            #cf.each do |c|
-            #  puts "Container #{container.name} #{c.name}"
-            # end
-            # oc = container.free_linked_container
-            # oc.request_finished(self, e.time) if oc
-
             current_cluster = cluster_repository[req.data_center_id]
             # find the next workflow
             workflow_id = req.workflow_type_id
@@ -499,7 +493,8 @@ module KUBETWIN
 
             # register step completion for the current step, the nme
             # of the request is the name of the container
-            per_component_stats[container.name].record_request(req, now)
+            per_component_stats[container.name].record_request(req, now) if per_component_stats.key?(container.name)
+            #@logger.debug("per_component_stats: #{per_component_stats}")
             req.ttr_step(now, container.name)
 
             # check if there are other steps left to complete the workflow
@@ -546,7 +541,7 @@ module KUBETWIN
                 @forwarded += 1
                 # http chained microservices
                 # if the current microservice is the one which the old was waiting, free the old container
-                #puts "#{pod.container.name} is about to block container #{container.name}"
+                #@logger.debug "#{pod.container.name} is about to block container #{container.name}"
                 pod.container.to_free(container) unless container.wait_for.empty?
                 new_event(Event::ET_REQUEST_FORWARDING, req, forwarding_time, pod)
               end
@@ -555,7 +550,7 @@ module KUBETWIN
               oc = container.free_linked_container
               while true
                 break if oc.nil?
-                #puts "Releasing container #{oc.name}"
+                #@logger.debug "Releasing container #{oc.name}"
                 oc.request_finished(self, e.time) 
                 oc = oc.containers_to_free.shift
               end
@@ -588,14 +583,14 @@ module KUBETWIN
             req = e.data
             # request is closed
             req.finished_processing(e.time)
-            #puts "#{req.arrival_time} #{now}"
+            #@logger.debug "#{req.arrival_time} #{now}"
             raise "Processing request after the simulation time current:#{now} end:#{@configuration.end_time}" if now >= @configuration.end_time
 
             # update stats
             if req.arrival_time > warmup_threshold && now < @configuration.end_time
               # decrease the number of requests being worked on
               requests_being_worked_on -= 1
-              # puts "Request #{req.rid} finished at #{now} with TTR #{req.ttr(@current_time)}"
+              # @logger.debug "Request #{req.rid} finished at #{now} with TTR #{req.ttr(@current_time)}"
               # collect request statistics
               stats.record_request(req, @current_time)
               # collect request statistics in per_workflow_and_customer_stats
@@ -615,7 +610,7 @@ module KUBETWIN
             # is computed by taking the average of the given metric across
             # all Pods in the HorizontalPodAutoscaler's scale target
             # retrieve desired replica_set ...
-            # puts hname
+            # @logger.debug hname
 
             s = @services[hpa.name]
 
@@ -639,22 +634,22 @@ module KUBETWIN
             s.pods[hpa.name].each do |pod|
               next if pod.container.served_request.zero?
               current_metric += pod.container.total_queue_processing_time / pod.container.served_request
-              # puts "total queue time: #{pod.container.total_queue_time}"
-              # puts "served request: #{pod.container.served_request}"
+              # @logger.debug "total queue time: #{pod.container.total_queue_time}"
+              # @logger.debug "served request: #{pod.container.served_request}"
               # reset container metric
               # calculate them each time period
               pod.container.reset_metrics
-              # puts "#{pod.container.current_processing_metric}"
+              # @logger.debug "#{pod.container.current_processing_metric}"
               pods += 1
             end
             current_metric /= pods.to_f
 
-            puts "**** Horizontal Pod Autoscaling ****"
-            puts "#{hpa.name} pods: #{pods} average processing_time: #{current_metric} desired_metric: #{desired_metric}"
-            puts "************************************"
+            @logger.debug "**** Horizontal Pod Autoscaling ****"
+            @logger.debug "#{hpa.name} pods: #{pods} average processing_time: #{current_metric} desired_metric: #{desired_metric}"
+            @logger.debug "************************************"
             
             if pods == 0
-              puts "Ending the simulation!"
+              @logger.debug "Ending the simulation!"
               #break
               #new_event(Event::ET_END_OF_SIMULATION, nil, now, nil)
               next
@@ -668,9 +663,9 @@ module KUBETWIN
 
             unless tolerance_range === scaling_ratio
               # then here implement the check to scale up or down the associated pods
-              puts "pods: #{pods} scaling_ratio: #{scaling_ratio}"
+              @logger.debug "pods: #{pods} scaling_ratio: #{scaling_ratio}"
               d_replicas = (pods * scaling_ratio).ceil
-              # puts "desired_replicas: #{d_replicas} current_replicas #{pods}"
+              # @logger.debug "desired_replicas: #{d_replicas} current_replicas #{pods}"
 
               if d_replicas > pods
 
@@ -701,10 +696,10 @@ module KUBETWIN
               else
                 # we need to select some pods to terminate
                 # deal with requests currently being processed
-                #puts "min #{hpa.min_replicas}"
+                #@logger.debug "min #{hpa.min_replicas}"
                 to_scale = d_replicas > hpa.min_replicas ? (pods - d_replicas) : 0
                 unless to_scale.zero?
-                  # puts "deactivating pods"
+                  # @logger.debug "deactivating pods"
                   ppl = s.pods[hpa.name].sample(to_scale)
                   ppl.each do |p| 
                     p.deactivate_pod
@@ -717,16 +712,16 @@ module KUBETWIN
 
             allocation_map = {}
             cluster_repository.each do |_,c|
-               #puts "Allocation -- #{c.name} Pods: #{pods}"
+               #@logger.debug "Allocation -- #{c.name} Pods: #{pods}"
                pods = 0
                c.nodes.values.each do |n|
                 pods += n.pod_id_list.length
-                #puts "node_id: #{n.node_id}: pods: #{n.pod_id_list.length}"
+                #@logger.debug "node_id: #{n.node_id}: pods: #{n.pod_id_list.length}"
                end
                allocation_map[c.name] = {tier: c.tier, pods: pods}
-               #puts "Allocation -- #{c.name} Pods: #{pods}"
+               #@logger.debug "Allocation -- #{c.name} Pods: #{pods}"
             end
-            puts "Allocation_map: #{allocation_map}\n"
+            @logger.info "Allocation_map: #{allocation_map}\n"
 
 
             # schedule next control
@@ -736,7 +731,7 @@ module KUBETWIN
 
           when Event::ET_END_OF_SIMULATION
             # FOR NOW KEEP PROCESSING REQUEST
-            #puts "#{e.time}: end simulation"
+            #@logger.debug "#{e.time}: end simulation"
             until @event_queue.empty?
               e = @event_queue.shift
             end
@@ -750,11 +745,10 @@ module KUBETWIN
               pods_number = s.pods[s.selector].length
               pods_n += "#{k}: #{pods_number} "
               #@allocation_bench << "#{now},#{k},#{per_component_stats[k].received},#{per_component_stats[k].mean},#{pods_number}\n"
-              #puts "#{now},#{k},#{per_component_stats[k].received},#{per_component_stats[k].mean},#{pods_number}\n"
+              #@logger.debug "#{now},#{k},#{per_component_stats[k].received},#{per_component_stats[k].mean},#{pods_number}\n"
               # just to print the allocation map
             end
-
-            #puts "++++++++++++++++\n"+
+            #@logger.debug "++++++++++++++++\n"+
             #"#{now}\n" +
             #"#{stats.to_s}\n" +
             #"workflow_stats: #{per_workflow_and_customer_stats.to_s}\n"+
@@ -762,7 +756,7 @@ module KUBETWIN
             #ls"#{pods_n}"
 
             # reset also comoponent statistics
-
+            @logger.debug("Resetting statistics for all components!")
             per_component_stats = Hash[
               @microservice_types.keys.map do |m_id|
                 [
@@ -782,40 +776,40 @@ module KUBETWIN
             new_node, target_cluster = e.data
             #target_cluster.node_number += 1
             target_cluster.add_node(new_node)
-            puts "New Node Allocated: node_id: #{new_node.node_id} in cluster #{target_cluster.cluster_id} at time #{e.time}"
+            @logger.debug "New Node Allocated: node_id: #{new_node.node_id} in cluster #{target_cluster.cluster_id} at time #{e.time}"
             
 
           when Event::ET_DEALLOCATE_NODE
             new_node, target_cluster = e.data
             #target_cluster.node_number += 1
             target_cluster.remove_node(new_node)
-            puts "Node Deallocated: node_id: #{new_node.node_id} in cluster #{target_cluster.cluster_id} at time #{e.time}"
+            @logger.debug "Node Deallocated: node_id: #{new_node.node_id} in cluster #{target_cluster.cluster_id} at time #{e.time}"
            
         end
       end
 
-      # puts "========== Simulation Finished =========="
+      # @logger.debug "========== Simulation Finished =========="
 
       # TODO -- IMPLEMENT COST EVALUATION HERE
       #costs = @evaluator.evaluate_fixed_costs_cpu(vm_allocation)
 
      
-     #puts "\n\n"
+     #@logger.debug "\n\n"
      #@sim_bench.close
-     #puts "Finished after #{now - @configuration.end_time}"
+     #@logger.debug "Finished after #{now - @configuration.end_time}"
 
       allocation_map = {}
       cluster_repository.each do |_,c|
-         #puts "Allocation -- #{c.name} Pods: #{pods}"
+         #@logger.info "Allocation -- #{c.name} Pods: #{pods}"
          pods = 0
          c.nodes.values.each do |n|
           pods += n.pod_id_list.length
-          #puts "node_id: #{n.node_id}: pods: #{n.pod_id_list.length}"
+          #@logger.info "node_id: #{n.node_id}: pods: #{n.pod_id_list.length}"
          end
          allocation_map[c.name] = {tier: c.tier, pods: pods}
-         #puts "Allocation -- #{c.name} Pods: #{pods}"
+         #@logger.info "Allocation -- #{c.name} Pods: #{pods}"
       end
-      #puts "#{stats.to_csv}"
+      #@logger.info "#{stats.to_csv}"
      puts "====== Evaluating new allocation ======\n" +
            #"costs: #{costs}\n" +
            "stats: #{stats.to_s}\n" +
