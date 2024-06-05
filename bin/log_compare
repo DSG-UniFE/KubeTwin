@@ -56,7 +56,7 @@ end
 
 def mse(array1, array2)
   unless array1.length == array2.length
-    raise ArgumentError, "Arrays must have the same lenght"
+    raise ArgumentError, "Arrays must have the same lenght to calculate MSE. Got #{array1.length} and #{array2.length} instead."
   end
 
   sum = 0.0
@@ -99,7 +99,7 @@ k8s_log_files.each do |log_file|
   puts "Retrieved rps #{rps_f}"
   # print logs' statistics
   k8s_log = CSV.parse(File.read(log_file), headers: true)
-  k8s_ttr = k8s_log.by_col[1].map(&:to_f).map {|v| v * 1E-9} # get the ttr column
+  k8s_ttr = k8s_log.by_col[1].map(&:to_f) # get the ttr column
 
   mean, std = calcualte_statistics(k8s_ttr)
   csv_logs << "#{rps_f},#{mean},#{std},#{percentile(k8s_ttr, 0.9)},#{percentile(k8s_ttr, 0.95)},#{percentile(k8s_ttr, 0.99)},K8S,NaN\n"

@@ -49,13 +49,13 @@ module KUBETWIN
       os = PyCall.import_module("os")
       os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
       @logger = Logger.new(STDOUT)
-      @logger.level = Logger::DEBUG
+      @logger.level = Logger::INFO
       
     end
 
     def retrieve_mdn_model(name, rps, replica=1)
       # if not create mdn
-      #puts "name: #{name} #{@microservice_mdn} #{replica}"
+      @logger.debug "retrieve mdn model for #{name} #{rps} #{replica}"
       unless @microservice_mdn[name][:st].key?(rps)
         numpy = PyCall.import_module("numpy")
         # here rember to set replica to the correct value
@@ -308,7 +308,8 @@ module KUBETWIN
       # request_generation is csv or R
       @to_generate = 0
       if @configuration.request_gen.nil? 
-        #@logger.debug "#{@configuration.request_generation}"
+        @logger.info "Using #{@configuration.request_generation}"
+        @to_generate = 1000
         rg = RequestGeneratorR.new(@configuration.request_generation)
         # this is to avoid mismatch when reproducing logs
         req_attrs = rg.generate(now)
@@ -419,7 +420,7 @@ module KUBETWIN
             new_event(Event::ET_REQUEST_ARRIVAL, [new_req, pod], arrival_time, nil)
 
             # schedule generation of next request
-            if @current_time < cooldown_treshold && @generated < @to_generate #warmup_threshold
+            if @generated < @to_generate #warmup_threshold @current_time < cooldown_treshold && 
               rg = e.destination
               req_attrs = rg.generate(@current_time)
               new_event(Event::ET_REQUEST_GENERATION, req_attrs, req_attrs[:generation_time], rg) if req_attrs
@@ -476,7 +477,7 @@ module KUBETWIN
           when Event::ET_WORKFLOW_STEP_COMPLETED
 
             # retrieve request and vm
-            req = e.data
+            req, next_step = e.data
             container  = e.destination
             # check the current step here --- it's an array
             #req.services_completed << current_step_services
@@ -485,6 +486,7 @@ module KUBETWIN
             container.request_finished(self, e.time) if container.wait_for.empty?
             # tell the old container that it can start processing another request
             # if microservice should wait for one other
+            @logger.debug "rid: #{req.rid} #{container.name} workflow step completed"
 
             current_cluster = cluster_repository[req.data_center_id]
             # find the next workflow
@@ -494,24 +496,26 @@ module KUBETWIN
             # register step completion for the current step, the nme
             # of the request is the name of the container
             per_component_stats[container.name].record_request(req, now) if per_component_stats.key?(container.name)
-            #@logger.debug("per_component_stats: #{per_component_stats}")
             req.ttr_step(now, container.name)
 
             # check if there are other steps left to complete the workflow
-            size = @workflows[workflow_id].size 
+            size = @workflows[workflow_id].size
             # next step info 
             tmp_current_name = req.next_component.nil? ? req.component : container.name
+            @logger.debug "tmp_current_name: #{tmp_current_name}"
             services = @workflows[workflow_id].get_child_of(tmp_current_name)
             has_children = !services.nil?
 
-            if req.next_step < size && has_children
+            @logger.debug "#{container.name} #{req.next_step} #{size} #{has_children}"
+
+            if next_step < size && has_children == true
               # get the children of the current node
               services.children.each do |s|
 
                 next_component_name = s.name
                 req.component = req.next_component unless req.next_component.nil?
                 req.next_component = next_component_name
-
+                @logger.debug "Next component: #{next_component_name}"
                 # resolve the next component name
                 service = @kube_dns.lookup(next_component_name)
   
@@ -528,7 +532,7 @@ module KUBETWIN
                 transmission_time =
                   latency_manager.sample_latency_between(current_cluster.location_id, cluster.location_id)
                 req.update_transfer_time(transmission_time)
-                forwarding_time += transmission_time
+                forwarding_time += transmission_time + rand(1E-5..1E-4)
   
                 # update request's current data_center_id / cluster_id
                 req.data_center_id = cluster.cluster_id
@@ -546,7 +550,7 @@ module KUBETWIN
                 new_event(Event::ET_REQUEST_FORWARDING, req, forwarding_time, pod)
               end
 
-            elsif req.next_step == size # workflow is finished
+            elsif next_step == size # workflow is finished
               oc = container.free_linked_container
               while true
                 break if oc.nil?
@@ -590,7 +594,8 @@ module KUBETWIN
             if req.arrival_time > warmup_threshold && now < @configuration.end_time
               # decrease the number of requests being worked on
               requests_being_worked_on -= 1
-              # @logger.debug "Request #{req.rid} finished at #{now} with TTR #{req.ttr(@current_time)}"
+              
+              @logger.debug "Request #{req.rid} finished at #{now} with TTR #{req.ttr(@current_time)}"
               # collect request statistics
               stats.record_request(req, @current_time)
               # collect request statistics in per_workflow_and_customer_stats
@@ -847,8 +852,7 @@ module KUBETWIN
 
       # --- what to return here?
       # Filippo - just return 0 now for debugging purposes
-      # return stats.to_csv # change this
-      return 0
+      return stats.to_csv 
     end
   end
 end

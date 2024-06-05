@@ -84,6 +84,7 @@ module KUBETWIN
       @service_time = nil
       @arrival_times = []
       @service_time = ERV::RandomVariable.new(st_distribution) if @path.nil?
+      @logger = Logger.new(STDOUT)
     end
 
     def check_rps(interval=8)
@@ -145,7 +146,8 @@ module KUBETWIN
             end
           end
         end
-      rps = rps * 10
+      #@logger.info("Name: #{@name} Retrieved RPS: #{rps}")
+      rps = rps * 5
       rps = 34 if rps > 34
       end
     #=end
@@ -205,18 +207,15 @@ module KUBETWIN
         # update the request's working information
         #req.update_queuing_time(time - ri.arrival_time)
         req.update_queuing_time(time - req.arrival_at_container)
-
         req.step_completed(ri.service_time)
-      
-      
+        next_step = req.next_step
+
         # update container-based metric here
         @total_queue_time += time - ri.arrival_time
         # raise "We are looking at two different times" if req.queuing_time != (time - ri.arrival_time)
         @total_queue_processing_time += ri.service_time + (time - ri.arrival_time)
         # schedule completion of workflow step
-        # puts "Finished #{time + ri.service_time} #{@request_queue.length}"
-      
-        sim.new_event(Event::ET_WORKFLOW_STEP_COMPLETED, req, time + ri.service_time, self)
+        sim.new_event(Event::ET_WORKFLOW_STEP_COMPLETED, [req, next_step], time + ri.service_time, self)
 
       end
     end
