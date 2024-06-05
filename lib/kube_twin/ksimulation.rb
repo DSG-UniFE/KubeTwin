@@ -55,7 +55,6 @@ module KUBETWIN
 
     def retrieve_mdn_model(name, rps, replica=1)
       # if not create mdn
-      @logger.debug "retrieve mdn model for #{name} #{rps} #{replica}"
       unless @microservice_mdn[name][:st].key?(rps)
         numpy = PyCall.import_module("numpy")
         # here rember to set replica to the correct value
@@ -66,6 +65,7 @@ module KUBETWIN
         scs = scale_pred.tolist()
         gamma_mix = []
         ncomponents = ws[0].length - 1
+        @logger.debug "retrieve mdn model for #{name} RPS: #{rps}, Replica: #{replica} ncomponents: #{ncomponents}"
         (0..ncomponents).each do |i|
           gamma_mix << ws[0][i].to_f
           gamma_mix << cps[0][i].to_f

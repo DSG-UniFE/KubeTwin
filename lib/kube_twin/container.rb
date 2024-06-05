@@ -79,7 +79,7 @@ module KUBETWIN
       @total_queue_time = 0
       @last_request_time = nil
       @path = opts[:img_info][:mdn_file]
-      @rps = opts[:img_info][:rps].to_i
+      @rps = opts[:img_info][:rps].to_f
       @replica = opts[:img_info][:replica].to_i
       @service_time = nil
       @arrival_times = []
@@ -127,19 +127,21 @@ module KUBETWIN
       # improve this code in the future
       r.arrival_at_container = time
       # begin was here
-      #=begin
       unless @path.nil?
         @arrival_times << time
         if @arrival_times.length < 2
-          rps = 1
+          rps = 0.2 # default value for the current use-case
         else
-          inter_arrival_times = check_rps()
-          #puts inter_arrival_times
-          if inter_arrival_times >= 1.0 || inter_arrival_times == 0.to_f
-            rps = 1
+          inter_arrival_times = check_rps
+          #@logger.info "Inter_Arrival_time; #{inter_arrival_times}"
+          if inter_arrival_times == 0.to_f
+            rps = 0.2 # default value for the current use-case
           else
             begin
-              rps = (1 / inter_arrival_times).ceil
+              #rps = (1 / inter_arrival_times).ceil
+              rps = (1 / inter_arrival_times.to_f)
+              # ceil the rps to the second decimal digit
+              rps = rps.round(1)
             rescue
               puts inter_arrival_times
               abort
@@ -147,10 +149,8 @@ module KUBETWIN
           end
         end
       #@logger.info("Name: #{@name} Retrieved RPS: #{rps}")
-      rps = rps * 5
       rps = 34 if rps > 34
       end
-    #=end
 # end was here
       #rps = @rps
       #puts "RPS: #{rps}"

@@ -123,7 +123,7 @@ k8s_log_files.each do |log_file|
   mconf = sim_conf.microservice_types
   sim_conf.microservice_types.each do |k,v|
     v[:replica] = 1
-    v[:rps] = rps_f * 10
+    v[:rps] = rps_f
     #puts "log_compare: rps: #{v[:rps]}"
   end
 
