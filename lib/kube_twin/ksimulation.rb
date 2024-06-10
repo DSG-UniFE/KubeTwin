@@ -53,7 +53,7 @@ module KUBETWIN
       
     end
 
-    def retrieve_mdn_model(name, rps, replica=1)
+    def retrieve_mdn_model(name, rps, replica=2)
       # if not create mdn
       unless @microservice_mdn[name][:st].key?(rps)
         numpy = PyCall.import_module("numpy")
@@ -308,9 +308,9 @@ module KUBETWIN
       # request_generation is csv or R
       @to_generate = 0
       if @configuration.request_gen.nil? 
-        @logger.info "Using #{@configuration.request_generation}"
-        @to_generate = 1000
         rg = RequestGeneratorR.new(@configuration.request_generation)
+        @to_generate = rg.num_requests
+        @logger.info "Using #{@configuration.request_generation} about to generate #{@to_generate} requests"
         # this is to avoid mismatch when reproducing logs
         req_attrs = rg.generate(now)
         @current_time = @start_time = req_attrs[:generation_time] - 2
@@ -486,7 +486,7 @@ module KUBETWIN
             container.request_finished(self, e.time) if container.wait_for.empty?
             # tell the old container that it can start processing another request
             # if microservice should wait for one other
-            @logger.debug "rid: #{req.rid} #{container.name} workflow step completed"
+            @logger.debug "rid: #{req.rid} #{container.name}:#{container.containerId} workflow step completed, queing time: #{req.step_queue_time}"
 
             current_cluster = cluster_repository[req.data_center_id]
             # find the next workflow
@@ -502,11 +502,11 @@ module KUBETWIN
             size = @workflows[workflow_id].size
             # next step info 
             tmp_current_name = req.next_component.nil? ? req.component : container.name
-            @logger.debug "tmp_current_name: #{tmp_current_name}"
+            #@logger.debug "tmp_current_name: #{tmp_current_name}"
             services = @workflows[workflow_id].get_child_of(tmp_current_name)
             has_children = !services.nil?
 
-            @logger.debug "#{container.name} #{req.next_step} #{size} #{has_children}"
+            #@logger.debug "#{container.name} #{next_step} #{size} #{has_children}"
 
             if next_step < size && has_children == true
               # get the children of the current node
@@ -515,7 +515,7 @@ module KUBETWIN
                 next_component_name = s.name
                 req.component = req.next_component unless req.next_component.nil?
                 req.next_component = next_component_name
-                @logger.debug "Next component: #{next_component_name}"
+                #@logger.debug "Next component: #{next_component_name}"
                 # resolve the next component name
                 service = @kube_dns.lookup(next_component_name)
   
@@ -554,8 +554,8 @@ module KUBETWIN
               oc = container.free_linked_container
               while true
                 break if oc.nil?
-                #@logger.debug "Releasing container #{oc.name}"
-                oc.request_finished(self, e.time) 
+                @logger.debug "Container: #{container.name} releasing container #{oc.name} #{oc.busy}"
+                oc.request_finished(self, e.time)
                 oc = oc.containers_to_free.shift
               end
 

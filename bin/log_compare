@@ -122,7 +122,7 @@ k8s_log_files.each do |log_file|
   sim_conf.set_rgen(log_file, nil)
   mconf = sim_conf.microservice_types
   sim_conf.microservice_types.each do |k,v|
-    v[:replica] = 1
+    v[:replica] = 2
     v[:rps] = rps_f
     #puts "log_compare: rps: #{v[:rps]}"
   end
@@ -135,7 +135,8 @@ k8s_log_files.each do |log_file|
   sim_log = CSV.parse(sim_output, headers: true)
   sim_ttr = sim_log.by_col[1].map(&:to_f)
   s_mean, s_std = calcualte_statistics(sim_ttr)
-  vmse = mse(k8s_ttr, sim_ttr)
+  min_len = [sim_ttr.length, k8s_ttr.length].min - 1
+  vmse = mse(k8s_ttr[0..min_len], sim_ttr[0..min_len])
   csv_logs << "#{rps_f},#{s_mean},#{s_std},#{percentile(sim_ttr, 0.90)},#{percentile(sim_ttr, 0.95)},#{percentile(sim_ttr, 0.99)},KubeTwin,#{vmse}\n"
   puts "KubeTwin Log: mean: #{s_mean}, std: #{s_std}, min: #{sim_ttr.min} max: #{sim_ttr.max}"
   # delete simulation logs

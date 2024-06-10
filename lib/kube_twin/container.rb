@@ -40,6 +40,7 @@ module KUBETWIN
                 :served_request,
                 :total_queue_time,
                 :containers_to_free,
+                :busy,
                 :total_queue_processing_time # endCode = 0 if all operations successfull, 0 if there's any kind of error
 
     Guaranteed = Struct.new(:cpu, :memory)
@@ -85,6 +86,7 @@ module KUBETWIN
       @arrival_times = []
       @service_time = ERV::RandomVariable.new(st_distribution) if @path.nil?
       @logger = Logger.new(STDOUT)
+      @logger.level = Logger::INFO
     end
 
     def check_rps(interval=8)
@@ -126,46 +128,20 @@ module KUBETWIN
     def new_request(sim, r, time)
       # improve this code in the future
       r.arrival_at_container = time
+      @arrival_times << time
       # begin was here
-      unless @path.nil?
-        @arrival_times << time
-        if @arrival_times.length < 2
-          rps = 0.2 # default value for the current use-case
-        else
-          inter_arrival_times = check_rps
-          #@logger.info "Inter_Arrival_time; #{inter_arrival_times}"
-          if inter_arrival_times == 0.to_f
-            rps = 0.2 # default value for the current use-case
-          else
-            begin
-              #rps = (1 / inter_arrival_times).ceil
-              rps = (1 / inter_arrival_times.to_f)
-              # ceil the rps to the second decimal digit
-              rps = rps.round(1)
-            rescue
-              puts inter_arrival_times
-              abort
-            end
-          end
-        end
-      #@logger.info("Name: #{@name} Retrieved RPS: #{rps}")
-      rps = 34 if rps > 34
-      end
-# end was here
+      # end was here
       #rps = @rps
       #puts "RPS: #{rps}"
-      @service_time = sim.retrieve_mdn_model(name, rps, @replica) unless @path.nil?
-
       @last_request_time = time
-      while (st = @service_time.sample) <= 1E-6; end
-      # st = st / 1000.0
-      # puts "Service time: #{st}"
-      # add concurrent execution
-      #pod_executing = @node.pod_id_list.length
-      #st *= Math::log(pod_executing) if pod_executing > 2
-      #return if @request_queue.length >= 3
 
-      ri = RequestInfo.new(r, st, time)
+      ri = RequestInfo.new(r, 0, time)
+      # Setting a maximum queue size
+      #if @request_queue.size >= 25 
+      #  @logger.info "Queue size exceeded for container #{@name}"
+      #  return
+      #end 
+      
       @request_queue << ri
       
       if @trace
@@ -183,10 +159,41 @@ module KUBETWIN
     def request_finished(sim, time)
       @busy = false
       # update also the metrics
+      @logger.debug "Container #{@name} is now busy: #{@busy}"
       #puts "Request finished at #{time} --> busy: #{@busy}"
       @served_request += 1
       try_servicing_new_request(sim, time) unless @busy
     end
+
+    def calculate_service_time(sim)
+      unless @path.nil?
+        if @arrival_times.length < 2
+          rps = 0.2 # default value for the current use-case
+        else
+          inter_arrival_times = check_rps
+          #@logger.info "Inter_Arrival_time; #{inter_arrival_times}"
+          if inter_arrival_times == 0.0
+            rps = 0.2 # default value for the current use-case
+          else
+            begin
+              #rps = (1 / inter_arrival_times).ceil
+              rps = (1 / inter_arrival_times.to_f)
+              # ceil the rps to the second decimal digit
+              rps = rps.round(1)
+            rescue
+              puts inter_arrival_times
+              abort
+            end
+          end
+        end
+        @logger.debug("Name: #{@name} Retrieved RPS: #{rps}")
+        rps = 34 if rps > 34
+      end
+      @service_time = sim.retrieve_mdn_model(name, rps, @replica) unless @path.nil?
+      while (st = @service_time.sample) <= 1E-6; end
+      st
+    end
+
 
     def try_servicing_new_request(sim, time) 
       if @busy
@@ -194,7 +201,6 @@ module KUBETWIN
       end
 
       unless @request_queue.empty? # || (@state == Container::CONTAINER_TERMINATED)
-        
         # monkey patch for MQTT service
         if @blocking == true
           @busy = true
@@ -207,7 +213,8 @@ module KUBETWIN
         # update the request's working information
         #req.update_queuing_time(time - ri.arrival_time)
         req.update_queuing_time(time - req.arrival_at_container)
-        req.step_completed(ri.service_time)
+        s_time = calculate_service_time(sim)
+        req.step_completed(s_time)
         next_step = req.next_step
 
         # update container-based metric here
@@ -215,7 +222,7 @@ module KUBETWIN
         # raise "We are looking at two different times" if req.queuing_time != (time - ri.arrival_time)
         @total_queue_processing_time += ri.service_time + (time - ri.arrival_time)
         # schedule completion of workflow step
-        sim.new_event(Event::ET_WORKFLOW_STEP_COMPLETED, [req, next_step], time + ri.service_time, self)
+        sim.new_event(Event::ET_WORKFLOW_STEP_COMPLETED, [req, next_step], time + s_time, self)
 
       end
     end

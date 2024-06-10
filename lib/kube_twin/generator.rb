@@ -4,6 +4,8 @@ module KUBETWIN
 
   class RequestGeneratorR
 
+    attr_reader :num_requests
+
     def initialize(opts={})
       if opts.has_key? :filename
         filename = opts[:filename]
@@ -17,6 +19,13 @@ module KUBETWIN
       end
 
       # throw away the first line (containing the CSV headers)
+      @file.gets
+
+      # count the remaining lines in the file
+      @num_requests = @file.each_line.count
+
+      # reset file pointer to the beginning of the file
+      @file.rewind
       @file.gets
 
       # NOTE: so far we support only sequential integer rids
