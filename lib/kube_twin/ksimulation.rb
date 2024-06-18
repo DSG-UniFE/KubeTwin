@@ -44,8 +44,6 @@ module KUBETWIN
       @num_reqs = DEFAULT_NUM_REQS if @num_reqs.nil?
       @results_dir += '/' unless @results_dir.nil?
       @microservice_mdn = Hash.new
-      #pyfrom :tensorflow, import: :keras
-      #skeras.utils.disable_interactive_logging()
       os = PyCall.import_module("os")
       os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
       @logger = Logger.new(STDOUT)
@@ -58,6 +56,7 @@ module KUBETWIN
       unless @microservice_mdn[name][:st].key?(rps)
         numpy = PyCall.import_module("numpy")
         # here rember to set replica to the correct value
+        # @logger.info "RPS: #{rps}, Replica: #{replica}, Name: #{name}, MDN: #{@microservice_mdn[name][:model]}"
         weight_pred, conc_pred, scale_pred = @microservice_mdn[name][:model].predict([numpy.array([rps, replica]), numpy.array([1,1])])
         # convert numpy to python list
         ws = weight_pred.tolist()
@@ -65,7 +64,7 @@ module KUBETWIN
         scs = scale_pred.tolist()
         gamma_mix = []
         ncomponents = ws[0].length - 1
-        @logger.debug "retrieve mdn model for #{name} RPS: #{rps}, Replica: #{replica} ncomponents: #{ncomponents}"
+        # @logger.debug "retrieve mdn model for #{name} RPS: #{rps}, Replica: #{replica} ncomponents: #{ncomponents}"
         (0..ncomponents).each do |i|
           gamma_mix << ws[0][i].to_f
           gamma_mix << cps[0][i].to_f

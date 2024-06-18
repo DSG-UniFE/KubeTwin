@@ -134,12 +134,15 @@ module KUBETWIN
       #rps = @rps
       #puts "RPS: #{rps}"
       @last_request_time = time
+      s_time = calculate_service_time(sim)
+      @logger.debug "Container #{@name}, service_time: #{s_time}"
 
-      ri = RequestInfo.new(r, 0, time)
+      ri = RequestInfo.new(r, s_time, time)
       # Setting a maximum queue size
-      #if @request_queue.size >= 25 
+      @logger.debug "Container #{@name}:#{@containerId} queue size: #{@request_queue.size}"
+      #if @request_queue.size >= 22
       #  @logger.info "Queue size exceeded for container #{@name}"
-      #  return
+      #  return 
       #end 
       
       @request_queue << ri
@@ -189,8 +192,18 @@ module KUBETWIN
         @logger.debug("Name: #{@name} Retrieved RPS: #{rps}")
         rps = 34 if rps > 34
       end
-      @service_time = sim.retrieve_mdn_model(name, rps, @replica) unless @path.nil?
+      @service_time = sim.retrieve_mdn_model(name, @rps, @replica) unless @path.nil?
       while (st = @service_time.sample) <= 1E-6; end
+      #case @name
+      #when 'FE1'
+      #  st *= 0.43
+      #when 'FE2'
+      #  st *= 0.36
+      #when 'FE3'
+      #  st *= 0.21
+      #else
+      #  st
+      #end
       st
     end
 
@@ -213,8 +226,8 @@ module KUBETWIN
         # update the request's working information
         #req.update_queuing_time(time - ri.arrival_time)
         req.update_queuing_time(time - req.arrival_at_container)
-        s_time = calculate_service_time(sim)
-        req.step_completed(s_time)
+        #s_time = calculate_service_time(sim)
+        req.step_completed(ri.service_time)
         next_step = req.next_step
 
         # update container-based metric here
@@ -222,7 +235,7 @@ module KUBETWIN
         # raise "We are looking at two different times" if req.queuing_time != (time - ri.arrival_time)
         @total_queue_processing_time += ri.service_time + (time - ri.arrival_time)
         # schedule completion of workflow step
-        sim.new_event(Event::ET_WORKFLOW_STEP_COMPLETED, [req, next_step], time + s_time, self)
+        sim.new_event(Event::ET_WORKFLOW_STEP_COMPLETED, [req, next_step], time + ri.service_time, self)
 
       end
     end
