@@ -192,7 +192,7 @@ module KUBETWIN
         @logger.debug("Name: #{@name} Retrieved RPS: #{rps}")
         rps = 34 if rps > 34
       end
-      @service_time = sim.retrieve_mdn_model(name, @rps, @replica) unless @path.nil?
+      @service_time = sim.retrieve_mdn_model(name, rps, @replica) unless @path.nil?
       while (st = @service_time.sample) <= 1E-6; end
       #case @name
       #when 'FE1'
