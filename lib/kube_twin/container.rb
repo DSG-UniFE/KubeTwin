@@ -140,8 +140,8 @@ module KUBETWIN
       ri = RequestInfo.new(r, s_time, time)
       # Setting a maximum queue size
       @logger.debug "Container #{@name}:#{@containerId} queue size: #{@request_queue.size}"
-      #if @request_queue.size >= 22
-      #  @logger.info "Queue size exceeded for container #{@name}"
+      #if @request_queue.size >= 20
+      #  @logger.debug "Queue size exceeded for container #{@name}"
       #  return 
       #end 
       
@@ -192,18 +192,21 @@ module KUBETWIN
         @logger.debug("Name: #{@name} Retrieved RPS: #{rps}")
         rps = 34 if rps > 34
       end
-      @service_time = sim.retrieve_mdn_model(name, rps, @replica) unless @path.nil?
+      if @name == 'FE1' 
+        @logger.debug "Container #{@name} RPS: #{rps}"
+      end 
+      @service_time = sim.retrieve_mdn_model(@name, rps, @replica) unless @path.nil?
       while (st = @service_time.sample) <= 1E-6; end
-      #case @name
-      #when 'FE1'
-      #  st *= 0.43
-      #when 'FE2'
-      #  st *= 0.36
-      #when 'FE3'
-      #  st *= 0.21
-      #else
-      #  st
-      #end
+      case @name
+      when 'FE1'
+        st *= 0.43
+      when 'FE2'
+        st *= 0.36
+      when 'FE3'
+        st *= 0.21
+      else
+        st
+      end
       st
     end
 

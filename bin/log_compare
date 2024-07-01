@@ -122,7 +122,7 @@ k8s_log_files.each do |log_file|
   sim_conf.set_rgen(log_file, nil)
   mconf = sim_conf.microservice_types
   sim_conf.microservice_types.each do |k,v|
-    v[:replica] = 2
+    v[:replica] = 4
     v[:rps] = rps_f
     #puts "log_compare: rps: #{v[:rps]}"
   end

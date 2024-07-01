@@ -4,10 +4,12 @@ import sys
 import time
 import pandas as pd
 from multiprocessing import Pool
+import matplotlib.pyplot as plt 
 
 def send_requests(uri, i, filename):
     start_req_time = time.time()
-    req = requests.get(uri)
+    headers = {'Content-Type': 'application/json'}
+    req = requests.post(uri, headers=headers, data='{"user_id" : "Lorenzone"}')
     if req.status_code == 200:
         req_time = time.time() - start_req_time
         # print(f'Took #{req_time}')
@@ -20,17 +22,17 @@ def send_requests(uri, i, filename):
 if __name__ == '__main__':
 
     if len(sys.argv) < 4:
-        sys.stderr('{} <target_rps> <#requests> <uri>'.format(sys.argv[0]))
+        sys.stderr.write('{} <target_rps> <#requests> <uri>'.format(sys.argv[0]))
         exit(1)
     try: 
         rps = float(sys.argv[1])
     except ValueError:
-        sys.stderr("<target_rps> must be a numeric value")
+        sys.stderr.write("<target_rps> must be a numeric value")
     
     try:
         nreqs = int(sys.argv[2])
     except ValueError:
-        sys.stderr("<#requests> must be a numeric value")
+        sys.stderr.write("<#requests> must be a numeric value")
 
     uri = sys.argv[3]
 
@@ -50,13 +52,13 @@ if __name__ == '__main__':
     # It looks like we have to call close before join()
     # check if we can reuse the pool without closing it
 
-    pool = Pool(processes=int(rps))
+    pool = Pool(processes=int(10))
     print(f'Target rps: {rps}')
 
     i = 0
     rv = np.random.exponential(1 / rps, size=nreqs)
     while i < nreqs:
-        pool.apply_async(send_requests, [uri, i, res_name])
+        pool.apply(send_requests, [uri, i, res_name])
         time.sleep(rv[i])
         i += 1
         
@@ -83,8 +85,7 @@ if __name__ == '__main__':
     for q in [.5, .66, .75, .80, .90, .95, .98, .99, 1.0]:
         ttr_percentile = ds['ttr'].quantile(q)
         print(f'{q * 100}% {round(ttr_percentile)}')
-'''
-    ds.sort_values(by=['st'])
-    plt.plot(ds['st'], ds['ttr'])
-    plt.show()
-'''
+    #ds.sort_values(by=['st'])
+    #plt.plot(ds['st'], ds['ttr'])
+    #plt.show()
+

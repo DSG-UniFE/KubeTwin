@@ -57,7 +57,7 @@ module KUBETWIN
         numpy = PyCall.import_module("numpy")
         # here rember to set replica to the correct value
         # @logger.info "RPS: #{rps}, Replica: #{replica}, Name: #{name}, MDN: #{@microservice_mdn[name][:model]}"
-        weight_pred, conc_pred, scale_pred = @microservice_mdn[name][:model].predict([numpy.array([rps, replica]), numpy.array([1,1])])
+        weight_pred, conc_pred, scale_pred = @microservice_mdn[name][:model].predict([numpy.array([rps, replica.to_f]), numpy.array([1,1])], verbose:nil)
         # convert numpy to python list
         ws = weight_pred.tolist()
         cps = conc_pred.tolist()
@@ -366,8 +366,13 @@ module KUBETWIN
         current_event += 1
         # sanity check on simulation time flow
         if @current_time > e.time
-          raise "Error: simulation time inconsistency for event #{current_event} " +
-                "e.type=#{e.type} @current_time=#{@current_time}, e.time=#{e.time}"
+          if e.type == Event::ET_REQUEST_GENERATION
+            # monkey path because ttr files have unordered requests
+            e.time = @current_time 
+          else 
+            raise "Error: simulation time inconsistency for event #{current_event} " +
+                  "e.type=#{e.type} @current_time=#{@current_time}, e.time=#{e.time}"
+          end
         end
 
         @current_time = e.time

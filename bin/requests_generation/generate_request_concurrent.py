@@ -41,6 +41,7 @@ if __name__ == '__main__':
     try:
         c = int(sys.argv[3])
     except ValueError:
+        c = 25
         sys.stderr.write("<#c> must be a numeric value")
 
     uri = sys.argv[4]

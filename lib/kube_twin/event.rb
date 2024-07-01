@@ -22,7 +22,9 @@ module KUBETWIN
     include Comparable
 
     # should this be attr_accessor instead?
-    attr_reader :type, :data, :time, :destination
+    attr_reader :type, :data, :destination
+    
+    attr_accessor :time
 
     def initialize(type, data, time, destination)
       @type        = type
