@@ -134,10 +134,12 @@ module KUBETWIN
       #rps = @rps
       #puts "RPS: #{rps}"
       @last_request_time = time
-      s_time = calculate_service_time(sim)
-      @logger.debug "Container #{@name}, service_time: #{s_time}"
+      # Question is when to caculate the service time, here or when the request is about 
+      # to be processed
+      # s_time = calculate_service_time(sim)
+      #@logger.debug "Container #{@name}, service_time: #{s_time}"
 
-      ri = RequestInfo.new(r, s_time, time)
+      ri = RequestInfo.new(r, 0.20, time)
       # Setting a maximum queue size
       @logger.debug "Container #{@name}:#{@containerId} queue size: #{@request_queue.size}"
       #if @request_queue.size >= 20
@@ -171,12 +173,16 @@ module KUBETWIN
     def calculate_service_time(sim)
       unless @path.nil?
         if @arrival_times.length < 2
-          rps = 0.2 # default value for the current use-case
+          unless @rps.nil? 
+            rps = @rps
+          else
+            rps = 0.2 # default value for the current use-case
+          end
         else
           inter_arrival_times = check_rps
           #@logger.info "Inter_Arrival_time; #{inter_arrival_times}"
           if inter_arrival_times == 0.0
-            rps = 0.2 # default value for the current use-case
+            rps = 0.2
           else
             begin
               #rps = (1 / inter_arrival_times).ceil
@@ -195,8 +201,10 @@ module KUBETWIN
       if @name == 'FE1' 
         @logger.debug "Container #{@name} RPS: #{rps}"
       end 
+      @logger.info "Retrieved RPS: #{rps} for container #{@name} containerId: #{@containerId} queue size: #{@request_queue.size}"
       @service_time = sim.retrieve_mdn_model(@name, rps, @replica) unless @path.nil?
       while (st = @service_time.sample) <= 1E-6; end
+=begin
       case @name
       when 'FE1'
         st *= 0.43
@@ -207,6 +215,7 @@ module KUBETWIN
       else
         st
       end
+=end
       st
     end
 
@@ -229,7 +238,8 @@ module KUBETWIN
         # update the request's working information
         #req.update_queuing_time(time - ri.arrival_time)
         req.update_queuing_time(time - req.arrival_at_container)
-        #s_time = calculate_service_time(sim)
+        s_time = calculate_service_time(sim)
+        ri.service_time = s_time
         req.step_completed(ri.service_time)
         next_step = req.next_step
 
