@@ -7,6 +7,7 @@ import json
 import wandb
 import subprocess
 import time
+import logging
 
 from tensorboardX import SummaryWriter
 
@@ -32,6 +33,8 @@ class ChaosEnv(gym.Env):
         #self.action_space = [i for i in range(90)]
         self.available_actions = np.arange(MAX_NUM_NODES)
         self.writer = SummaryWriter(LOG_PATH)
+        logging.debug(self.observation_space.shape)
+        logging.debug(LOG_PATH)
         self.total_step = 0
         self.pod_received = 0
         self.pod_reallocated = 0
@@ -41,7 +44,7 @@ class ChaosEnv(gym.Env):
         Connect to UNIX socket (simulator)
         """    
         self.sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        server_address = '/tmp/chaos_telka.sock'
+        server_address = '/tmp/chaos_telka_1.sock'
         max_attempts = 15
         i = 0
         time.sleep(0.5)
@@ -58,48 +61,70 @@ class ChaosEnv(gym.Env):
             print("Error in connecting to UNIX socket, max attempts reached")
             raise Exception("Error in connecting to UNIX socket, max attempts reached")                
 
+
     def dict_to_array(self, state_dict):
         features = []
-        features.append(state_dict["evicted_pods"]["pod_id"])
-        features.append(state_dict["evicted_pods"]["original_node"])
-        #features.append(pod["node_affinity"])
-        features.append(state_dict["evicted_pods"]["requirements"]["cpu"])
-
+        pod = state_dict["evicted_pods"]
+        # Create a dummy pod if no pod is evicted is given... this allows us to described the initial state
+        if pod is None:
+            pod = {"pod_id": -1, "original_node": -1, "requirements": {"cpu": -1}}
+        logging.debug(f"Pod: {pod}")
         for node in state_dict["nodes_alive"].values():
-            features.append(node["node_id"])
-            features.append(node["resources_cpu_available"])
-            features.append(node["resources_memory_available"])
-        print(f"Features Length: {len(features)}")
+            features.append(
+                [
+                    node["node_id"],
+                    node["resources_cpu_available"],
+                    node["resources_memory_available"],
+                    node["operational_status"],
+                    pod["pod_id"],
+                    pod["original_node"],
+                    pod["requirements"]["cpu"],
+                ]
+            )
 
-        if len(features) < self.observation_space.shape[0]:
-            features.extend([0] * (self.observation_space.shape[0] - len(features)))
+        # logging.debug(f"Features Length: {len(features)}")
 
         return np.array(features, dtype=np.float32)
 
 
+    def read_initial_state(self):
+        logging.info("RL: Waiting for the initial state from socket...")
+        nodes_alive_json = self._read_until_newline()
+        # sending ack to socket
+        self.sock.send("OK\n".encode("utf-8"))
+        nodes_alive = json.loads(nodes_alive_json)
+        self.state = self.dict_to_array(
+            {"evicted_pods": None, "nodes_alive": nodes_alive}
+        )
+
     def read_state(self):
-        print("RL: Waiting for data from socket...")
+        # logging.debug("RL: Waiting for data from socket...")
         evicted_pod_json = self._read_until_newline()
         if evicted_pod_json is None:
             return None, None
         if evicted_pod_json.startswith("END"):
-            reward = evicted_pod_json.split(';')[3]
-            ratio = evicted_pod_json.split(';')[1]
-            med_ttr= evicted_pod_json.split(';')[2]
-            
-            self.writer.add_scalar('Testing Ratio', float(ratio), self.total_step)
-            self.writer.add_scalar('Testing Med TTR', float(med_ttr), self.total_step)
-            self.writer.add_scalar('Testing Pods Received', self.pod_received, self.total_step)
-            self.writer.add_scalar('Testing Pods Reallocated', self.pod_reallocated, self.total_step)
-            #self.writer.add_scalar('Testing Pods Reallocated Ratio', self.pod_reallocated/self.pod_received, self.total_step)
+            reward = evicted_pod_json.split(";")[3]
+            ratio = evicted_pod_json.split(";")[1]
+            med_ttr = evicted_pod_json.split(";")[2]
+
+            self.writer.add_scalar("Testing_Ratio", float(ratio), self.total_step)
+            self.writer.add_scalar("Testing_Med_TTR", float(med_ttr), self.total_step)
+            self.writer.add_scalar(
+                "Testing_Pods_Received", self.pod_received, self.total_step
+            )
+            self.writer.add_scalar(
+                "Testing_Pods_Reallocated", self.pod_reallocated, self.total_step
+            )
+            # self.writer.add_scalar('Testing Pods Reallocated Ratio', self.pod_reallocated/self.pod_received, self.total_step)
             return None, reward
-        self.sock.send("OK\n".encode('utf-8'))
+        self.sock.send("OK\n".encode("utf-8"))
         nodes_alive_json = self._read_until_newline()
         evicted_pod = json.loads(evicted_pod_json)
         nodes_alive = json.loads(nodes_alive_json)
-        self.state = self.dict_to_array({"evicted_pods": evicted_pod, "nodes_alive": nodes_alive})
-        self.action_space = self.define_action_space(nodes_alive)
-        print(f"RL: State read from socket: {self.state}")
+        self.state = self.dict_to_array(
+            {"evicted_pods": evicted_pod, "nodes_alive": nodes_alive}
+        )
+        # logging.debug(f"RL: State read from socket: {self.state} {self.state.shape}")
         return self.state, evicted_pod
 
 
@@ -234,6 +259,7 @@ class ChaosEnv(gym.Env):
         self.action_space = spaces.Discrete(MAX_NUM_NODES)
         #self.action_space = [i for i in range(90)] 
         #self.state = None
+        self.read_initial_state()
         self.steps = 0
         self.max_steps = 100
         self.total_reward = 0

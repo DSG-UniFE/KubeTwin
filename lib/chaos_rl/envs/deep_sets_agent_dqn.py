@@ -10,7 +10,7 @@ from envs.deep_sets_agent_original import EquivariantDeepSet
 class DQNDeepSetAgent(nn.Module):
     def __init__(self, envs: gym.vector.VectorEnv) -> None:
         super().__init__()
-        in_channels = envs.observation_space.shape[0]
+        in_channels = envs.observation_space.shape[1]
 
         '''
         # Actor outputs pi(a|s)

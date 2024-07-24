@@ -102,8 +102,9 @@ class DQN_DeepSets(Algorithm):
 
         # Initialize masks
         #self.masks = torch.zeros((self.num_envs, self.env.action_space.n), dtype=torch.bool).to(self.device)
-        self.masks = torch.tensor(self.env.action_masks(), dtype=torch.bool).to(self.device)
-
+        #self.masks = torch.tensor(self.env.action_masks(), dtype=torch.bool).to(self.device)
+        self.masks = torch.zeros((self.num_steps, self.num_envs, self.env.action_space.n), dtype=torch.bool).to(
+            self.device)
         # Initialize actions
         self.actions = torch.zeros((self.num_envs, 1), dtype=torch.int64).to(self.device)
 
@@ -117,10 +118,10 @@ class DQN_DeepSets(Algorithm):
             handle_timeout_termination=False,
         )
 
-    def learn(self, total_timesteps: int = 500000):
+    def learn(self, total_timesteps: int = 15000):
         start_time = time.time()
         obs = self.env.reset()
-        next_masks = torch.tensor(self.env.action_masks(), dtype=torch.bool).to(self.device)
+        next_masks = torch.tensor(np.array(self.env.env_method("action_masks")), dtype=torch.bool).to(self.device)
         episode_rewards = []
 
         for global_step in range(total_timesteps):
@@ -147,9 +148,10 @@ class DQN_DeepSets(Algorithm):
 
                 self.actions = torch.argmax(q_values, dim=1)
             # Execute the game and log data
-                
-            next_obs, rewards, terminated, infos = self.env.step(self.actions.cpu().numpy()[0])
-            next_masks = torch.tensor(self.env.action_masks(), dtype=torch.bool).to(self.device)
+            
+            actions_list = self.actions.cpu().numpy().tolist()
+            next_obs, rewards, terminated, infos = self.env.step(actions_list)
+            next_masks = torch.tensor(np.array(self.env.env_method("action_masks")), dtype=torch.bool).to(self.device)
 
             # Record rewards for plotting purposes
             for item in infos:
