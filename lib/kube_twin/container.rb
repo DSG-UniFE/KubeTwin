@@ -136,10 +136,10 @@ module KUBETWIN
       @last_request_time = time
       # Question is when to caculate the service time, here or when the request is about 
       # to be processed
-      # s_time = calculate_service_time(sim)
+      #s_time = calculate_service_time(sim)
       #@logger.debug "Container #{@name}, service_time: #{s_time}"
 
-      ri = RequestInfo.new(r, 0.20, time)
+      ri = RequestInfo.new(r, nil, time)
       # Setting a maximum queue size
       @logger.debug "Container #{@name}:#{@containerId} queue size: #{@request_queue.size}"
       #if @request_queue.size >= 20
@@ -176,13 +176,14 @@ module KUBETWIN
           unless @rps.nil? 
             rps = @rps
           else
-            rps = 0.2 # default value for the current use-case
+            rps = 1 # default value for the current use-case
           end
         else
           inter_arrival_times = check_rps
           #@logger.info "Inter_Arrival_time; #{inter_arrival_times}"
           if inter_arrival_times == 0.0
-            rps = 0.2
+            raise "Inter arrival time is zero"
+            rps = 34
           else
             begin
               #rps = (1 / inter_arrival_times).ceil
@@ -197,12 +198,9 @@ module KUBETWIN
         end
         @logger.debug("Name: #{@name} Retrieved RPS: #{rps}")
         rps = 34 if rps > 34
-      end
-      if @name == 'FE1' 
-        @logger.debug "Container #{@name} RPS: #{rps}"
       end 
-      @logger.info "Retrieved RPS: #{rps} for container #{@name} containerId: #{@containerId} queue size: #{@request_queue.size}"
-      @service_time = sim.retrieve_mdn_model(@name, rps, @replica) unless @path.nil?
+      @logger.debug "Retrieved RPS: #{rps} for container #{@name} containerId: #{@containerId} queue size: #{@request_queue.size}" if @name == 'FE1'
+      @service_time = sim.retrieve_mdn_model(@name, @rps, @replica) unless @path.nil?
       while (st = @service_time.sample) <= 1E-6; end
 =begin
       case @name

@@ -559,7 +559,7 @@ module KUBETWIN
               while true
                 break if oc.nil?
                 @logger.debug "Container: #{container.name} releasing container #{oc.name} #{oc.busy}"
-                oc.request_finished(self, e.time)
+                oc.request_finished(self, e.time) if oc.busy
                 oc = oc.containers_to_free.shift
               end
 

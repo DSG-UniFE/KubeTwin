@@ -19,7 +19,7 @@ module KUBETWIN
 
     SEED = 12345
 
-    def initialize(serviceName, selector, load_balancing=:random)
+    def initialize(serviceName, selector, load_balancing=:least_req)
       @serviceName = serviceName
       @selector = selector
       @pods = {}
@@ -46,8 +46,12 @@ module KUBETWIN
 
     def get_pod(label)
      #if rand < 0.26
-     if @load_balancing == :random
+     case @load_balancing
+     when :random
        pod = get_random_pod(label)
+     when :least_req 
+       pod = get_least_req_pod(label)
+       @logger.debug "Pod selected: #{pod.pod_id} #{pod.container.request_queue.size}" if pod
      else
        # this is for round robin
        pod = get_pod_rr(label)
@@ -69,6 +73,16 @@ module KUBETWIN
           end
           #@pods[label].sample
         end
+      end
+    end
+
+    """ This is a very simple implementation of the least request algorithm 
+    It should contain also some kind of randomness to avoid reproducing a pure
+    round robin """
+    def get_least_req_pod(label)
+      if @pods.key? label
+        selection = @pods[label].sample(2)
+        selection.min_by { |p| p.container.request_queue.size }
       end
     end
 
