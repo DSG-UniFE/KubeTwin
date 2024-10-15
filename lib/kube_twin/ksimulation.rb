@@ -46,6 +46,8 @@ module KUBETWIN
       keras.utils.disable_interactive_logging()
       os = PyCall.import_module("os")
       os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
+      #output file where to print final allocation
+      @allocation_file = File.open("final_allocation.txt", 'w')
 
     end
 
@@ -822,6 +824,12 @@ module KUBETWIN
            "component_stats: #{per_component_stats.to_s}\n" +
            "allocation_map: #{allocation_map}\n" +
            "=======================================\n"
+
+      #print final allocation to file
+      allocation_map.each do |k,v|
+        @allocation_file << "Datacenter: #{k}, Tier: #{v[:tier]}, Pods: #{v[:pods]}\n"
+      end
+
       # debug info here
       # we want to minimize the cost, so we define fitness as the opposite of
       # the sum of all costs incurred
