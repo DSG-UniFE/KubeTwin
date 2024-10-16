@@ -114,8 +114,14 @@ module KUBETWIN
 
       # TODO: might want to restrict this substitution only to the :filename
       # and :command keys
-      @request_generation.each do |k,v|
-        @request_generation[k] = v.gsub('<pwd>', File.expand_path(File.dirname(@filename)))
+      
+      #if @request_generation is not defined in the configuration file, use request_gen
+      if @request_generation.nil?
+        @request_generation = @request_gen
+      else
+        @request_generation.each do |k,v|
+          @request_generation[k] = v.gsub('<pwd>', File.expand_path(File.dirname(@filename)))
+        end
       end
 
       @custom_stats = [] unless defined? @custom_stats
