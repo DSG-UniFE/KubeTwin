@@ -30,7 +30,18 @@ test/version_tmp
 tmp
 vendor
 
+!lib/mqtt-clients/*
+lib/mqtt-clients/*.csv
+lib/mqtt-clients/uploads/*
+!**/.gitkeep
+
+# Models directory
+mdn_ms1_final
+mdn_ms2_from_ms1
+
 # YARD artifacts
 .yardoc
 _yardoc
 doc/
+
+.python*

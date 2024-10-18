@@ -1,5 +1,5 @@
 # list of python requirements
 scikit-learn
-tensorflow
+tensorflow==2.14.0
 tensorflow-probability
 wrapt==1.14.1 # to disable deprecation error

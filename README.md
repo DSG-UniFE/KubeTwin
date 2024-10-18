@@ -24,6 +24,12 @@ To install and work with KubeTwin we kindly suggest to use bundler:
 
     bundle install
 
+Before the usage, it's neccessary to install the pip package needed to run the evaluate script. The Python version necessary is 3.10.
+
+To do so, run the following command:
+    
+    pip install -r requirements.txt
+
 ## Usage
 
 To run the simulator with bundler simply digit:
