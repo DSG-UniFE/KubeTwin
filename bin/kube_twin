@@ -39,10 +39,17 @@ if File.expand_path(__FILE__) == File.expand_path($0)
     env_id = 1
   end
 
+  if ARGV.size > 2 && !ARGV[2].nil?
+    node_per_cluster = ARGV[2]
+  else
+    node_per_cluster = 0
+  end
+
   # load simulation configuration
   conf = KUBETWIN::Configuration.load_from_file(ARGV[0])
-  puts "BIN: ENV ID: #{env_id}"
+  puts "BIN: ENV ID: #{env_id} NODE PER CLUSTER: #{node_per_cluster}"
   conf.env_id = env_id
+  conf.node_per_cluster = node_per_cluster
 
   # load vm allocationß
   # keep track of this for futre references

@@ -52,6 +52,7 @@ module KUBETWIN
       puts "Simulator:: env_id: #{@env_id}"
       @socket_sim = establish_socket_connection("/tmp/chaos_telka_#{@env_id}.sock")
       @total_evicted = 0
+      @node_per_cluster = @configuration.node_per_cluster&.to_i
       #pyfrom :tensorflow, import: :keras
       #keras.utils.disable_interactive_logging()
       #os = PyCall.import_module("os")
@@ -143,7 +144,13 @@ module KUBETWIN
       # create clusters and relative nodes and store them in a repository
       cluster_repository = Hash[
         @configuration.clusters.map do |k,v|
-          [ k, Cluster.new(id: k, fixed_hourly_cost_cpu: evaluation_cost[k], fixed_hourly_cost_memory: evaluation_cost[k], **v) ]
+          if @node_per_cluster.zero?
+            node_per_cluster = v[:node_number]
+          else
+            node_per_cluster = @node_per_cluster
+          end
+          [ k, Cluster.new(id: k, fixed_hourly_cost_cpu: evaluation_cost[k], 
+          fixed_hourly_cost_memory: evaluation_cost[k], node_number: node_per_cluster, **v) ]
         end
       ]
 

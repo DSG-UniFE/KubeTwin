@@ -30,6 +30,9 @@ class ChaosEnvDeepSet(gym.Env):
         self.config = config
         if self.config:
             self.env_id = self.config["env_id"]
+            self.nodes_per_cluster = self.config["nodes_per_cluster"]
+            #if self.nodes_per_cluster != 0:
+            #    MAX_NUM_NODES = self.nodes_per_cluster * 7
             # LOG_PATH = self.config["log"]
         else:
             self.env_id = 1
@@ -265,7 +268,7 @@ class ChaosEnvDeepSet(gym.Env):
         Reset the environment
         """
         logging.debug("RL: Resetting environment")
-        start_simulator(self.env_id)
+        start_simulator(self.env_id, node_per_cluster=self.nodes_per_cluster)
         self._connect_to_socket(self.env_id)
         self.action_space = spaces.Discrete(MAX_NUM_NODES)
         # self.state = None
@@ -303,7 +306,7 @@ class ChaosEnvDeepSet(gym.Env):
         pass
 
 
-def start_simulator(env_id=1, config_file="examples/example-hpa.conf"):
+def start_simulator(env_id=1, config_file="examples/example-hpa.conf", node_per_cluster=0):
     """
     Start the ruby simulator as a separate subprocess
     We need to change the working directory to ../.. because the simulator must be called with bundler
@@ -311,7 +314,7 @@ def start_simulator(env_id=1, config_file="examples/example-hpa.conf"):
     """
     logging.debug(f"About to start the simulator: {env_id}")
     subprocess.Popen(
-        ["bundle", "exec", "bin/kube_twin", config_file, str(env_id)], cwd="../.."
+        ["bundle", "exec", "bin/kube_twin", config_file, str(env_id), str(node_per_cluster)], cwd="../.."
     )
     logging.debug("Simulator started")
 
