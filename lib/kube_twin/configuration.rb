@@ -132,7 +132,7 @@ module KUBETWIN
       IceNine.deep_freeze(@customers)
       IceNine.deep_freeze(@custom_stats)
       IceNine.deep_freeze(@data_centers)
-      IceNine.deep_freeze(@clusters)
+      #IceNine.deep_freeze(@clusters)
       IceNine.deep_freeze(@duration)
       IceNine.deep_freeze(@evaluation)
       IceNine.deep_freeze(@kpi_customization)

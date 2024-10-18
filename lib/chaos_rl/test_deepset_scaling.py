@@ -32,7 +32,7 @@ def parse_parameters():
     parser.add_argument(
         "--nodes_per_cluster",
         type=int,
-        default=10,
+        default=0,
         help="Number of nodes per cluster",
     )
     args = parser.parse_args()
@@ -43,6 +43,7 @@ if __name__ == "__main__":
     args = parse_parameters()
     num_episodes = args.num_episodes
     model_path = args.model
+    nodes_per_cluster = args.nodes_per_cluster
     if model_path is None:
         raise ValueError("Please provide a model path to test your model!")
     
@@ -51,7 +52,7 @@ if __name__ == "__main__":
     for c in range(num_episodes):
         env = DummyVecEnv(
             [
-                lambda ne=ne: ChaosEnvDeepSet(config={"env_id": ne, "log": LOG_PATH, "nodes_per_cluster": args.nodes_per_cluster})
+                lambda ne=ne: ChaosEnvDeepSet(config={"env_id": ne, "log": LOG_PATH, "nodes_per_cluster": nodes_per_cluster})
                 for ne in range(NUM_ENVS)
             ]
         )

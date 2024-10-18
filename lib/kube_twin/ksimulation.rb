@@ -141,6 +141,7 @@ module KUBETWIN
         #evaluation_cost[c[:cluster_memory]] = c[:fixed_memory_hourly_cost]
       end
 
+      puts "Node per cluster: #{@node_per_cluster}"
       # create clusters and relative nodes and store them in a repository
       cluster_repository = Hash[
         @configuration.clusters.map do |k,v|
@@ -149,8 +150,9 @@ module KUBETWIN
           else
             node_per_cluster = @node_per_cluster
           end
+          v[:node_number] = node_per_cluster
           [ k, Cluster.new(id: k, fixed_hourly_cost_cpu: evaluation_cost[k], 
-          fixed_hourly_cost_memory: evaluation_cost[k], node_number: node_per_cluster, **v) ]
+          fixed_hourly_cost_memory: evaluation_cost[k], **v) ]
         end
       ]
 

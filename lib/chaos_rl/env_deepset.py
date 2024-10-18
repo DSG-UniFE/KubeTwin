@@ -31,20 +31,24 @@ class ChaosEnvDeepSet(gym.Env):
         if self.config:
             self.env_id = self.config["env_id"]
             self.nodes_per_cluster = self.config["nodes_per_cluster"]
-            #if self.nodes_per_cluster != 0:
-            #    MAX_NUM_NODES = self.nodes_per_cluster * 7
+            print("Nodes per cluster: ", self.nodes_per_cluster, "type: ", type(self.nodes_per_cluster))
+            if self.nodes_per_cluster != 0:
+                # 1 for the evicted pod
+                self.nodes = self.nodes_per_cluster * 7
+            else:
+                self.nodes = MAX_NUM_NODES
             # LOG_PATH = self.config["log"]
         else:
             self.env_id = 1
         LOG_PATH = f"./results/ppo_ds_{time.time()}/"
         self.observation_space = spaces.Box(
-            low=0, high=100.0, shape=(MAX_NUM_NODES, NUM_FEATURES), dtype=np.float32
+            low=0, high=100.0, shape=(self.nodes, NUM_FEATURES), dtype=np.float32
         )  # 4 as pod features, 6 as node features
         logging.debug(self.observation_space.shape, self.env_id)
         logging.debug(LOG_PATH)
         self.episode_over = False
-        self.action_space = spaces.Discrete(MAX_NUM_NODES)
-        self.available_actions = np.arange(MAX_NUM_NODES)
+        self.action_space = spaces.Discrete(self.nodes)
+        self.available_actions = np.arange(self.nodes)
         self.writer = SummaryWriter(LOG_PATH)
         self.total_step = 0
         self.pod_received = 0
@@ -140,7 +144,7 @@ class ChaosEnvDeepSet(gym.Env):
         return self.state, evicted_pod
 
     def action_masks(self):
-        masks = np.zeros(MAX_NUM_NODES, dtype=np.float32)
+        masks = np.zeros(self.nodes, dtype=np.float32)
         for action in self.available_actions:
             if 0 <= action < len(masks):
                 masks[action] = 1
@@ -270,7 +274,7 @@ class ChaosEnvDeepSet(gym.Env):
         logging.debug("RL: Resetting environment")
         start_simulator(self.env_id, node_per_cluster=self.nodes_per_cluster)
         self._connect_to_socket(self.env_id)
-        self.action_space = spaces.Discrete(MAX_NUM_NODES)
+        self.action_space = spaces.Discrete(self.nodes)
         # self.state = None
         # Calling read initial state to initialize the self.state
         self.read_initial_state()
