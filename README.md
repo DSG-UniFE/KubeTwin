@@ -45,6 +45,9 @@ an [R](http://www.r-project.org) script that models a stochastic request
 generation process. To use that script, you will need R with the VGAM and
 truncnorm packages installed.
 
+## MQTT clients to comunicate with the parser server
+In this repo there are two MQTT clients to comunicate with the parser server. The first one is based on the ruby gem `mqtt` and the second one is based on the python library `paho-mqtt`. The project is divided in two parts: the MQTT subcriber client and the MQTT publisher client. The subcriber is responsible to listen to the `parsing/to-kt` topic, process the received data (to optimize) and publish the result bask to the Flask server through the publisher client on the topic `parsing/from-kt`. Read the README.md in the [lib/mqtt-clients](./lib/mqtt-clients/README.md) directory for more information.
+
 ## License
 
 This software is available as open source under the terms of the [MIT License](https://opensource.org/licenses/MIT).

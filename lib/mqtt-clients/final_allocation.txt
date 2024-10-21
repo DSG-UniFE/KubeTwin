@@ -1,2 +1,2 @@
-Datacenter: cluster1, Tier: local, Pods: 50
-Datacenter: cluster2, Tier: local, Pods: 244
+Datacenter: cluster1, Tier: local, Pods: 68
+Datacenter: cluster2, Tier: local, Pods: 208
