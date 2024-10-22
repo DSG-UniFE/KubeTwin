@@ -1,5 +1,5 @@
 # MQTT clients to comunicate with the parser server
-This is a MQTT client to comunicate with the parser server. It is based on the ruby gem `mqtt`. The project is divided in two parts: the MQTT subcriber client and the MQTT publisher client. The subcriber is responsible to listen to the `parsing/to-kt` topic, process the received data (to optimize) and publish the result bask to the Flask server through the publisher client on the topic `parsing/from-kt`. 
+This is a MQTT client to comunicate with the parser server. It is based on the ruby gem [mqtt](https://github.com/njh/ruby-mqtt). The project is divided in two parts: the MQTT subcriber client and the MQTT publisher client. The subcriber is responsible to listen to the `parsing/to-kt` topic, process the received data (to optimize) and publish the result bask to the Flask server through the publisher client on the topic `parsing/from-kt`. 
 
 ## Usage
 Move to the `lib/mqtt-clients` directory and run the following commands:
