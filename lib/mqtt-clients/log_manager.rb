@@ -90,6 +90,7 @@ module LogManager
         next_midnight = Time.new(now.year, now.month, now.day) + 86400 # Midnight of the next day
         sleep_time = next_midnight - now
         sleep(sleep_time) # Sleep until midnight
+        @loggers[:info].info("Midnight reached. Re-setting up loggers...")
         puts "Midnight reached. Re-setting up loggers..."
         setup_loggers # Re-setup loggers after midnight
       end
