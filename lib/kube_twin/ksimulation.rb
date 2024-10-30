@@ -21,6 +21,8 @@ require 'pycall'
 require 'pycall/import'
 include PyCall::Import
 
+require 'json'
+
 
 
 module KUBETWIN
@@ -46,8 +48,6 @@ module KUBETWIN
       keras.utils.disable_interactive_logging()
       os = PyCall.import_module("os")
       os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
-      #output file where to print final allocation
-      @allocation_file = File.open("final_allocation.txt", 'w')
 
     end
 
@@ -825,10 +825,36 @@ module KUBETWIN
            "allocation_map: #{allocation_map}\n" +
            "=======================================\n"
 
-      #print final allocation to file
-      allocation_map.each do |k,v|
-        @allocation_file << "Datacenter: #{k}, Tier: #{v[:tier]}, Pods: #{v[:pods]}\n"
+    
+      #gather information of how many pods are running for each label in each node per cluster
+      bmap = {}
+      @services.each do |k, s| 
+        cluster_repository.each do |_,c|
+          pods_number = 0
+          c.nodes.values.each do |n|
+            pods_number += s.pods[s.selector].count { |p| p.node.node_id == n.node_id }
+          end
+          if bmap.key?(k)
+            bmap[k][c.name] = pods_number
+          else
+            bmap[k] = {c.name => pods_number}
+          end
+        end
       end
+      puts bmap
+      
+      #Produce txt and JSON file with the bmap information
+      File.open("final_allocation.txt", 'w') do |f|
+        f.puts bmap
+      end
+
+      File.open("final_allocation.json", 'w') do |f|
+        f.write(JSON.pretty_generate(bmap))
+      end
+
+      
+      
+      
 
       # debug info here
       # we want to minimize the cost, so we define fitness as the opposite of
