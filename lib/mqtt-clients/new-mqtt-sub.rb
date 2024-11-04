@@ -64,6 +64,9 @@ module MQTTSubscriber
         ExecKubeTwin.exec_KT(path_to_save_conf, loggers)
       rescue StandardError => e
         loggers[:error].error("An error occurred while running KubeTwin: #{e.message}")
+        # Publish error message
+        json_message = { error: "Error running KubeTwin: #{e.message}" }.to_json
+        MQTTPublisher.publish_error_message(MQTT_HOST, MQTT_PORT, TOPIC_PUB_TO_FLASK, json_message, loggers)
         raise # Re-raise the exception to be handled by the outer rescue block
       end
 
