@@ -1,4 +1,6 @@
-# list of python requirements
+# list of python requirements 
+# it's recommended to use a virtual environment to install these packages. 
+# Python version 3.10.12: needed to run the ML model with a specific version of TensorFlow and sklearn
 scikit-learn
 tensorflow==2.14.0
 tensorflow-probability

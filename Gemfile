@@ -5,4 +5,3 @@ gemspec
 
 gem 'pycall'
 gem 'mhl',   git: 'https://github.com/DSG-UniFE/ruby-mhl'
-gem 'mqtt'

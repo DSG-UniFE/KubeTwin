@@ -20,7 +20,8 @@ TOPIC_PUB_TO_FLASK = 'parsing/from-kt'
 TOPIC_SUB_LISTEN_FROM_FLASK = 'parsing/to-kt'
 
 # Constants for file paths
-FINAL_ALLOCATION_FILE = './final_allocation.txt'
+FINAL_ALLOCATION_FILE_TXT = './final_allocation.txt'
+FINAL_ALLOCATION_FILE_JSON = './final_allocation.json'
 UPLOAD_FOLDER = './uploads/'
 
 # Define max attempts for retrying connection
@@ -50,6 +51,7 @@ module MQTTSubscriber
       path_to_save_yaml = File.join(subfolder_path, "#{filename}.yaml")
       path_to_save_conf = File.join(subfolder_path, "#{filename}.conf")
       path_to_save_txt = File.join(subfolder_path, "#{filename}.txt")
+      path_to_save_json = File.join(subfolder_path, "#{filename}.json")
 
       # Write data to files
       write_to_file(path_to_save_yaml, yaml_data, loggers)
@@ -66,13 +68,17 @@ module MQTTSubscriber
       end
 
       # Read the optimized config file
-      optimized_config_data = read_from_file(FINAL_ALLOCATION_FILE, loggers)
+      optimized_config_txt_data = read_from_file(FINAL_ALLOCATION_FILE_TXT, loggers)
+
+      # read the optimized config json file
+      optimized_config_json_data = read_from_file(FINAL_ALLOCATION_FILE_JSON, loggers)
 
       # Save the optimized config data to a text file
-      write_to_file(path_to_save_txt, optimized_config_data, loggers)
+      write_to_file(path_to_save_txt, optimized_config_txt_data, loggers)
+      write_to_file(path_to_save_json, optimized_config_json_data, loggers)
 
-      loggers[:info].info("Optimized config data saved to: #{path_to_save_txt}")
-      [optimized_config_data, subfolder_path, filename]
+      loggers[:info].info("Optimized config data saved to: #{path_to_save_txt} and #{path_to_save_json}")
+      [optimized_config_txt_data, optimized_config_json_data, subfolder_path, filename]
     rescue JSON::ParserError => e
       loggers[:error].error("JSON parsing error: #{e.message}")
       nil
@@ -88,21 +94,29 @@ module MQTTSubscriber
       path_yaml_file = File.join(subfolder_path, "#{filename}.yaml")
       path_conf_file = File.join(subfolder_path, "#{filename}.conf")
       path_txt_file = File.join(subfolder_path, "#{filename}.txt")
+      path_json_file = File.join(subfolder_path, "#{filename}.json")
 
       # Read data from files
       yaml_data = read_from_file(path_yaml_file, loggers)
       config_data = read_from_file(path_conf_file, loggers)
       txt_data = read_from_file(path_txt_file, loggers)
+      json_data = read_from_file(path_json_file, loggers)
+
 
       message = {
         filename: filename,
         yaml: yaml_data,
         config: config_data,
-        txt: txt_data
+        txt: txt_data,
+        json: json_data
       }
 
-      base64_message = Base64.strict_encode64(message.to_json)
-      loggers[:info].info("Data processed for sending: #{filename}")
+      json_message = message.to_json  # Convert the JSON object to a string
+      # print the message[json]
+      #puts "message[json]: #{message[:json]}"
+
+      base64_message = Base64.strict_encode64(json_message)
+      loggers[:info].info("Data processed for sending: #{filename} and encoded in Base64.")
       base64_message
     rescue StandardError => e
       loggers[:error].error("An error occurred while processing the message for sending: #{e.message}")
@@ -140,14 +154,14 @@ module MQTTSubscriber
           loggers[:info].info("Received message on topic #{topic}")
 
           # Process the message
-          optimized_config_data, subfolder_path, filename = process_received_message_and_exec_it(message, loggers)
+          optimized_config_data, _, subfolder_path, filename = process_received_message_and_exec_it(message, loggers)
 
           if optimized_config_data
             encoded_message = process_to_send_data(subfolder_path, filename, loggers)
             # Publish the optimized config data back to MQTT
             MQTTPublisher.publish_mqtt_message_from_sub(MQTT_HOST, MQTT_PORT, TOPIC_PUB_TO_FLASK, encoded_message, loggers)
           else
-            loggers[:error].error("Failed to optimize the config data")
+            loggers[:error].error("Failed optimization and processing of the message. Function name: mqtt_listen_and_publish")
           end
         end
       end

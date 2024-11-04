@@ -3,7 +3,7 @@
 source 'https://rubygems.org'
 
 # Gems listed with versions where necessary
-gem 'mqtt'                       # MQTT gem for communication
+gem 'mqtt'                      # MQTT gem for communication
 gem 'json'                      # JSON parser/generator
 gem 'yaml'                      # YAML parser (default Ruby library)
 gem 'open3'                     # Standard library for capturing stdout/stderr
