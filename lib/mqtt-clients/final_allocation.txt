@@ -1,1 +1,1 @@
-{"mysolver"=>{"cluster1"=>127}, "georef_module"=>{"cluster1"=>23}}
+{"mysolver"=>{"cluster1"=>121}, "georef_module"=>{"cluster1"=>29}}

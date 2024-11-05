@@ -16,7 +16,8 @@ MQTT_HOST = 'localhost'
 MQTT_PORT = 1883
 
 # MQTT topics
-TOPIC_PUB_TO_FLASK = 'parsing/from-kt'
+TOPIC_PUB_TO_FLASK = 'parsing/from-kt/success'
+TOPIC_PUB_TO_FLASK_ERROR = 'parsing/from-kt/error'
 TOPIC_SUB_LISTEN_FROM_FLASK = 'parsing/to-kt'
 
 # Constants for file paths
@@ -84,9 +85,15 @@ module MQTTSubscriber
       [optimized_config_txt_data, optimized_config_json_data, subfolder_path, filename]
     rescue JSON::ParserError => e
       loggers[:error].error("JSON parsing error: #{e.message}")
+      error_message = { error: "JSON parsing error: #{e.message}" }.to_json
+      # Publish the error message back to MQTT
+      MQTTPublisher.publish_error_message(MQTT_HOST, MQTT_PORT, TOPIC_PUB_TO_FLASK_ERROR, error_message, loggers)
       nil
     rescue StandardError => e
       loggers[:error].error("An error occurred while processing the message: #{e.message}")
+      error_message = { error: "Error processing the message: #{e.message}" }.to_json
+      # Publish the error message back to MQTT
+      MQTTPublisher.publish_error_message(MQTT_HOST, MQTT_PORT, TOPIC_PUB_TO_FLASK_ERROR, error_message, loggers)
       nil
     end
   end
@@ -123,6 +130,9 @@ module MQTTSubscriber
       base64_message
     rescue StandardError => e
       loggers[:error].error("An error occurred while processing the message for sending: #{e.message}")
+      error_message = { error: "Error processing the message for sending: #{e.message}" }.to_json
+      # Publish the error message back to MQTT
+      MQTTPublisher.publish_error_message(MQTT_HOST, MQTT_PORT, TOPIC_PUB_TO_FLASK_ERROR, error_message, loggers)
       nil
     end
   end
@@ -133,6 +143,9 @@ module MQTTSubscriber
     loggers[:info].info("Data written to file: #{filename}")
   rescue StandardError => e
     loggers[:error].error("Error writing to file #{filename}: #{e.message}")
+    error_message = { error: "Error writing to file #{filename}: #{e.message}" }.to_json
+    # Publish the error message back to MQTT
+    MQTTPublisher.publish_error_message(MQTT_HOST, MQTT_PORT, TOPIC_PUB_TO_FLASK_ERROR, error_message, loggers)
   end
 
   # Helper function to read data from a file
@@ -165,6 +178,9 @@ module MQTTSubscriber
             MQTTPublisher.publish_mqtt_message_from_sub(MQTT_HOST, MQTT_PORT, TOPIC_PUB_TO_FLASK, encoded_message, loggers)
           else
             loggers[:error].error("Failed optimization and processing of the message. Function name: mqtt_listen_and_publish")
+            error_message = { error: "Failed optimization and processing of the message" }.to_json
+            # Publish the error message back to MQTT
+            MQTTPublisher.publish_error_message(MQTT_HOST, MQTT_PORT, TOPIC_PUB_TO_FLASK_ERROR, error_message, loggers)
           end
         end
       end
