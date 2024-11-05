@@ -16,9 +16,9 @@ MQTT_HOST = 'localhost'
 MQTT_PORT = 1883
 
 # MQTT topics
-TOPIC_PUB_TO_FLASK = 'parsing/from-kt/success'
-TOPIC_PUB_TO_FLASK_ERROR = 'parsing/from-kt/error'
-TOPIC_SUB_LISTEN_FROM_FLASK = 'parsing/to-kt'
+TOPIC_PUB_TO_FLASK = 'parsing/from-kt/success' # topic to publish the optimized config file successfully processed
+TOPIC_PUB_TO_FLASK_ERROR = 'parsing/from-kt/error' # topic to publish the error message to Flask
+TOPIC_SUB_LISTEN_FROM_FLASK = 'parsing/to-kt' # topic to listen messages from Flask. Request to optimize the config file. 
 
 # Constants for file paths
 FINAL_ALLOCATION_FILE_TXT = './final_allocation.txt'
