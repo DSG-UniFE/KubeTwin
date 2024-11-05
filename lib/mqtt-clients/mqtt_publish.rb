@@ -77,8 +77,9 @@ module MQTTPublisher
         end
       rescue StandardError => e
         loggers[:error].error("Failed to publish error message: #{e.message}")
-  end
-
+      end
+    end
+end
 
 
 
