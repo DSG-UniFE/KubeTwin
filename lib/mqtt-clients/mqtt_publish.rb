@@ -67,13 +67,14 @@ module MQTTPublisher
 
     def self.publish_error_message(broker_address, port_number, topic, message, loggers)
       begin
+        original_message = message
         # convert to base64 the message
         message = Base64.encode64(message)
         # Connect to the MQTT broker
         MQTT::Client.connect(host: broker_address, port: port_number) do |client|
           # Publish the message to the specified topic
           client.publish(topic, message)
-          loggers[:info].info("Error message published to #{topic}: #{message}")
+          loggers[:info].info("Error message published to #{topic}")
         end
       rescue StandardError => e
         loggers[:error].error("Failed to publish error message: #{e.message}")

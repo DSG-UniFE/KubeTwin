@@ -19,6 +19,7 @@ MQTT_PORT = 1883
 TOPIC_PUB_TO_FLASK = 'parsing/from-kt/success' # topic to publish the optimized config file successfully processed
 TOPIC_PUB_TO_FLASK_ERROR = 'parsing/from-kt/error' # topic to publish the error message to Flask
 TOPIC_SUB_LISTEN_FROM_FLASK = 'parsing/to-kt' # topic to listen messages from Flask. Request to optimize the config file. 
+TOPIC_PUB_TO_TORCH = 'parsed/to-torch/error' # topic to publish the optimized config file to Torch
 
 # Constants for file paths
 FINAL_ALLOCATION_FILE_TXT = './final_allocation.txt'
@@ -66,9 +67,10 @@ module MQTTSubscriber
       rescue StandardError => e
         loggers[:error].error("An error occurred while running KubeTwin: #{e.message}")
         # Publish error message
-        json_message = { error: "Error running KubeTwin: #{e.message}" }.to_json
-        MQTTPublisher.publish_error_message(MQTT_HOST, MQTT_PORT, TOPIC_PUB_TO_FLASK, json_message, loggers)
-        raise # Re-raise the exception to be handled by the outer rescue block
+        error_message = "Error running KubeTwin: #{e.message}"
+        MQTTPublisher.publish_error_message(MQTT_HOST, MQTT_PORT, TOPIC_PUB_TO_FLASK_ERROR, error_message, loggers)
+        #raise # Re-raise the exception to be handled by the outer rescue block
+        return nil
       end
 
       # Read the optimized config file
@@ -85,13 +87,15 @@ module MQTTSubscriber
       [optimized_config_txt_data, optimized_config_json_data, subfolder_path, filename]
     rescue JSON::ParserError => e
       loggers[:error].error("JSON parsing error: #{e.message}")
-      error_message = { error: "JSON parsing error: #{e.message}" }.to_json
+      #error_message = { error: "JSON parsing error: #{e.message}" }.to_json
+      error_message = "JSON parsing error: #{e.message}"
       # Publish the error message back to MQTT
       MQTTPublisher.publish_error_message(MQTT_HOST, MQTT_PORT, TOPIC_PUB_TO_FLASK_ERROR, error_message, loggers)
       nil
     rescue StandardError => e
       loggers[:error].error("An error occurred while processing the message: #{e.message}")
-      error_message = { error: "Error processing the message: #{e.message}" }.to_json
+      #error_message = { error: "Error processing the message: #{e.message}" }.to_json
+      error_message = "Error processing the message: #{e.message}"
       # Publish the error message back to MQTT
       MQTTPublisher.publish_error_message(MQTT_HOST, MQTT_PORT, TOPIC_PUB_TO_FLASK_ERROR, error_message, loggers)
       nil
@@ -178,7 +182,8 @@ module MQTTSubscriber
             MQTTPublisher.publish_mqtt_message_from_sub(MQTT_HOST, MQTT_PORT, TOPIC_PUB_TO_FLASK, encoded_message, loggers)
           else
             loggers[:error].error("Failed optimization and processing of the message. Function name: mqtt_listen_and_publish")
-            error_message = { error: "Failed optimization and processing of the message" }.to_json
+            #error_message = { error: "Failed optimization and processing of the message" }.to_json
+            error_message = "Failed optimization and processing of the message"
             # Publish the error message back to MQTT
             MQTTPublisher.publish_error_message(MQTT_HOST, MQTT_PORT, TOPIC_PUB_TO_FLASK_ERROR, error_message, loggers)
           end
