@@ -147,7 +147,11 @@ class ChaosEnvDeepSet(gym.Env):
         masks = np.zeros(self.nodes, dtype=np.float32)
         for action in self.available_actions:
             if 0 <= action < len(masks):
-                masks[action] = 1
+                # CPU limit in action_masking if pod cpu requirements are greater than node cpu available
+                if self.state[action][-1] > self.state[action][1]:
+                    masks[action] = 0
+                else:
+                    masks[action] = 1
             else:
                 logging.debug(f"Azione non valida: {action}")
         return masks

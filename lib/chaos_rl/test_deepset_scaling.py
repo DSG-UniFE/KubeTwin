@@ -65,6 +65,7 @@ if __name__ == "__main__":
             num_envs=NUM_ENVS,
             tensorboard_log=LOG_PATH,
         )
+    
         #agent = DQN_DeepSets(env=env, num_steps=100, n_minibatches=8, seed=SEED, tensorboard_log=LOG_PATH)
         agent.load(model_path)
         # Test the agent for 100 episodes

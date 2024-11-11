@@ -6,6 +6,7 @@ from envs.dqn_deepset import DQN_DeepSets
 import time
 import argparse
 from torch.utils.tensorboard import SummaryWriter
+
 SEED = 2
 
 
@@ -26,7 +27,7 @@ def parse_parameters():
     parser.add_argument(
         "--num_episodes",
         type=int,
-        default=25,
+        default=0,
         help="Number of episodes to test the model for",
     )
     args = parser.parse_args()
@@ -39,7 +40,7 @@ if __name__ == "__main__":
     model_path = args.model
     if model_path is None:
         raise ValueError("Please provide a model path to test your model!")
-    
+
     writer = SummaryWriter(log_dir=LOG_PATH)
 
     for c in range(num_episodes):
@@ -49,7 +50,7 @@ if __name__ == "__main__":
                 for ne in range(NUM_ENVS)
             ]
         )
-        '''
+        """
         agent = PPO_DeepSets(
             env,
             num_steps=100,
@@ -58,8 +59,10 @@ if __name__ == "__main__":
             num_envs=NUM_ENVS,
             #tensorboard_log=LOG_PATH,
         )
-        '''
-        agent = DQN_DeepSets(env=env, num_steps=100, n_minibatches=8, seed=SEED, tensorboard_log=LOG_PATH)
+        """
+        agent = DQN_DeepSets(
+            env=env, num_steps=100, n_minibatches=8, seed=SEED, tensorboard_log=LOG_PATH
+        )
         agent.load(model_path)
         # Test the agent for 100 episodes
         obs = env.reset()
@@ -71,4 +74,4 @@ if __name__ == "__main__":
             action_mask = np.array(env.env_method("action_masks"))
             done = dones[0]
 
-        #writer.add_scalar('Episode Testing Reward', episode_reward, episode)
+        # writer.add_scalar('Episode Testing Reward', episode_reward, episode)
