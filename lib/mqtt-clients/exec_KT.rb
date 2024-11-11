@@ -15,7 +15,7 @@ module ExecKubeTwin
     
     if status.success?
       # Log successful execution and output
-      #loggers[:info].info("Command executed successfully: #{status}")
+      loggers[:info].info("Command executed successfully: #{status}")
       nil
     else
       # Log the error message

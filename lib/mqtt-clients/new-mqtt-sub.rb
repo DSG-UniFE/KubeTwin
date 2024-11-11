@@ -19,7 +19,7 @@ MQTT_PORT = 1883
 TOPIC_PUB_TO_FLASK = 'parsing/from-kt/success' # topic to publish the optimized config file successfully processed
 TOPIC_PUB_TO_FLASK_ERROR = 'parsing/from-kt/error' # topic to publish the error message to Flask
 TOPIC_SUB_LISTEN_FROM_FLASK = 'parsing/to-kt' # topic to listen messages from Flask. Request to optimize the config file. 
-TOPIC_PUB_TO_TORCH = 'parsed/to-torch/error' # topic to publish the optimized config file to Torch
+#TOPIC_PUB_TO_TORCH = 'parsed/to-torch/error' # topic to publish the optimized config file to Torch
 
 # Constants for file paths
 FINAL_ALLOCATION_FILE_TXT = './final_allocation.txt'
@@ -67,10 +67,10 @@ module MQTTSubscriber
       rescue StandardError => e
         loggers[:error].error("An error occurred while running KubeTwin: #{e.message}")
         # Publish error message
-        error_message = "Error running KubeTwin: #{e.message}"
+        error_message = "Error running KubeTwin: #{e.message}" # This message will be convert in JSON format in the MQTTPublisher.publish_error_message
         MQTTPublisher.publish_error_message(MQTT_HOST, MQTT_PORT, TOPIC_PUB_TO_FLASK_ERROR, error_message, loggers)
         #raise # Re-raise the exception to be handled by the outer rescue block
-        return nil
+        return nil # Return nil to indicate failure in processing the message and send an error message to the Flask once time
       end
 
       # Read the optimized config file
@@ -88,14 +88,14 @@ module MQTTSubscriber
     rescue JSON::ParserError => e
       loggers[:error].error("JSON parsing error: #{e.message}")
       #error_message = { error: "JSON parsing error: #{e.message}" }.to_json
-      error_message = "JSON parsing error: #{e.message}"
+      error_message = "JSON parsing error: #{e.message}" # This message will be convert in JSON format in the MQTTPublisher.publish_error_message
       # Publish the error message back to MQTT
       MQTTPublisher.publish_error_message(MQTT_HOST, MQTT_PORT, TOPIC_PUB_TO_FLASK_ERROR, error_message, loggers)
       nil
     rescue StandardError => e
       loggers[:error].error("An error occurred while processing the message: #{e.message}")
       #error_message = { error: "Error processing the message: #{e.message}" }.to_json
-      error_message = "Error processing the message: #{e.message}"
+      error_message = "Error processing the message: #{e.message}" # This message will be convert in JSON format in the MQTTPublisher.publish_error_message
       # Publish the error message back to MQTT
       MQTTPublisher.publish_error_message(MQTT_HOST, MQTT_PORT, TOPIC_PUB_TO_FLASK_ERROR, error_message, loggers)
       nil
@@ -107,13 +107,13 @@ module MQTTSubscriber
       # Construct file paths within the subfolder
       path_yaml_file = File.join(subfolder_path, "#{filename}.yaml")
       path_conf_file = File.join(subfolder_path, "#{filename}.conf")
-      path_txt_file = File.join(subfolder_path, "#{filename}.txt")
+      #path_txt_file = File.join(subfolder_path, "#{filename}.txt")
       path_json_file = File.join(subfolder_path, "#{filename}.json")
 
       # Read data from files
       yaml_data = read_from_file(path_yaml_file, loggers)
       config_data = read_from_file(path_conf_file, loggers)
-      txt_data = read_from_file(path_txt_file, loggers)
+      #txt_data = read_from_file(path_txt_file, loggers)
       json_data = read_from_file(path_json_file, loggers)
 
 
@@ -121,13 +121,13 @@ module MQTTSubscriber
         filename: filename,
         yaml: yaml_data,
         config: config_data,
-        txt: txt_data,
+        #txt: txt_data,
         json: json_data
       }
 
       json_message = message.to_json  # Convert the JSON object to a string
-      # print the message[json]
-      #puts "message[json]: #{message[:json]}"
+      # print all the data to be sent formatted in JSON
+      
 
       base64_message = Base64.strict_encode64(json_message)
       loggers[:info].info("Data processed for sending: #{filename} and encoded in Base64.")
