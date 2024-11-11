@@ -52,7 +52,7 @@ module MQTTSubscriber
       # Construct file paths within the subfolder
       path_to_save_yaml = File.join(subfolder_path, "#{filename}.yaml")
       path_to_save_conf = File.join(subfolder_path, "#{filename}.conf")
-      path_to_save_txt = File.join(subfolder_path, "#{filename}.txt")
+      #path_to_save_txt = File.join(subfolder_path, "#{filename}.txt")
       path_to_save_json = File.join(subfolder_path, "#{filename}.json")
 
       # Write data to files
@@ -74,17 +74,17 @@ module MQTTSubscriber
       end
 
       # Read the optimized config file
-      optimized_config_txt_data = read_from_file(FINAL_ALLOCATION_FILE_TXT, loggers)
+      #optimized_config_txt_data = read_from_file(FINAL_ALLOCATION_FILE_TXT, loggers)
 
       # read the optimized config json file
       optimized_config_json_data = read_from_file(FINAL_ALLOCATION_FILE_JSON, loggers)
 
       # Save the optimized config data to a text file
-      write_to_file(path_to_save_txt, optimized_config_txt_data, loggers)
+      #write_to_file(path_to_save_txt, optimized_config_txt_data, loggers)
       write_to_file(path_to_save_json, optimized_config_json_data, loggers)
 
-      loggers[:info].info("Optimized config data saved to: #{path_to_save_txt} and #{path_to_save_json}")
-      [optimized_config_txt_data, optimized_config_json_data, subfolder_path, filename]
+      loggers[:info].info("Optimized config data saved to: #{path_to_save_json}")
+      [optimized_config_json_data, subfolder_path, filename]
     rescue JSON::ParserError => e
       loggers[:error].error("JSON parsing error: #{e.message}")
       #error_message = { error: "JSON parsing error: #{e.message}" }.to_json
@@ -127,7 +127,7 @@ module MQTTSubscriber
 
       json_message = message.to_json  # Convert the JSON object to a string
       # print all the data to be sent formatted in JSON
-      
+
 
       base64_message = Base64.strict_encode64(json_message)
       loggers[:info].info("Data processed for sending: #{filename} and encoded in Base64.")
@@ -174,7 +174,7 @@ module MQTTSubscriber
           loggers[:info].info("Received message on topic #{topic}")
 
           # Process the message
-          optimized_config_data, _, subfolder_path, filename = process_received_message_and_exec_it(message, loggers)
+          optimized_config_data, subfolder_path, filename = process_received_message_and_exec_it(message, loggers)
 
           if optimized_config_data
             encoded_message = process_to_send_data(subfolder_path, filename, loggers)

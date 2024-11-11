@@ -1,8 +1,8 @@
 {
   "my_solver": {
-    "cluster1": 155
+    "cluster1": 3
   },
   "georef_module": {
-    "cluster1": 100
+    "cluster1": 1
   }
 }
