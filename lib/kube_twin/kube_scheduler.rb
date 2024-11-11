@@ -11,12 +11,12 @@ module KUBETWIN
     end
 
     # information regarding requirements are available usin the pod class
-    def get_node(resource_requirements, node_affinity)
+    def get_node(requirements_cpu, requirements_mem, node_affinity)
       # get the requirements (we should specify at least a requirement here,
       # CPU percentage)
       # filter available nodes
       # this should return a candidate node
-      filter_and_score(resource_requirements, node_affinity)
+      filter_and_score(requirements_cpu, requirements_mem, node_affinity)
     end
 
     private
