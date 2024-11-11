@@ -28,13 +28,13 @@ module KUBETWIN
     
     # do we need to call filter every time we need to assign a pod?
     # maybe we do
-    def filter_and_score(requirements, node_affinity)
-      filter(requirements)
+    def filter_and_score(requirements_cpu, requirements_mem, node_affinity)
+      filter(requirements_cpu, requirements_mem)
       score(node_affinity)
     end
 
     # filtering here is an expensive operation
-    def filter(requirements)
+    def filter(req_cpu, req_mem)
      # reset filtered nodes --- do we need to call delete here?
      @filtered_nodes = [] 
       # here we could implement different policies
@@ -50,7 +50,7 @@ module KUBETWIN
                              price: c.fixed_hourly_cost_cpu,
                              available_resources_cpu: available_resources_cpu,
                              requested_resources: node.requested_resources[:cpu],
-                             deployed_pods: node.pod_id_list.length} if available_resources_cpu >= requirements
+                             deployed_pods: node.pod_id_list.length} if available_resources_cpu >= req_cpu && node.available_resources_memory >= req_mem
         end
       end
     end

@@ -272,7 +272,7 @@ module KUBETWIN
           reqs_m = sct[:resources_requirements_memory]
           node_affinity = sct[:node_affinity]
 
-          node = @kube_scheduler.get_node(reqs_c, node_affinity)
+          node = @kube_scheduler.get_node(reqs_c, reqs_m, node_affinity)
           next if node.nil? # no more resources
           # once we know where the pod is going to be allocated
           # we can retrieve also the service_time_distribution
@@ -689,7 +689,7 @@ module KUBETWIN
                   reqs_m = sct[:resources_requirements_memory]
 
                   node_affinity = sct[:node_affinity]
-                  node = @kube_scheduler.get_node(reqs_c, node_affinity)
+                  node = @kube_scheduler.get_node(reqs_c, reqs_m, node_affinity)
 
                   break if node.nil? # check here --- what happens if no nodes are available
                   pod = Pod.new(pod_id, "#{selector}_#{pod_id}", node, selector, sct)
