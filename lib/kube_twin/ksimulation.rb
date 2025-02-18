@@ -235,7 +235,8 @@ module KUBETWIN
           node_affinity = sct[:node_affinity]
 
           node = @kube_scheduler.get_node(reqs_c, reqs_m, node_affinity)
-          next if node.nil? # no more resources
+          next if node.nil? 
+          # no more resources
           # once we know where the pod is going to be allocated
           # we can retrieve also the service_time_distribution
           # depending on its cluster type
@@ -319,7 +320,7 @@ module KUBETWIN
       @req_in_sec = 0
 
 
-      @allocation_bench << "Time,Component,Request,TTP,Pods\n"
+      #@allocation_bench << "Time,Component,Request,TTP,Pods\n"
 
       # launch simulation
       until @event_queue.empty?
@@ -672,20 +673,6 @@ module KUBETWIN
 
             end
 
-            allocation_map = {}
-            cluster_repository.each do |_,c|
-               #puts "Allocation -- #{c.name} Pods: #{pods}"
-               pods = 0
-               c.nodes.values.each do |n|
-                pods += n.pod_id_list.length
-                #puts "node_id: #{n.node_id}: pods: #{n.pod_id_list.length}"
-               end
-               allocation_map[c.name] = {tier: c.tier, pods: pods}
-               #puts "Allocation -- #{c.name} Pods: #{pods}"
-            end
-            puts "Allocation_map: #{allocation_map}\n"
-
-
             # schedule next control
             if @current_time + hpa.period_seconds < cooldown_treshold
               new_event(Event::ET_HPA_CONTROL, [hname, hpa], @current_time + hpa.period_seconds, nil)
@@ -752,33 +739,41 @@ module KUBETWIN
       end
 
       # puts "========== Simulation Finished =========="
+     #puts "Finished after #{now - @configuration.end_time}"
+
+
+      # Keep track of the number of pods per component and where they are allocated
+      allocation_map = {}
+      # Keep track of how many nodes per cluster we are using
+      node_utilization = {}
+      costs = 0
+      cluster_repository.each do |_,c|
+        pods = 0
+        node = 0
+        c.nodes.values.each do |n|
+          if n.pod_id_list.length > 0
+            pods += n.pod_id_list.length
+            node += 1
+          end
+          #puts "node_id: #{n.node_id}: pods: #{n.pod_id_list.length}"
+        end
+        allocation_map[c.name] = {tier: c.tier, pods: pods}
+        node_utilization[c.name] = node
+        # Assume 24 hrs of operation
+        costs += c.fixed_hourly_cost_cpu * node * 24
+        #puts "Allocation -- #{c.name} Pods: #{pods}"
+      end
 
       # TODO -- IMPLEMENT COST EVALUATION HERE
       #costs = @evaluator.evaluate_fixed_costs_cpu(vm_allocation)
-
-
-     #puts "\n\n"
-     #@sim_bench.close
-     #puts "Finished after #{now - @configuration.end_time}"
-
-      allocation_map = {}
-      cluster_repository.each do |_,c|
-         #puts "Allocation -- #{c.name} Pods: #{pods}"
-         pods = 0
-         c.nodes.values.each do |n|
-          pods += n.pod_id_list.length
-          #puts "node_id: #{n.node_id}: pods: #{n.pod_id_list.length}"
-         end
-         allocation_map[c.name] = {tier: c.tier, pods: pods}
-         #puts "Allocation -- #{c.name} Pods: #{pods}"
-      end
       #puts "#{stats.to_csv}"
      puts "====== Evaluating new allocation ======\n" +
-           #"costs: #{costs}\n" +
            "stats: #{stats.to_s}\n" +
            #"per_workflow_and_customer_stats: #{per_workflow_and_customer_stats.to_s}\n" +
            "component_stats: #{per_component_stats.to_s}\n" +
            "allocation_map: #{allocation_map}\n" +
+           "node_utilization: #{node_utilization}\n" +
+           "costs: #{costs} per day\n" +
            "=======================================\n"
 
     
