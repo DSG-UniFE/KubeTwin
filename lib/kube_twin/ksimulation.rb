@@ -312,7 +312,7 @@ module KUBETWIN
       # benchmark file
       time = Time.now.strftime('%Y%m%d%H%M%S')
       @sim_bench = File.open("csv_bench_#{time}.csv", 'w')
-      @allocation_bench = File.open("allocation_bench_#{time}.csv", 'w')
+      #@allocation_bench = File.open("allocation_bench_#{time}.csv", 'w')
       #@request_profile = File.open("request_profile_#{time}.csv", 'w')
       #@request_profile << "Time,CRequests\n"
       @last_second = @current_time.to_i
@@ -706,7 +706,7 @@ module KUBETWIN
             @services.each do |k, s|
               pods_number = s.pods[s.selector].length
               pods_n += "#{k}: #{pods_number} "
-              @allocation_bench << "#{now},#{k},#{per_component_stats[k].received},#{per_component_stats[k].mean},#{pods_number}\n"
+              #@allocation_bench << "#{now},#{k},#{per_component_stats[k].received},#{per_component_stats[k].mean},#{pods_number}\n"
               #puts "#{now},#{k},#{per_component_stats[k].received},#{per_component_stats[k].mean},#{pods_number}\n"
               # just to print the allocation map
             end
@@ -829,8 +829,8 @@ module KUBETWIN
       #return stats.to_csv
       @sim_bench << stats.to_csv
       @sim_bench.close
-      path_file = @allocation_bench.path
-      @allocation_bench.close
+      #path_file = @allocation_bench.path
+      #@allocation_bench.close
       #path_request = @request_profile.path
       #@request_profile.close
       #puts "python figure_generator/tnsm-figure.py #{path_file} #{path_request}"
