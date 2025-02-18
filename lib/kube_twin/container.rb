@@ -3,9 +3,6 @@
 
 require_relative './logger'
 require_relative './event'
-require 'pycall'
-require 'pycall/import'
-include PyCall::Import
 
 
 module KUBETWIN
@@ -20,8 +17,6 @@ module KUBETWIN
   class Container
 
     SEED = 123
-    pyfrom :tensorflow, import: :keras
-    pyfrom :sklearn, import: :mixture
 
     # states
     CONTAINER_WAITING      = 0      # still running the operations it requires in order to complete start up
@@ -81,20 +76,6 @@ module KUBETWIN
       @rps = opts[:img_info][:rps].to_i
       @service_time = ERV::RandomVariable.new(st_distribution) if @path.nil?
       @arrival_times = []
-=begin
-      @models = Hash.new
-      unless @path.nil? && @rps.nil?
-        pyfrom :tensorflow, import: :keras
-        @mdn_ttr_model= keras.models.load_model(@path)
-        # seed should alreay be here
-        # @service_time = ERV::RandomVariable.new(st_distribution)
-        @tfd = pyfrom :tensorflow_probability, import: :distributions
-        @service_time = get_gamma_mixture(@mdn_ttr_model, @rps)
-        @arrival_times = []
-      else
-        @service_time = ERV::RandomVariable.new(st_distribution)
-      end
-=end
     end
 
     def check_rps(interval=8)
@@ -123,26 +104,6 @@ module KUBETWIN
       @containers_to_free.shift
     end
 
-=begin
-    def get_gamma_mixture(mdn_ttr_model, rps, replica=1)
-      numpy = PyCall.import_module("numpy")
-      weight_pred, conc_pred, scale_pred = mdn_ttr_model.predict([numpy.array([rps,replica]), numpy.array([1,1])])
-      # convert numpy to python list
-      ws = weight_pred.tolist()
-      cps = conc_pred.tolist()
-      scs = scale_pred.tolist()
-      gamma_mix = []
-      ncomponents = ws[0].length - 1
-      (0..ncomponents).each do |i|
-        gamma_mix << ws[0][i].to_f
-        gamma_mix << cps[0][i].to_f
-        gamma_mix << scs[0][i].to_f
-      end
-      ERV::MixtureDistribution.new(
-                ERV::GammaMixtureHelper.RawParametersToMixtureArgsSeed(*gamma_mix, SEED))
-    end
-=end
-
     def reset_metrics
       @served_request = 0
       @total_queue_processing_time = 0
@@ -154,43 +115,12 @@ module KUBETWIN
     end
 
     def new_request(sim, r, time)
-
       # improve this code in the future
       r.arrival_at_container = time
-=begin
-# the following code guesses the rps by looking at interarrival time
-      unless @path.nil?
-        @arrival_times << time
-        if @arrival_times.length < 2
-          rps = 1
-        else
-          inter_arrival_times = check_rps()
-          #puts inter_arrival_times
-          if inter_arrival_times >= 1.0 || inter_arrival_times == 0.to_f
-            rps = 1
-          else
-            begin
-              rps = (1 / inter_arrival_times).ceil
-            rescue
-              puts inter_arrival_times
-              abort
-            end
-          end
-        end
-      rps = 34 if rps > 34
-      end
-      #puts rps
-# end was here
-=end
       rps = @rps
-      @service_time = sim.retrieve_mdn_model(name, rps) unless @path.nil?
+      #@service_time = sim.retrieve_mdn_model(name, rps) unless @path.nil?
       @last_request_time = time
       while (st = @service_time.sample) <= 1E-6; end
-
-      # add concurrent execution
-      #pod_executing = @node.pod_id_list.length
-      #st *= Math::log(pod_executing) if pod_executing > 2
-      #return if @request_queue.length >= 3
 
       ri = RequestInfo.new(r, st, time)
       @request_queue << ri
