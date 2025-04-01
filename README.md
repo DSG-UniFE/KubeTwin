@@ -9,12 +9,6 @@ We are still on development stage.
 ## Installation
 
 As KubeTwin was developed in Ruby, you will first need a working Ruby interpreter.
-Once you have Ruby installed, you can install SISFC through RubyGems:
-
-While KubeTwin should work on MRI and Rubinius without problems, we highly
-recommend you to run it on top of JRuby. Since JRuby is our reference
-development platform, you will be very likely to have a smoother installation
-and usage experience when deploying SISFC on top of JRuby.
 
 To install and work with KubeTwin we kindly suggest to use bundler:
 
