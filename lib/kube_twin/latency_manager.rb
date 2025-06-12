@@ -15,7 +15,9 @@ module KUBETWIN
         if (model[:src] == loc1 && model[:dst] == loc2) ||
             (model[:src] == loc2 && model[:dst] == loc1)            
             # value is a constant value in seconds. Let's add some noise to it
-            return model[:value]  + @noise.next
+            lat = model[:value]  + @noise.next
+            #puts "latency between #{loc1} and #{loc2} is #{lat} seconds"
+            return lat
         elsif loc1 == loc2
             # return intra-dc latency. Let's approximate it from 1 to 5 ms and convert to seconds
             return @intra_dc_latency.next

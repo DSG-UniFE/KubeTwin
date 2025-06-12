@@ -72,8 +72,8 @@ module KUBETWIN
       # here need to retrieve configuration cost also
       evaluation_cost = Hash.new
 
-      @configuration.evaluation[:cluster_hourly_cost].each do |c|
-        evaluation_cost[c[:cluster]] = c[:fixed_cpu_hourly_cost]
+      @configuration.evaluation[:cluster_hourly_cost].each_with_index do |c, cid|
+        evaluation_cost[cid] = c[:fixed_cpu_hourly_cost]
         # leave memory out for now
         #evaluation_cost[c[:cluster_memory]] = c[:fixed_memory_hourly_cost]
       end
@@ -82,11 +82,6 @@ module KUBETWIN
       # Liqo federation
 
       federation = nil
-      if @configuration.federation.nil?
-        puts "No federation configuration found, using clusters from configuration file"
-        puts "NIL?#{@configuration.federation}"
-        raise "No federations defined in the configuration file" 
-      end
       unless @configuration.federation.nil?
         # create clusters and relative nodes and store them in a repository
         # Use this as a reference
@@ -112,19 +107,22 @@ module KUBETWIN
             # we assume to divide clusters equally. Each node
             # has 2000 milliCPU and 2 GB of Memory (2048 MB)
             cid += 1
-            [ k, Cluster.new(id: k, fixed_hourly_cost_cpu: 100, 
-            fixed_hourly_cost_memory: 100, location_id: cid, 
+            [ k, Cluster.new(id: k, fixed_hourly_cost_cpu: evaluation_cost[cid], 
+            fixed_hourly_cost_memory: evaluation_cost[cid], location_id: cid, 
             node_resources_cpu: node_cpu.to_i,
             node_resources_memory: node_mem.to_i, name: k,
             node_number: node_number.to_i, type: :mec, tier: "local") ]
           end
           ]
         else
+          cid = -1
           # create clusters and relative nodes and store them in a repository
           cluster_repository = Hash[
             @configuration.clusters.map do |k,v|
-              [ k, Cluster.new(id: k, fixed_hourly_cost_cpu: evaluation_cost[k],
-               fixed_hourly_cost_memory: evaluation_cost[k], **v) ]
+              cid += 1
+              puts "Cluster: #{k} #{v}"
+              [ k, Cluster.new(id: k, fixed_hourly_cost_cpu: evaluation_cost[cid],
+               fixed_hourly_cost_memory: evaluation_cost[cid], **v) ]
             end
           ]
       end
@@ -167,8 +165,6 @@ module KUBETWIN
           LatencyManager.new(latency_models)
       end
 
-      puts "latency_models #{latency_models}, latency_manager: #{latency_manager}"
-
 
       # information regarding microservices
       @microservice_types = mtt.nil? ? @configuration.microservice_types : mtt
@@ -182,7 +178,7 @@ module KUBETWIN
         end
       end
 
-      puts "init mdns #{@microservice_mdn}"
+      #puts "init mdns #{@microservice_mdn}"
 
       # information regarding customers
       customer_repository = @configuration.customers
@@ -303,7 +299,6 @@ module KUBETWIN
           node_affinity = sct[:node_affinity]
 
           node = @kube_scheduler.get_node(reqs_c, reqs_m, node_affinity)
-          puts "Node: #{node} for pod #{pod_id} with selector #{selector}" if node.nil?
           next if node.nil? 
           # no more resources
           # once we know where the pod is going to be allocated
@@ -612,7 +607,6 @@ module KUBETWIN
             req.finished_processing(e.time)
             #puts "#{req.arrival_time} #{now}"
             raise "Processing request after the simulation time current:#{now} end:#{@configuration.end_time}" if now >= @configuration.end_time
-
             # update stats
             if req.arrival_time > warmup_threshold && now < @configuration.end_time
               # decrease the number of requests being worked on
