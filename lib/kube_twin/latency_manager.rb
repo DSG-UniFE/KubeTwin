@@ -3,6 +3,28 @@
 require 'erv'
 
 module KUBETWIN
+  class LatencyManagerFederation 
+    def initialize(latency_models, seed: nil)
+      @latency_models = latency_models
+      @intra_dc_latency = ERV::RandomVariable.new(distribution: :gaussian, args: { mean: 5E-3, sd: 1E-3, seed: seed || 12345 })
+      @noise = ERV::RandomVariable.new(distribution: :gaussian, args: { mean: 0.0, sd: 3E-3, seed: seed || 12345 })
+    end
+
+    def sample_latency_between(loc1, loc2)
+      @latency_models.each do |model|
+        if (model[:src] == loc1 && model[:dst] == loc2) ||
+            (model[:src] == loc2 && model[:dst] == loc1)            
+            # value is a constant value in seconds. Let's add some noise to it
+            return model[:value]  + @noise.next
+        elsif loc1 == loc2
+            # return intra-dc latency. Let's approximate it from 1 to 5 ms and convert to seconds
+            return @intra_dc_latency.next
+        end
+      end
+    end
+  end
+
+
   class LatencyManager
     def initialize(latency_models, seed: nil)
       # create rng for reproducible seeding

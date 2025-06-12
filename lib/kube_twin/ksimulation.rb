@@ -64,11 +64,7 @@ module KUBETWIN
         Random.new
       end
 
-      # create latency manager
-      latency_models = lm.nil? ? @configuration.latency_models : lm
-      latency_manager = latency_seed ?
-        LatencyManager.new(latency_models, seed: latency_seed) :
-        LatencyManager.new(latency_models)
+
 
       # setup simulation start and current time
       @current_time = @start_time = @configuration.start_time
@@ -82,12 +78,56 @@ module KUBETWIN
         #evaluation_cost[c[:cluster_memory]] = c[:fixed_memory_hourly_cost]
       end
 
-      # create clusters and relative nodes and store them in a repository
-      cluster_repository = Hash[
-        @configuration.clusters.map do |k,v|
-          [ k, Cluster.new(id: k, fixed_hourly_cost_cpu: evaluation_cost[k], fixed_hourly_cost_memory: evaluation_cost[k], **v) ]
-        end
-      ]
+      # Let's check if the configuration file contains the description of the 
+      # Liqo federation
+
+      federation = nil
+      if @configuration.federation.nil?
+        puts "No federation configuration found, using clusters from configuration file"
+        puts "NIL?#{@configuration.federation}"
+        raise "No federations defined in the configuration file" 
+      end
+      unless @configuration.federation.nil?
+        # create clusters and relative nodes and store them in a repository
+        # Use this as a reference
+        # federation \
+        # {
+        #  "resources": [
+        #  "rome": ["cpu": 200, "mem": 8]
+        # "milan": ["cpu": 150, "mem": 8]],
+        #  "latencies": [["src": "rome", "dst": "milan", "value": 6]]
+        # }
+        # Convert the @configuration.federation json object into a ruby hash
+        federation = JSON.parse(@configuration.federation.to_json, symbolize_names: true)
+        #puts "Federation resources: #{federation[:resources]}"
+        cid = -1
+        cluster_repository = Hash[
+          federation[:resources].map do |k,v|
+            #puts "k: #{k} v: #{v}"
+            node_number = v[:cpu] / 2000.0
+            node_cpu = v[:cpu] / node_number
+            node_mem = v[:mem] / node_number
+            # we assume that the resources are homogeneous
+            # Since we only have an aggregate for CPU and Memoryù
+            # we assume to divide clusters equally. Each node
+            # has 2000 milliCPU and 2 GB of Memory (2048 MB)
+            cid += 1
+            [ k, Cluster.new(id: k, fixed_hourly_cost_cpu: 100, 
+            fixed_hourly_cost_memory: 100, location_id: cid, 
+            node_resources_cpu: node_cpu.to_i,
+            node_resources_memory: node_mem.to_i, name: k,
+            node_number: node_number.to_i, type: :mec, tier: "local") ]
+          end
+          ]
+        else
+          # create clusters and relative nodes and store them in a repository
+          cluster_repository = Hash[
+            @configuration.clusters.map do |k,v|
+              [ k, Cluster.new(id: k, fixed_hourly_cost_cpu: evaluation_cost[k],
+               fixed_hourly_cost_memory: evaluation_cost[k], **v) ]
+            end
+          ]
+      end
 
       node_id = 0
       cluster_repository.values.each do |c|
@@ -97,10 +137,38 @@ module KUBETWIN
           # cluster
           # set also the cluster_id here
           n = Node.new(node_id, c.node_resources_cpu, c.node_resources_memory, c.cluster_id, c.type)
+          puts "Creating node #{n.node_id} cluster: #{n.cluster_id} with resources: #{n.resources_cpu} #{n.resources_memory}"
           c.add_node(n)
           node_id += 1
         end
       end
+
+            # create latency manager, check if we should use the simplified latency model
+      # given by the federation or if we can use the provided map
+      unless @configuration.federation.nil?
+        # use the federation latencies
+        #  "latencies": [["src": "rome", "dst": "milan", "value": 6]]
+        # here is very simple, we can assume simmetric latencies
+        # from source to destination and vicersa
+        # we assume that the latencies are in milliseconds
+        latency_models = federation[:latencies]
+        # change cluster name to cluster id
+        latency_models = latency_models.map do |lm|
+          src = cluster_repository[lm[:src].to_sym]
+          dst = cluster_repository[lm[:dst].to_sym]
+          raise "Cannot find cluster #{lm[:src]} or #{lm[:dst]}" if src.nil? || dst.nil?
+          { src: src.location_id, dst: dst.location_id, value: lm[:value] }
+        end
+        latency_manager = LatencyManagerFederation.new(latency_models, seed: latency_seed)
+      else
+        latency_models = lm.nil? ? @configuration.latency_models : lm
+        latency_manager = latency_seed ?
+          LatencyManager.new(latency_models, seed: latency_seed) :
+          LatencyManager.new(latency_models)
+      end
+
+      puts "latency_models #{latency_models}, latency_manager: #{latency_manager}"
+
 
       # information regarding microservices
       @microservice_types = mtt.nil? ? @configuration.microservice_types : mtt
@@ -235,6 +303,7 @@ module KUBETWIN
           node_affinity = sct[:node_affinity]
 
           node = @kube_scheduler.get_node(reqs_c, reqs_m, node_affinity)
+          puts "Node: #{node} for pod #{pod_id} with selector #{selector}" if node.nil?
           next if node.nil? 
           # no more resources
           # once we know where the pod is going to be allocated
