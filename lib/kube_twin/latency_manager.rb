@@ -11,6 +11,7 @@ module KUBETWIN
     end
 
     def sample_latency_between(loc1, loc2)
+      lat = nil
       @latency_models.each do |model|
         if (model[:src] == loc1 && model[:dst] == loc2) ||
             (model[:src] == loc2 && model[:dst] == loc1)            
@@ -20,9 +21,20 @@ module KUBETWIN
             return lat
         elsif loc1 == loc2
             # return intra-dc latency. Let's approximate it from 1 to 5 ms and convert to seconds
-            return @intra_dc_latency.next
+            lat = @intra_dc_latency.next
         end
       end
+      if lat.nil?
+        # Check the latency from src 0 to dst loc1 and loc2 and then sum them
+        src_to_loc1 = @latency_models.find { |model| model[:src] == 0 && model[:dst] == loc1 }
+        dst_to_loc2 = @latency_models.find { |model| model[:src] == 0 && model[:dst] == loc2 }
+        if src_to_loc1 && dst_to_loc2
+          lat = src_to_loc1[:value] + dst_to_loc2[:value] + @noise.next
+        else
+          raise "Latency model not found for locations #{loc1} and #{loc2}"
+        end
+      end
+      lat
     end
   end
 
