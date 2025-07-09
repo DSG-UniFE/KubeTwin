@@ -110,6 +110,7 @@ module KUBETWIN
       @cooldown_duration = @cooldown_duration.to_f
       @cooldown_duration = 10 if @cooldown_duration.nil?
 
+      # initialize kpi_customization to empty hash if needed
       @kpi_customization ||= {}
 
       # if @request_generation is not defined in the configuration file, use request_gen
@@ -124,6 +125,8 @@ module KUBETWIN
       @custom_stats = [] unless defined? @custom_stats
       @seeds = {} unless defined? @seeds
 
+      # freeze everything!
+      # TODO check if everything is freezed
       IceNine.deep_freeze(@constraints)
       IceNine.deep_freeze(@customers)
       IceNine.deep_freeze(@custom_stats)
@@ -134,17 +137,25 @@ module KUBETWIN
       IceNine.deep_freeze(@evaluation)
       IceNine.deep_freeze(@kpi_customization)
       IceNine.deep_freeze(@latency_models)
+      #IceNine.deep_freeze(@request_generation)
       IceNine.deep_freeze(@seeds)
+      #IceNine.deep_freeze(@microservice_types)
+      #IceNine.deep_freeze(@start_time)
       IceNine.deep_freeze(@warmup_duration)
       IceNine.deep_freeze(@workflow_types)
     end
 
     def self.load_from_file(filename, validate: true)
+      # allow filename, string, and IO objects as input
       raise ArgumentError, "File #{filename} does not exist!" unless File.exist?(filename)
 
+      # create configuration object
       conf = Configuration.new(filename)
+      # take the file content and pass it to instance_eval
       conf.instance_eval(File.new(filename, 'r').read)
+      # validate and finalize configuration
       conf.validate if validate
+      # return new object
       conf
     end
 
