@@ -98,9 +98,9 @@ module KUBETWIN
         cluster_repository = Hash[
           federation[:resources].map do |k,v|
             #puts "k: #{k} v: #{v}"
-            node_number = v[:cpu] / 2000.0
-            node_cpu = v[:cpu] / node_number
-            node_mem = v[:mem] / node_number
+            node_number = v[:cpu].to_i / 2000.0
+            node_cpu = v[:cpu].to_i / node_number
+            node_mem = v[:mem].to_i / node_number
             # we assume that the resources are homogeneous
             # Since we only have an aggregate for CPU and Memoryù
             # we assume to divide clusters equally. Each node
@@ -154,7 +154,7 @@ module KUBETWIN
           src = cluster_repository[lm[:src].to_sym]
           dst = cluster_repository[lm[:dst].to_sym]
           raise "Cannot find cluster #{lm[:src]} or #{lm[:dst]}" if src.nil? || dst.nil?
-          { src: src.location_id, dst: dst.location_id, value: lm[:value] }
+          { src: src.location_id, dst: dst.location_id, value: lm[:value].to_f }
         end
         latency_manager = LatencyManagerFederation.new(latency_models, seed: latency_seed)
       else
@@ -188,7 +188,7 @@ module KUBETWIN
       stats = Statistics.new
 
       # statistics for servicemdnmdn
-      per_component_stats = Hash[
+      hpa_component_stats = Hash[
         @microservice_types.keys.map do |m_id|
           [
             m_id,
@@ -196,6 +196,41 @@ module KUBETWIN
           ]
         end
       ]
+
+      per_component_stats = Hash[
+        @microservice_types.keys.map do |m_id|
+          puts "Microservice type: #{m_id}"
+          [
+            m_id,
+            ComponentStatistics.new()
+          ]
+        end
+      ]
+
+      # Read policies from congfiguration
+      policies = @configuration.policies || {}
+      unless policies.empty?
+        policies.each do |policy|
+          puts "Policy: #{policy}"
+          # if contains latency_max_value_ms
+          if policy[:properties] && policy[:properties][:latency_max_value_ms]
+            puts "  Latency max value (ms): #{policy[:properties][:latency_max_value_ms]}"
+            policy[:targets].each do |target|
+              puts "  Target: #{target}"
+              # check if target is a microservice type
+              per_component_stats[target].add_custom_kpis(longer_than: [policy[:properties][:latency_max_value_ms]])
+              puts per_component_stats[target].longer_than
+            end
+          end
+          if policy[:properties] && policy[:properties][:response_time_value_ms]
+            puts "  Response time value (ms): #{policy[:properties][:response_time_value_ms]}"
+            policy[:targets].each do |target|
+              puts "  Target: #{target}"
+              per_component_stats[target].add_custom_kpis(longer_than:[policy[:properties][:response_time_value_ms]])
+            end
+          end
+        end
+      end
 
       per_workflow_and_customer_stats = Hash[
         workflow_type_repository.keys.map do |wft_id|
@@ -501,9 +536,10 @@ module KUBETWIN
             time = e.time
             pod   = e.destination
 
-            # increase count of received requests in per_component_stats
+            # increase count of received requests in hpa_component_stats
             workflow = workflow_type_repository[req.workflow_type_id]
             component_name = workflow[:component_sequence][req.next_step][:name]
+            hpa_component_stats[component_name].request_received
             per_component_stats[component_name].request_received
 
             # here we should use the delegator
@@ -532,6 +568,7 @@ module KUBETWIN
 
             # register step completion
             component_name = workflow[:component_sequence][req.worked_step][:name]
+            hpa_component_stats[component_name].record_request(req, now)
             per_component_stats[component_name].record_request(req, now)
 
             req.ttr_step(@current_time)
@@ -755,8 +792,8 @@ module KUBETWIN
             @services.each do |k, s|
               pods_number = s.pods[s.selector].length
               pods_n += "#{k}: #{pods_number} "
-              #@allocation_bench << "#{now},#{k},#{per_component_stats[k].received},#{per_component_stats[k].mean},#{pods_number}\n"
-              #puts "#{now},#{k},#{per_component_stats[k].received},#{per_component_stats[k].mean},#{pods_number}\n"
+              #@allocation_bench << "#{now},#{k},#{hpa_component_stats[k].received},#{hpa_component_stats[k].mean},#{pods_number}\n"
+              #puts "#{now},#{k},#{hpa_component_stats[k].received},#{hpa_component_stats[k].mean},#{pods_number}\n"
               # just to print the allocation map
             end
 
@@ -764,12 +801,12 @@ module KUBETWIN
             #"#{now}\n" +
             #"#{stats.to_s}\n" +
             #"workflow_stats: #{per_workflow_and_customer_stats.to_s}\n"+
-            #"component_stats: #{per_component_stats.to_s}\n"+
+            #"component_stats: #{hpa_component_stats.to_s}\n"+
             #ls"#{pods_n}"
 
             # reset also comoponent statistics
 
-            per_component_stats = Hash[
+            hpa_component_stats = Hash[
               @microservice_types.keys.map do |m_id|
                 [
                   m_id,

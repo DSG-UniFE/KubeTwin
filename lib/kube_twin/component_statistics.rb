@@ -16,11 +16,20 @@ module KUBETWIN
       @m_2  = 0.0
       @q_mean = 0.0
       @q_m_2 = 0.0
+      @longer_than = init_counters_for_longer_than_stats(opts)
+      @shorter_than = init_counters_for_shorter_than_stats(opts)
       @received = 0
     end
 
     def request_received
       @received += 1
+    end
+
+    def add_custom_kpis(custom_kpis_config)
+      # add custom kpis to the longer_than and shorter_than counters
+      puts "Adding custom KPIs to ComponentStatistics: #{custom_kpis_config}"
+      @longer_than.merge!(init_counters_for_longer_than_stats(custom_kpis_config))
+      @shorter_than.merge!(init_counters_for_shorter_than_stats(custom_kpis_config))
     end
 
     def record_request(req, time)
@@ -29,6 +38,15 @@ module KUBETWIN
       raise "TTR #{x} for request #{req.rid} invalid! time: #{time}" unless x > 0.0
 
       qx = req.step_queue_time
+
+
+      @longer_than.each_key do |k|
+        @longer_than[k] += 1 if x > k
+      end
+
+      @shorter_than.each_key do |k|
+        @shorter_than[k] += 1 if x < k
+      end
 
       # update counters
       @n += 1
@@ -56,6 +74,29 @@ module KUBETWIN
       "TTR: (mean: #{@mean}, variance: #{variance}, longer_than: #{@longer_than.to_s})\n" +
       "QTIME: (mean: #{@q_mean}, variance: #{q_variance})"
     end
+
+    private
+      def init_counters_for_longer_than_stats(custom_kpis_config)
+        # prepare an infinite length enumerator that always returns zero
+        zeros = Enumerator.new(){|x| loop do x << 0 end }
+
+        Hash[
+          # wrap the values in custom_kpis_config[:longer_than] in an array
+          Array(custom_kpis_config[:longer_than]).
+            # and interval the numbers contained in that array with zeroes
+            zip(zeros) ]
+      end
+
+      def init_counters_for_shorter_than_stats(custom_kpis_config)
+        # prepare an infinite length enumerator that always returns zero
+        zeros = Enumerator.new(){|x| loop do x << 0 end }
+
+        Hash[
+          # wrap the values in custom_kpis_config[:longer_than] in an array
+          Array(custom_kpis_config[:longer_than]).
+            # and interval the numbers contained in that array with zeroes
+            zip(zeros) ]
+      end
     
   end
 end

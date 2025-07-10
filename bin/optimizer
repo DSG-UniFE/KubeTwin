@@ -29,7 +29,7 @@ if File.expand_path(__FILE__) == File.expand_path($0)
     end
   
     # make sure simulator config file exists
-    unless File.exists? ARGV[0]
+    unless File.exist? ARGV[0]
       do_abort("Invalid simulator configuration file!")
     end
 end
@@ -39,7 +39,7 @@ end
 $logger = Logger.new(STDOUT)
 $logger.level = Logger::INFO
 time = Time.now.strftime('%Y%m%d%H%M%S')
-GA_LOG = "ga_log_oracle_#{time}.log"
+GA_LOG = "KT_optimizer_log_#{time}.log"
 File.delete(GA_LOG) if File.exist?(GA_LOG)
 ga_logger = Logger.new(GA_LOG)
 ga_logger.level = Logger::INFO
@@ -106,6 +106,11 @@ to_optimize = lambda do |component_allocation|
     rss = sim_conf.replica_sets
     slb = sim_conf.services
     msc = sim_conf.microservice_types
+    #puts "Component allocation: #{component_allocation}"
+    #puts "Number of microservices: #{n_ms}"
+    #puts "Replica sets: #{rss}"
+    #puts "Services: #{slb}"
+    #puts "Microservice types: #{msc}"
 
     rss, slb, msc = encode_replicas_set(component_allocation, n_ms, rss, slb, msc)
 
@@ -130,20 +135,14 @@ solver_conf = {
       dimensions: n_ms * 3,
       recombination_type: :intermediate,
       random_func: lambda { Array.new(n_ms) { rand(1..10) } + Array.new(n_ms) {rand(0..1)} + Array.new(n_ms) {rand(0..2)}},
-      constraints: [
+      constraints: 
         # for rss configuration
-        {from: 1, to: 400},
-        {from: 1, to: 400},
-        {from: 1, to: 400},
+        Array.new(n_ms) {{from: 1, to: 10}} +
         # for load balancing configuration
-        {from: 0, to: 1},
-        {from: 0, to: 1},
-        {from: 0, to: 1},
+        Array.new(n_ms) {{from: 0, to: 1}} + 
         # for node affinity
-        {from: 0, to: 2},
-        {from: 0, to: 2},
-        {from: 0, to: 2},
-      ]
+        Array.new(n_ms) {{from: 0, to: 2}}
+      
   },
   exit_condition: lambda { |iteration, _| iteration > 15 }
 }
