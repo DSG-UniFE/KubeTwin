@@ -75,7 +75,6 @@ module KUBETWIN
       @configuration.evaluation[:cluster_hourly_cost].each_with_index do |c, cid|
         evaluation_cost[cid] = c[:fixed_cpu_hourly_cost]
         # leave memory out for now
-        #evaluation_cost[c[:cluster_memory]] = c[:fixed_memory_hourly_cost]
       end
 
       # Let's check if the configuration file contains the description of the 
@@ -93,7 +92,7 @@ module KUBETWIN
         #  "latencies": [["src": "rome", "dst": "milan", "value": 6]]
         # }
         # Convert the @configuration.federation json object into a ruby hash
-        federation = JSON.parse(@configuration.federation.to_json, symbolize_names: true)
+        federation = JSON.parse(@configuration.federation, symbolize_names: true)
         #puts "Federation resources: #{federation[:resources]}"
         cid = -1
         cluster_repository = Hash[
@@ -870,7 +869,7 @@ module KUBETWIN
       # we want to minimize the cost, so we define fitness as the opposite of
       # the sum of all costs incurred
       # -costs.values.inject(0.0){|s,x| s += x }
-      # 99-th percentile ttr + closed_request +
+      #99-th percentile ttr + closed_request +
       # (- 0.99 )
       # -stats.mean
       #res = -per_workflow_and_customer_stats[1][1].longer_than[0.51] /
@@ -894,6 +893,7 @@ module KUBETWIN
       #puts "python figure_generator/tnsm-figure.py #{path_file} #{path_request}"
       #`python figure_generator/tnsm-figure.py #{path_file} #{path_request}`
       #return stats.to_csv # change this
+      -stats.mean
     end
   end
 end
