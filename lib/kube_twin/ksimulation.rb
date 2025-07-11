@@ -410,7 +410,7 @@ module KUBETWIN
 
       # benchmark file
       time = Time.now.strftime('%Y%m%d%H%M%S')
-      @sim_bench = File.open("csv_bench_#{time}.csv", 'w')
+      #@sim_bench = File.open("csv_bench_#{time}.csv", 'w')
       #@allocation_bench = File.open("allocation_bench_#{time}.csv", 'w')
       #@request_profile = File.open("request_profile_#{time}.csv", 'w')
       #@request_profile << "Time,CRequests\n"
@@ -921,8 +921,8 @@ module KUBETWIN
       #-stats.mean
       #return 0
       #return stats.to_csv
-      @sim_bench << stats.to_csv
-      @sim_bench.close
+      #@sim_bench << stats.to_csv
+      #@sim_bench.close
       #path_file = @allocation_bench.path
       #@allocation_bench.close
       #path_request = @request_profile.path
@@ -930,7 +930,17 @@ module KUBETWIN
       #puts "python figure_generator/tnsm-figure.py #{path_file} #{path_request}"
       #`python figure_generator/tnsm-figure.py #{path_file} #{path_request}`
       #return stats.to_csv # change this
-      -stats.mean
+      # return the fitness value
+      weighted_sum = -stats.mean
+      per_component_stats.each do |k, v|
+        weighted_sum += v.longer_than.inject(0.0) do |sum, (key, value)|
+          puts "Component: #{k} Longer than #{key} ms: #{value} closed: #{v.closed}"
+          sum + (value / v.closed.to_f)
+          #sum + (value / v.closed.to_f) * @configuration.custom_stats.find { |x| x[:name] == key }[:weight]
+        end
+      end
+      puts "Weighted sum: #{weighted_sum}"
+      weighted_sum
     end
   end
 end

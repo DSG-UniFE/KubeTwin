@@ -7,7 +7,7 @@ module KUBETWIN
     def initialize(latency_models, seed: nil)
       @latency_models = latency_models
       @intra_dc_latency = ERV::RandomVariable.new(distribution: :gaussian, args: { mean: 5E-3, sd: 1E-3, seed: seed || 12345 })
-      @noise = ERV::RandomVariable.new(distribution: :gaussian, args: { mean: 0.0, sd: 3E-3, seed: seed || 12345 })
+      @noise = ERV::RandomVariable.new(distribution: :gaussian, args: { mean: 0.0, sd: 10E-3, seed: seed || 12345 })
     end
 
     def sample_latency_between(loc1, loc2)
@@ -16,12 +16,15 @@ module KUBETWIN
         if (model[:src] == loc1 && model[:dst] == loc2) ||
             (model[:src] == loc2 && model[:dst] == loc1)            
             # value is a constant value in seconds. Let's add some noise to it
-            lat = model[:value]  + @noise.next
+            noise_value = 0.0
+            while (noise_value = @noise.next) < 1E-3; end
+            lat = model[:value]  + noise_value
             #puts "latency between #{loc1} and #{loc2} is #{lat} seconds"
             return lat
         elsif loc1 == loc2
             # return intra-dc latency. Let's approximate it from 1 to 5 ms and convert to seconds
-            lat = @intra_dc_latency.next
+            while (lat = @intra_dc_latency.next) < 1E-3; end
+            lat
         end
       end
       if lat.nil?
@@ -29,7 +32,8 @@ module KUBETWIN
         src_to_loc1 = @latency_models.find { |model| model[:src] == 0 && model[:dst] == loc1 }
         dst_to_loc2 = @latency_models.find { |model| model[:src] == 0 && model[:dst] == loc2 }
         if src_to_loc1 && dst_to_loc2
-          lat = src_to_loc1[:value] + dst_to_loc2[:value] + @noise.next
+          while (noise_value = @noise.next) < 1E-3; end
+          lat = src_to_loc1[:value] + dst_to_loc2[:value] + noise_value
         else
           raise "Latency model not found for locations #{loc1} and #{loc2}"
         end
