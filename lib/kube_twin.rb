@@ -3,3 +3,4 @@
 require_relative './kube_twin/configuration'
 require_relative './kube_twin/ksimulation'
 require_relative './kube_twin/evaluation'
+require_relative './kube_twin/koptimizer'
