@@ -49,52 +49,48 @@ sim_conf = KUBETWIN::Configuration.load_from_file(ARGV[0])
 n_ms = sim_conf.microservice_types.length
 rss = sim_conf.replica_sets
 msc = sim_conf.microservice_types
+cluster_repository = KUBETWIN::KSimulation.create_cluster_configuration(sim_conf)
+n_clusters = cluster_repository.length
 
 $start_time = sim_conf.start_time
 
-def encode_replicas_set(x, n_ms, rss, slb)
+def encode_replicas_set(x, n_ms, rss, n_clusters)
   ra = rss.keys.to_a
+  replicas_per_ms = {}
   (0..(n_ms - 1)).each do |sj|
     rss[ra[sj]][:replicas] = x[sj]
-  end
+    replicas_per_ms[ra[sj]] = x[sj]
+  end  
   # here decide the load balancing configuration
   # 0 would be round robin 1 is random
-  ss = slb.keys.to_a
-  (0..(n_ms - 1)).each do |sj|
-    # shift to right we are considering what's next
-    xj = sj + n_ms
-    if x[xj].zero?
-      policy = :round_robin
-    else
-      policy = :random
-    end
-    slb[ss[sj]][:load_balancing] = policy
-  end
   #$logger.debug "Replica Sets: #{rss}"
-  return rss, slb
+  return rss, replicas_per_ms
 end
 
 
 to_optimize = lambda do |component_allocation|
     # load simulation configuration
     conf = KUBETWIN::Configuration.load_from_file(ARGV[0])
-
     rss = sim_conf.replica_sets
     slb = sim_conf.services
     msc = sim_conf.microservice_types
-    rss, slb = encode_replicas_set(component_allocation, n_ms, rss, slb)
+    rss, _ = encode_replicas_set(component_allocation, n_ms, rss, slb)
+    # Let's map the replicas to the clusters
+    # 0 means cluster 0, 1 means cluster 1, etc., n_clusters means random
+    mapping = component_allocation[n_ms..(n_ms + n_clusters - 1)]
     sim = KUBETWIN::KSimulation.new(configuration: conf,
                                 evaluator: KUBETWIN::Evaluator.new(conf))
+    
     # create a simulator and launch it
     $logger.debug component_allocation
 
-    res = sim.evaluate_allocation(rss, slb, nil)
+    res = sim.evaluate_allocation(rss, nil, nil, nil, mapping)
     res
 end
 
 
 solver_conf = {
-  population_size: 64,
+  population_size: 32,
   genotype_space_type: :integer,
   mutation_probability: 0.5,
   recombination_probability: 0.5,
@@ -102,28 +98,27 @@ solver_conf = {
   log_level: "INFO",
   recombination_threshold: 0.40,
   genotype_space_conf: {
-      dimensions: n_ms * 3,
+      dimensions: n_ms * 2,
       recombination_type: :intermediate,
-      random_func: lambda { Array.new(n_ms) { rand(1..10) } + Array.new(n_ms) {rand(0..1)} + Array.new(n_ms) {rand(0..2)}},
+      random_func: lambda { Array.new(n_ms) { rand(1..10) } + Array.new(n_ms) {rand(0..n_clusters)}},
       constraints: 
         # for rss configuration
-        Array.new(n_ms) {{from: 1, to: 10}} +
-        # for load balancing configuration
-        Array.new(n_ms) {{from: 0, to: 1}} 
-      
+        Array.new(n_ms) {{from: 1, to: 10}} + Array.new(n_ms) {{from: 0, to: n_clusters}},
   },
-  exit_condition: lambda { |iteration, _| iteration > 15 }
+  exit_condition: lambda { |iteration, _| iteration > 5 }
 }
 
 solver = MHL::GeneticAlgorithmSolver.new(solver_conf)
 
 # run the solver
-best = solver.solve(to_optimize, {concurrent: true})
+best = solver.solve(to_optimize, {concurrent: false})
 
 puts best
 #ap 'Best result:'
 #ap(best, :indent => 2)
+puts "Best configuration"
 
+to_optimize.call(best[:genotype])
 puts "exiting"
 exit 0
 

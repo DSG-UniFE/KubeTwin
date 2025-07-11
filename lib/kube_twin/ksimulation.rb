@@ -18,7 +18,7 @@ require_relative './node'
 
 
 require 'json'
-
+require 'logger'
 
 
 module KUBETWIN
@@ -26,10 +26,11 @@ module KUBETWIN
   class KSimulation
 
     UNFEASIBLE_ALLOCATION_EVALUATION = { unfeasible_configuration: -Float::INFINITY }.freeze
-    attr_reader :start_time
+    attr_reader :start_time, :cluster_repository
 
     DEFAULT_NUM_REQS = 5000
     CONNECT_TIME = 0.00148205
+    DEFAULT_CPU_PER_NODE = 4000.0 # in mCPU
     SEED = 123
 
     def initialize(opts = {})
@@ -40,6 +41,9 @@ module KUBETWIN
       @num_reqs = DEFAULT_NUM_REQS if @num_reqs.nil?
       @results_dir += '/' unless @results_dir.nil?
       @microservice_mdn = Hash.new
+      @mapping = nil
+      @logger = opts[:logger] || Logger.new(STDOUT)
+      @logger.level = opts[:log_level] || Logger::INFO
     end
 
     def new_event(type, data, time, destination)
@@ -52,9 +56,49 @@ module KUBETWIN
       @current_time
     end
 
+    ## just an helper method to create the cluster configuration
+    def self.create_cluster_configuration(sim_conf)
+      federation = nil
+      unless sim_conf.federation.nil?
+        federation = JSON.parse(sim_conf.federation, symbolize_names: true)
+        #puts "Federation resources: #{federation[:resources]}"
+        cid = -1
+        cluster_repository = Hash[
+          federation[:resources].map do |k,v|
+            #puts "k: #{k} v: #{v}"
+            node_number = v[:nodes].length if v[:nodes]
+            node_number ||= v[:cpu].to_i / DEFAULT_CPU_PER_NODE
+            node_cpu = v[:cpu].to_i / node_number
+            node_mem = v[:mem].to_i / node_number
+            # we assume that the resources are homogeneous
+            # Since we only have an aggregate for CPU and Memoryù
+            # we assume to divide clusters equally. Each node
+            # has 2000 milliCPU and 2 GB of Memory (2048 MB)
+            cid += 1
+            [ k, Cluster.new(id: k, fixed_hourly_cost_cpu: nil, 
+            fixed_hourly_cost_memory: nil, location_id: cid, 
+            node_resources_cpu: node_cpu.to_i,
+            node_resources_memory: node_mem.to_i, name: k,
+            node_number: node_number.to_i, type: :mec, tier: "local") ]
+          end
+          ]
+        else
+          cid = -1
+          # create clusters and relative nodes and store them in a repository
+          cluster_repository = Hash[
+            @configuration.clusters.map do |k,v|
+              cid += 1
+              @logger.debug "Cluster: #{k} #{v}"
+              [ k, Cluster.new(id: k, fixed_hourly_cost_cpu: nil,
+               fixed_hourly_cost_memory: nil, **v) ]
+            end
+          ]
+      end
+    end
+
     # rss is replica set
     # css is service configuration
-    def evaluate_allocation(rss=nil, css=nil, mtt=nil,lm=nil)
+    def evaluate_allocation(rss=nil, css=nil, mtt=nil,lm=nil,mapping=nil)
       # seeds
       latency_seed = @configuration.seeds[:communication_latencies]
       service_time_seed = @configuration.seeds[:service_times]
@@ -64,7 +108,8 @@ module KUBETWIN
         Random.new
       end
 
-
+      # mapping is the mapping of microservices to clusters
+      @mapping ||= mapping
 
       # setup simulation start and current time
       @current_time = @start_time = @configuration.start_time
@@ -95,10 +140,11 @@ module KUBETWIN
         federation = JSON.parse(@configuration.federation, symbolize_names: true)
         #puts "Federation resources: #{federation[:resources]}"
         cid = -1
-        cluster_repository = Hash[
+        @cluster_repository = Hash[
           federation[:resources].map do |k,v|
             #puts "k: #{k} v: #{v}"
-            node_number = v[:cpu].to_i / 2000.0
+            node_number = v[:nodes].length if v[:nodes]
+            node_number ||= v[:cpu].to_i / DEFAULT_CPU_PER_NODE
             node_cpu = v[:cpu].to_i / node_number
             node_mem = v[:mem].to_i / node_number
             # we assume that the resources are homogeneous
@@ -116,10 +162,10 @@ module KUBETWIN
         else
           cid = -1
           # create clusters and relative nodes and store them in a repository
-          cluster_repository = Hash[
+          @cluster_repository = Hash[
             @configuration.clusters.map do |k,v|
               cid += 1
-              puts "Cluster: #{k} #{v}"
+              @logger.debug "Cluster: #{k} #{v}"
               [ k, Cluster.new(id: k, fixed_hourly_cost_cpu: evaluation_cost[cid],
                fixed_hourly_cost_memory: evaluation_cost[cid], **v) ]
             end
@@ -127,16 +173,30 @@ module KUBETWIN
       end
 
       node_id = 0
-      cluster_repository.values.each do |c|
+      @cluster_repository.values.each do |c|
         node_number = c.node_number
         node_number.times do |i|
           # we suppose to have nodes with homogenous capabilities in a
           # cluster
           # set also the cluster_id here
           n = Node.new(node_id, c.node_resources_cpu, c.node_resources_memory, c.cluster_id, c.type)
-          puts "Creating node #{n.node_id} cluster: #{n.cluster_id} with resources: #{n.resources_cpu} #{n.resources_memory}"
+          @logger.debug "Creating node #{n.node_id} cluster: #{n.cluster_id} with resources: #{n.resources_cpu} #{n.resources_memory}"
           c.add_node(n)
           node_id += 1
+        end
+      end
+
+      # If mapping is not nil, get the integer values of mapping to get the cluster id
+      # just need to the @cluster_repository to get the cluster id
+      if @mapping
+        @mapping.each_with_index do |cid, i|
+          # get the cluster id from the cluster repository with key at position cid
+          if cid >= @cluster_repository.keys.length
+            cluster = :none
+          else
+            cluster = @cluster_repository.keys[cid]
+          end
+          @mapping[i] = cluster.to_sym
         end
       end
 
@@ -151,8 +211,8 @@ module KUBETWIN
         latency_models = federation[:latencies]
         # change cluster name to cluster id
         latency_models = latency_models.map do |lm|
-          src = cluster_repository[lm[:src].to_sym]
-          dst = cluster_repository[lm[:dst].to_sym]
+          src = @cluster_repository[lm[:src].to_sym]
+          dst = @cluster_repository[lm[:dst].to_sym]
           raise "Cannot find cluster #{lm[:src]} or #{lm[:dst]}" if src.nil? || dst.nil?
           { src: src.location_id, dst: dst.location_id, value: lm[:value].to_f }
         end
@@ -167,17 +227,17 @@ module KUBETWIN
 
       # information regarding microservices
       @microservice_types = mtt.nil? ? @configuration.microservice_types : mtt
-      puts "#{@microservice_types} #{@microservice_types.nil?}"
+      @logger.debug "#{@microservice_types} #{@microservice_types.nil?}"
       @microservice_types.each do |k, v|
         unless v[:mdn_file].nil?
           model = keras.models.load_model(v[:mdn_file])
-          # puts "model: #{model}"
+          # @logger.debug "model: #{model}"
           @microservice_mdn[k] = {model: model, st: Hash.new }
-          # puts "v: #{@microservice_mdn}"
+          # @logger.debug "v: #{@microservice_mdn}"
         end
       end
 
-      #puts "init mdns #{@microservice_mdn}"
+      #@logger.debug "init mdns #{@microservice_mdn}"
 
       # information regarding customers
       customer_repository = @configuration.customers
@@ -199,7 +259,7 @@ module KUBETWIN
 
       per_component_stats = Hash[
         @microservice_types.keys.map do |m_id|
-          puts "Microservice type: #{m_id}"
+          @logger.debug "Microservice type: #{m_id}"
           [
             m_id,
             ComponentStatistics.new()
@@ -209,25 +269,31 @@ module KUBETWIN
 
       # Read policies from congfiguration
       policies = @configuration.policies || {}
+      availability_policy = nil
+
       unless policies.empty?
         policies.each do |policy|
-          puts "Policy: #{policy}"
+          @logger.debug "Policy: #{policy}"
           # if contains latency_max_value_ms
           if policy[:properties] && policy[:properties][:latency_max_value_ms]
-            puts "  Latency max value (ms): #{policy[:properties][:latency_max_value_ms]}"
+            @logger.debug "  Latency max value (ms): #{policy[:properties][:latency_max_value_ms]}"
             policy[:targets].each do |target|
-              puts "  Target: #{target}"
+              @logger.debug "  Target: #{target}"
               # check if target is a microservice type
               per_component_stats[target].add_custom_kpis(longer_than: [policy[:properties][:latency_max_value_ms]])
-              puts per_component_stats[target].longer_than
+              @logger.debug per_component_stats[target].longer_than
             end
           end
           if policy[:properties] && policy[:properties][:response_time_value_ms]
-            puts "  Response time value (ms): #{policy[:properties][:response_time_value_ms]}"
+            @logger.debug "  Response time value (ms): #{policy[:properties][:response_time_value_ms]}"
             policy[:targets].each do |target|
-              puts "  Target: #{target}"
+              @logger.debug "  Target: #{target}"
               per_component_stats[target].add_custom_kpis(longer_than:[policy[:properties][:response_time_value_ms]])
             end
+          end
+          if policy[:properties] && policy[:properties][:target_availability_percentage]
+            @logger.debug "  Target availability percentage: #{policy[:properties][:target_availability_percentage]}"
+            availability_policy = policy[:properties][:target_availability_percentage].to_f / 100.0
           end
         end
       end
@@ -277,7 +343,7 @@ module KUBETWIN
            conf[:replicas], nil)
       end
 
-      # puts @replica_sets
+      # @logger.debug @replica_sets
 
       @horizontal_pod_autoscaler_repo = {}
       unless @configuration.horizontal_pod_autoscalers.nil?
@@ -291,7 +357,7 @@ module KUBETWIN
         end
       end
 
-      #puts @horizontal_pod_autoscaler_repo
+      #@logger.debug @horizontal_pod_autoscaler_repo
 
       # Then create services and pods at startup
       # not simulating starup events in the MVP
@@ -315,9 +381,10 @@ module KUBETWIN
       # creating a KubeScheduler
       # the KubeScheduler decides on which nodes schedule
       # the pods
-      @kube_scheduler = KubeScheduler.new(cluster_repository)
+      @kube_scheduler = KubeScheduler.new(@cluster_repository)
 
       pod_id = 0
+      ms_id = 0
       @replica_sets.each do |k, rs|
         # here we need to create pods and register them into a Service
         rs.replicas.times do
@@ -331,9 +398,14 @@ module KUBETWIN
           reqs_c = sct[:resources_requirements_cpu]
           reqs_m = sct[:resources_requirements_memory]
           node_affinity = sct[:node_affinity]
-
-          node = @kube_scheduler.get_node(reqs_c, reqs_m, node_affinity)
-          next if node.nil? 
+          unless @mapping
+            node = @kube_scheduler.get_node(reqs_c, reqs_m, node_affinity)
+          else
+            #@logger.debug "Mapping: #{@mapping}"
+            node = @kube_scheduler.get_node_from_cluster(reqs_c, reqs_m, @mapping[ms_id])
+            #@logger.debug "Node: #{node} for selector: #{selector} with requirements: #{reqs_c} #{reqs_m}"
+          end
+          next if node.nil?
           # no more resources
           # once we know where the pod is going to be allocated
           # we can retrieve also the service_time_distribution
@@ -353,6 +425,8 @@ module KUBETWIN
 
 
         end
+        # increment microservice id
+        ms_id += 1
       end
 
 
@@ -470,7 +544,7 @@ module KUBETWIN
 
             # we need to get a reference to the cluster where the pod is running
             cluster_id = pod.node.cluster_id
-            cluster = cluster_repository[cluster_id]
+            cluster = @cluster_repository[cluster_id]
 
             arrival_time = @current_time + latency_manager.sample_latency_between(customer_location_id, cluster.location_id)
             # here we should also add the HTTP connection time (8 ms)
@@ -501,7 +575,7 @@ module KUBETWIN
               # get the pod here, we do not need thr cluster
             @arrived += 1
 
-            #cluster = cluster_repository[req.data_center_id]
+            #cluster = @cluster_repository[req.data_center_id]
             # update reqs_received_per_workflow_and_customer
             reqs_received_per_workflow_and_customer[req.workflow_type_id][req.customer_id] += 1
 
@@ -562,7 +636,7 @@ module KUBETWIN
             oc = container.free_linked_container
             oc.request_finished(self, e.time) if oc
 
-            current_cluster = cluster_repository[req.data_center_id]
+            current_cluster = @cluster_repository[req.data_center_id]
             # find the next workflow
             workflow = workflow_type_repository[req.workflow_type_id]
 
@@ -590,7 +664,7 @@ module KUBETWIN
 
               # we need to get a reference to the cluster where the pod is running
               cluster_id = pod.node.cluster_id
-              cluster = cluster_repository[cluster_id]
+              cluster = @cluster_repository[cluster_id]
 
               transmission_time =
                 latency_manager.sample_latency_between(current_cluster.location_id, cluster.location_id)
@@ -618,7 +692,7 @@ module KUBETWIN
               transmission_time =
                 latency_manager.sample_latency_between(
                   # data center location
-                  cluster_repository[req.data_center_id].location_id,
+                  @cluster_repository[req.data_center_id].location_id,
                   # customer location
                   customer_repository.dig(req.customer_id, :location_id)
                 )
@@ -725,9 +799,9 @@ module KUBETWIN
 
             unless tolerance_range === scaling_ratio
               # then here implement the check to scale up or down the associated pods
-              puts "pods: #{pods} scaling_ratio: #{scaling_ratio}"
+              @logger.debug "pods: #{pods} scaling_ratio: #{scaling_ratio}"
               d_replicas = (pods * scaling_ratio).ceil
-              # puts "desired_replicas: #{d_replicas} current_replicas #{pods}"
+              # @logger.debug "desired_replicas: #{d_replicas} current_replicas #{pods}"
 
               if d_replicas > pods
 
@@ -758,10 +832,10 @@ module KUBETWIN
               else
                 # we need to select some pods to terminate
                 # deal with requests currently being processed
-                #puts "min #{hpa.min_replicas}"
+                #@logger.debug "min #{hpa.min_replicas}"
                 to_scale = d_replicas > hpa.min_replicas ? (pods - d_replicas) : 0
                 unless to_scale.zero?
-                  # puts "deactivating pods"
+                  # @logger.debug "deactivating pods"
                   ppl = s.pods[hpa.name].sample(to_scale)
                   ppl.each do |p|
                     p.deactivate_pod
@@ -846,7 +920,7 @@ module KUBETWIN
       # Keep track of how many nodes per cluster we are using
       node_utilization = {}
       costs = 0
-      cluster_repository.each do |_,c|
+      @cluster_repository.each do |_,c|
         pods = 0
         node = 0
         c.nodes.values.each do |n|
@@ -879,7 +953,7 @@ module KUBETWIN
       #gather information of how many pods are running for each label in each node per cluster
       bmap = {}
       @services.each do |k, s| 
-        cluster_repository.each do |_,c|
+        @cluster_repository.each do |_,c|
           pods_number = 0
           c.nodes.values.each do |n|
             pods_number += s.pods[s.selector].count { |p| p.node.node_id == n.node_id }
@@ -891,8 +965,7 @@ module KUBETWIN
           end
         end
       end
-      puts bmap
-      
+      puts "BMAP: #{bmap}"      
       #Produce txt and JSON file with the bmap information
       File.open("final_allocation.txt", 'w') do |f|
         f.puts bmap
@@ -918,18 +991,7 @@ module KUBETWIN
       #per_workflow_and_customer_stats[1][1].shorter_than.each_key do |t|
       #  puts "#{(per_workflow_and_customer_stats[1][1].shorter_than[t] / per_workflow_and_customer_stats[1][1].closed.to_f) * 100}% #{t}s"
       #end
-      #-stats.mean
       #return 0
-      #return stats.to_csv
-      #@sim_bench << stats.to_csv
-      #@sim_bench.close
-      #path_file = @allocation_bench.path
-      #@allocation_bench.close
-      #path_request = @request_profile.path
-      #@request_profile.close
-      #puts "python figure_generator/tnsm-figure.py #{path_file} #{path_request}"
-      #`python figure_generator/tnsm-figure.py #{path_file} #{path_request}`
-      #return stats.to_csv # change this
       # return the fitness value
       weighted_sum = -stats.mean
       per_component_stats.each do |k, v|
@@ -938,6 +1000,11 @@ module KUBETWIN
           sum + (value / v.closed.to_f)
           #sum + (value / v.closed.to_f) * @configuration.custom_stats.find { |x| x[:name] == key }[:weight]
         end
+      end
+      ## Add the availability policy
+      if availability_policy
+        closed_percentage = stats.closed.to_f / stats.received.to_f
+        weighted_sum += closed_percentage if closed_percentage < availability_policy
       end
       puts "Weighted sum: #{weighted_sum}"
       weighted_sum

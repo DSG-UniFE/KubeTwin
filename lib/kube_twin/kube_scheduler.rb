@@ -19,6 +19,25 @@ module KUBETWIN
       filter_and_score(requirements_cpu, requirements_mem, node_affinity)
     end
 
+    def get_node_from_cluster(requirements_cpu, requirements_mem, cluster_id)
+      filter(requirements_cpu, requirements_mem)
+      #puts "Filtered nodes: #{@filtered_nodes.length} for cluster_id: #{cluster_id}"
+      # filter the nodes by cluster_id
+      if cluster_id == :none
+        score(nil) # random cluster
+      else
+        #puts "Filtering nodes for cluster_id: #{cluster_id}"
+        node = @filtered_nodes.select! { |n| n[:cluster_id] == cluster_id }
+        if node.empty?
+          #puts "No nodes available for cluster_id: #{cluster_id} with requirements: #{requirements_cpu} #{requirements_mem}"
+          return nil
+        else
+          #puts "Found node for cluster_id: #{cluster_id} with requirements: #{requirements_cpu} #{requirements_mem}"
+          return node.first[:node]
+        end
+      end 
+    end
+
     private
     # then we need to implement
     # 1) filtering (a lot of policies that can be implemented in external classes

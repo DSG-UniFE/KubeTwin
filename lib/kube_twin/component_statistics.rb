@@ -27,7 +27,6 @@ module KUBETWIN
 
     def add_custom_kpis(custom_kpis_config)
       # add custom kpis to the longer_than and shorter_than counters
-      puts "Adding custom KPIs to ComponentStatistics: #{custom_kpis_config}"
       @longer_than.merge!(init_counters_for_longer_than_stats(custom_kpis_config))
       @shorter_than.merge!(init_counters_for_shorter_than_stats(custom_kpis_config))
     end
