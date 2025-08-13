@@ -43,7 +43,7 @@ module KUBETWIN
       @microservice_mdn = Hash.new
       @mapping = nil
       @logger = opts[:logger] || Logger.new(STDOUT)
-      @logger.level = opts[:log_level] || Logger::INFO
+      @logger.level = opts[:log_level] || Logger::DEBUG
     end
 
     def new_event(type, data, time, destination)
@@ -152,8 +152,9 @@ module KUBETWIN
             # we assume to divide clusters equally. Each node
             # has 2000 milliCPU and 2 GB of Memory (2048 MB)
             cid += 1
-            [ k, Cluster.new(id: k, fixed_hourly_cost_cpu: evaluation_cost[cid], 
-            fixed_hourly_cost_memory: evaluation_cost[cid], location_id: cid, 
+            price = evaluation_cost[cid] || 0.100
+            [ k, Cluster.new(id: k, fixed_hourly_cost_cpu: price, 
+            fixed_hourly_cost_memory: price, location_id: cid, 
             node_resources_cpu: node_cpu.to_i,
             node_resources_memory: node_mem.to_i, name: k,
             node_number: node_number.to_i, type: :mec, tier: "local") ]
@@ -165,9 +166,10 @@ module KUBETWIN
           @cluster_repository = Hash[
             @configuration.clusters.map do |k,v|
               cid += 1
+              price = evaluation_cost[cid] || 0.100
               @logger.debug "Cluster: #{k} #{v}"
-              [ k, Cluster.new(id: k, fixed_hourly_cost_cpu: evaluation_cost[cid],
-               fixed_hourly_cost_memory: evaluation_cost[cid], **v) ]
+              [ k, Cluster.new(id: k, fixed_hourly_cost_cpu: price,
+               fixed_hourly_cost_memory: price, **v) ]
             end
           ]
       end
@@ -191,7 +193,7 @@ module KUBETWIN
       if @mapping
         @mapping.each_with_index do |cid, i|
           # get the cluster id from the cluster repository with key at position cid
-          if cid >= @cluster_repository.keys.length
+          if cid == @cluster_repository.keys.length
             cluster = :none
           else
             cluster = @cluster_repository.keys[cid]
@@ -401,9 +403,9 @@ module KUBETWIN
           unless @mapping
             node = @kube_scheduler.get_node(reqs_c, reqs_m, node_affinity)
           else
-            #@logger.debug "Mapping: #{@mapping}"
+            @logger.debug "Mapping: #{@mapping}"
             node = @kube_scheduler.get_node_from_cluster(reqs_c, reqs_m, @mapping[ms_id])
-            #@logger.debug "Node: #{node} for selector: #{selector} with requirements: #{reqs_c} #{reqs_m}"
+            @logger.debug "Node: #{node} for selector: #{selector} with requirements: #{reqs_c} #{reqs_m}"
           end
           next if node.nil?
           # no more resources
@@ -933,6 +935,9 @@ module KUBETWIN
         allocation_map[c.name] = {tier: c.tier, pods: pods}
         node_utilization[c.name] = node
         # Assume 24 hrs of operation
+        unless c.fixed_hourly_cost_cpu
+          c.fixed_hourly_cost_cpu = 0.100
+        end
         costs += c.fixed_hourly_cost_cpu * node * 24
         #puts "Allocation -- #{c.name} Pods: #{pods}"
       end

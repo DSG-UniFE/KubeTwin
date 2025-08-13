@@ -11,7 +11,8 @@ module KUBETWIN
 
     attr_reader :cluster_id, :location_id, :node_number, 
                 :nodes, :name, :node_resources_cpu, :node_resources_memory, :type,
-                :tier,:fixed_hourly_cost_cpu, :fixed_hourly_cost_memory
+                :tier
+    attr_accessor :fixed_hourly_cost_cpu, :fixed_hourly_cost_memory
 
     # type is mec or cloud, something similar to what we implemented
     # in Phileas
