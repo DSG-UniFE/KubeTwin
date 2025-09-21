@@ -764,6 +764,7 @@ module KUBETWIN
           d_replicas = 0
 
           s.pods[hpa.name].each do |pod|
+            pods += 1
             next if pod.container.served_request.zero?
 
             current_metric += pod.container.total_queue_processing_time / pod.container.served_request
@@ -773,7 +774,6 @@ module KUBETWIN
             # calculate them each time period
             pod.container.reset_metrics
             # puts "#{pod.container.current_processing_metric}"
-            pods += 1
           end
           current_metric /= pods.to_f
 
@@ -796,9 +796,12 @@ module KUBETWIN
 
           unless tolerance_range === scaling_ratio
             # then here implement the check to scale up or down the associated pods
-            @logger.debug "pods: #{pods} scaling_ratio: #{scaling_ratio}"
             d_replicas = (pods * scaling_ratio).ceil
+            @logger.debug "pods: #{pods} scaling_ratio: #{scaling_ratio} d_replicas #{d_replicas} to_scale #{d_replicas - pods}"
             # @logger.debug "desired_replicas: #{d_replicas} current_replicas #{pods}"
+            # get the replica set
+            rs = @replica_sets[hname]
+            to_scale = d_replicas <= hpa.max_replicas ? (d_replicas - pods) : (hpa.max_replicas - pods)
 
             if d_replicas > pods
 
@@ -831,7 +834,7 @@ module KUBETWIN
               # we need to select some pods to terminate
               # deal with requests currently being processed
               # @logger.debug "min #{hpa.min_replicas}"
-              to_scale = d_replicas > hpa.min_replicas ? (pods - d_replicas) : 0
+              to_scale = d_replicas > hpa.min_replicas ? (pods - d_replicas).abs : 0
               unless to_scale.zero?
                 # @logger.debug "deactivating pods"
                 ppl = s.pods[hpa.name].sample(to_scale)
@@ -935,7 +938,6 @@ module KUBETWIN
 
       # TODO: -- IMPLEMENT COST EVALUATION HERE
       # costs = @evaluator.evaluate_fixed_costs_cpu(vm_allocation)
-      # puts "#{stats.to_csv}"
       puts "====== Evaluating new allocation ======\n" +
            "stats: #{stats}\n" +
            # "per_workflow_and_customer_stats: #{per_workflow_and_customer_stats.to_s}\n" +
