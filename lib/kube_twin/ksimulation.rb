@@ -1012,9 +1012,9 @@ module KUBETWIN
       # return the fitness value
       weighted_sum = stats.mean + replication_penalties
       per_component_stats.each do |k, v|
-        weighted_sum += v.longer_than.inject(0.0) do |sum, (key, value)|
+        weighted_sum += v.longer_than&.inject(0.0) do |sum, (key, value)|
           puts "Component: #{k} Longer than #{key} ms: #{value} closed: #{v.closed}"
-          sum + (value / v.closed.to_f) if v.closed.to_f > 0
+          sum + (value / v.closed&.to_f) if v.closed.(to_f > 0
           # sum + (value / v.closed.to_f) * @configuration.custom_stats.find { |x| x[:name] == key }[:weight]
         end
       end
