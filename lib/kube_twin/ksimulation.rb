@@ -273,19 +273,19 @@ module KUBETWIN
           @logger.debug "Policy: #{policy}"
           # if contains latency_max_value_ms
           if policy[:properties] && policy[:properties][:latency_max_value_ms]
-            @logger.debug "  Latency max value (ms): #{policy[:properties][:latency_max_value_ms]}"
+            @logger.debug "  Latency max value (s): #{policy[:properties][:latency_max_value_ms] / 1E3}"
             policy[:targets].each do |target|
               @logger.debug "  Target: #{target}"
               # check if target is a microservice type
-              per_component_stats[target].add_custom_kpis(longer_than: [policy[:properties][:latency_max_value_ms]])
+              per_component_stats[target].add_custom_kpis(longer_than: [policy[:properties][:latency_max_value_ms] / 1E3])
               @logger.debug per_component_stats[target].longer_than
             end
           end
           if policy[:properties] && policy[:properties][:response_time_value_ms]
-            @logger.debug "  Response time value (ms): #{policy[:properties][:response_time_value_ms]}"
+            @logger.debug "  Response time value (s): #{policy[:properties][:response_time_value_ms] / 1E3}"
             policy[:targets].each do |target|
               @logger.debug "  Target: #{target}"
-              per_component_stats[target].add_custom_kpis(longer_than: [policy[:properties][:response_time_value_ms]])
+              per_component_stats[target].add_custom_kpis(longer_than: [policy[:properties][:response_time_value_ms] / 1E3])
             end
           end
           if policy[:properties] && policy[:properties][:target_availability_percentage]
@@ -1012,8 +1012,16 @@ module KUBETWIN
       # return the fitness value
       weighted_sum = stats.mean + replication_penalties
       per_component_stats.each do |k, v|
+        # misconfiguration from TOSCA
+        next if v.closed == 0
+
+        # begin
         @logger.debug "Calculating stats for #{k} - #{v}"
-        next if v.nil?
+        # rescue StandardError => e
+        # @logger.error "#{e.backtrace.join}"
+        # @logger.debug 'Proceed anyway'
+        # next
+        # end
 
         weighted_sum += v.longer_than.inject(0.0) do |sum, (key, value)|
           puts "Component: #{k} Longer than #{key} ms: #{value} closed: #{v.closed}"
