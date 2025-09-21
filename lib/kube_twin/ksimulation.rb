@@ -923,6 +923,7 @@ module KUBETWIN
       # Keep track of how many nodes per cluster we are using
       node_utilization = {}
       costs = 0
+      @logger.debug 'Simulation over'
       @cluster_repository.each do |_, c|
         pods = 0
         node = 0
