@@ -1013,7 +1013,7 @@ module KUBETWIN
       weighted_sum = stats.mean + replication_penalties
       per_component_stats.each do |k, v|
         @logger.debug "Calculating stats for #{k} - #{v}"
-        next if n.nil?
+        next if v.nil?
 
         weighted_sum += v.longer_than.inject(0.0) do |sum, (key, value)|
           puts "Component: #{k} Longer than #{key} ms: #{value} closed: #{v.closed}"
