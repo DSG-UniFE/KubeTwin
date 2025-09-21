@@ -406,7 +406,7 @@ module KUBETWIN
           if node.nil?
             # No node can be found wit this mapping
             # return a penalty
-            return 500
+            return -1_000
           end
 
           # no more resources
