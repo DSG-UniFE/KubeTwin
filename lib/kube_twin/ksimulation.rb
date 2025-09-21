@@ -395,11 +395,13 @@ module KUBETWIN
             reqs_c = sct[:resources_requirements_cpu]
             reqs_m = sct[:resources_requirements_memory]
             node_affinity = sct[:node_affinity]
+            node = nil
             if @mapping
               @logger.debug "Mapping: #{@mapping}"
               node = @kube_scheduler.get_node_from_cluster(reqs_c, reqs_m, @mapping[ms_id])
               @logger.debug "Node: #{node} for selector: #{selector} with requirements: #{reqs_c} #{reqs_m}"
-            else
+            # if node not found --> go for what available
+            if node.nil?
               node = @kube_scheduler.get_node(reqs_c, reqs_m, node_affinity)
             end
             next if node.nil?
