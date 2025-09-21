@@ -401,10 +401,10 @@ module KUBETWIN
           if @mapping
             @logger.debug "Mapping: #{@mapping}"
             node = @kube_scheduler.get_node_from_cluster(reqs_c, reqs_m, @mapping[ms_id])
-            @logger.debug "Node: #{node} for selector: #{selector} with requirements: #{reqs_c} #{reqs_m}"
             # if node not found --> go for what available
           end
           node = @kube_scheduler.get_node(reqs_c, reqs_m, node_affinity) if node.nil?
+          @logger.debug "Node: #{node} for selector: #{selector} with requirements: #{reqs_c} #{reqs_m}"
           # if still cannot be allocated
           next if node.nil?
 
