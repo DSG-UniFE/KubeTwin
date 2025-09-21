@@ -426,7 +426,7 @@ module KUBETWIN
           pod_id += 1
         end
         # return a penalty if no pods were created for rs
-        return - 1_000 if pods_created == 0
+        return - 1_000 if pods_created != pods_tbc
 
         # increment microservice id
         ms_id += 1
