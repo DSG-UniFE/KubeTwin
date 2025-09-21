@@ -381,54 +381,53 @@ module KUBETWIN
 
       pod_id = 0
       ms_id = 0
-      begin
-        @replica_sets.each do |_k, rs|
-          # here we need to create pods and register them into a Service
-          rs.replicas.times do
-            selector = rs.selector
-            # the nil fields is a node related information
-            # get image info --> service component type (sct)
-            # sct has info regarding service execution time
-            sct = @microservice_types[selector]
-            # here we need to call the scheduler to get a node where to allocate this pod
-            # retrieve a node where to allocate this pod
-            reqs_c = sct[:resources_requirements_cpu]
-            reqs_m = sct[:resources_requirements_memory]
-            node_affinity = sct[:node_affinity]
-            node = nil
-            if @mapping
-              @logger.debug "Mapping: #{@mapping}"
-              node = @kube_scheduler.get_node_from_cluster(reqs_c, reqs_m, @mapping[ms_id])
-              @logger.debug "Node: #{node} for selector: #{selector} with requirements: #{reqs_c} #{reqs_m}"
-            # if node not found --> go for what available
-            if node.nil?
-              node = @kube_scheduler.get_node(reqs_c, reqs_m, node_affinity)
-            end
-            next if node.nil?
-
-            # no more resources
-            # once we know where the pod is going to be allocated
-            # we can retrieve also the service_time_distribution
-            # depending on its cluster type
-
-            pod = Pod.new(pod_id, "#{selector}_#{pod_id}", node, selector, sct)
-            pod.startUpPod
-
-            # assign resources for the pod
-            node.assign_resources(pod, reqs_c, reqs_m)
-            # get the service here and assign the pod to the service
-            # convert string to sym
-            # we could also assing the service to the replica set
-            s = @services[selector]
-            s.assignPod(pod)
-            pod_id += 1
+      @replica_sets.each do |_k, rs|
+        # here we need to create pods and register them into a Service
+        rs.replicas.times do
+          selector = rs.selector
+          # the nil fields is a node related information
+          # get image info --> service component type (sct)
+          # sct has info regarding service execution time
+          sct = @microservice_types[selector]
+          # here we need to call the scheduler to get a node where to allocate this pod
+          # retrieve a node where to allocate this pod
+          reqs_c = sct[:resources_requirements_cpu]
+          reqs_m = sct[:resources_requirements_memory]
+          node_affinity = sct[:node_affinity]
+          node = nil
+          if @mapping
+            @logger.debug "Mapping: #{@mapping}"
+            node = @kube_scheduler.get_node_from_cluster(reqs_c, reqs_m, @mapping[ms_id])
+            @logger.debug "Node: #{node} for selector: #{selector} with requirements: #{reqs_c} #{reqs_m}"
+          # if node not found --> go for what available
+          else
+            node = @kube_scheduler.get_node(reqs_c, reqs_m, node_affinity)
           end
-          # increment microservice id
-          ms_id += 1
+          if node.nil?
+            # No node can be found wit this mapping
+            # return a penalty
+            return 500
+          end
+
+          # no more resources
+          # once we know where the pod is going to be allocated
+          # we can retrieve also the service_time_distribution
+          # depending on its cluster type
+
+          pod = Pod.new(pod_id, "#{selector}_#{pod_id}", node, selector, sct)
+          pod.startUpPod
+
+          # assign resources for the pod
+          node.assign_resources(pod, reqs_c, reqs_m)
+          # get the service here and assign the pod to the service
+          # convert string to sym
+          # we could also assing the service to the replica set
+          s = @services[selector]
+          s.assignPod(pod)
+          pod_id += 1
         end
-      rescue StandardError => e
-        @logger.error("An error occurred: #{e.class} - #{e.message}")
-        @logger.error("Backtrace:\n#{e.backtrace.join("\n")}")
+        # increment microservice id
+        ms_id += 1
       end
 
       # here null check before sending event
