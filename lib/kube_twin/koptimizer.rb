@@ -81,7 +81,7 @@ module KUBETWIN
         swarm_size: population_size || 40,
         constraints: {
           min: [1] * @n_ms + [0] * @n_ms,
-          max: [15] * @n_ms + [@n_clusters] * @n_ms
+          max: [5] * @n_ms + [@n_clusters] * @n_ms
         },
         logger: @ga_logger,
         log_level: :info,
@@ -100,4 +100,3 @@ module KUBETWIN
     end
   end
 end # module KUBETWIN
-
