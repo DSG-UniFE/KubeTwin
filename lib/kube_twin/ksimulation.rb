@@ -383,6 +383,8 @@ module KUBETWIN
       ms_id = 0
       @replica_sets.each do |_k, rs|
         # here we need to create pods and register them into a Service
+        pods_created = 0
+        pods_tbc = rs.replicas
         rs.replicas.times do
           selector = rs.selector
           # the nil fields is a node related information
@@ -399,16 +401,13 @@ module KUBETWIN
             @logger.debug "Mapping: #{@mapping}"
             node = @kube_scheduler.get_node_from_cluster(reqs_c, reqs_m, @mapping[ms_id])
             @logger.debug "Node: #{node} for selector: #{selector} with requirements: #{reqs_c} #{reqs_m}"
-          # if node not found --> go for what available
-          else
-            node = @kube_scheduler.get_node(reqs_c, reqs_m, node_affinity)
+            # if node not found --> go for what available
           end
-          if node.nil?
-            # No node can be found wit this mapping
-            # return a penalty
-            return -1_000
-          end
+          node = @kube_scheduler.get_node(reqs_c, reqs_m, node_affinity) if node.nil?
+          # if still cannot be allocated
+          next if node.nil?
 
+          pods_created += 1
           # no more resources
           # once we know where the pod is going to be allocated
           # we can retrieve also the service_time_distribution
@@ -426,6 +425,9 @@ module KUBETWIN
           s.assignPod(pod)
           pod_id += 1
         end
+        # return a penalty if no pods were created for rs
+        return - 1_000 if pods_created == 0
+
         # increment microservice id
         ms_id += 1
       end
