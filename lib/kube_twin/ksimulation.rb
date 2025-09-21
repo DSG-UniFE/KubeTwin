@@ -384,7 +384,8 @@ module KUBETWIN
       @replica_sets.each do |_k, rs|
         # here we need to create pods and register them into a Service
         pods_created = 0
-        pods_tbc = rs.replicas
+        pods_tbc = rs.replicas.to_i
+
         rs.replicas.times do
           selector = rs.selector
           # the nil fields is a node related information
@@ -426,6 +427,7 @@ module KUBETWIN
           pod_id += 1
         end
         # return a penalty if no pods were created for rs
+        @logger.debug "{selector} Pods Created: #{pods_created}/#{pods_tbc}"
         return - 1_000 if pods_created != pods_tbc
 
         # increment microservice id
