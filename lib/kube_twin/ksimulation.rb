@@ -264,6 +264,26 @@ module KUBETWIN
         end
       ]
 
+      per_workflow_and_customer_stats = Hash[
+        workflow_type_repository.keys.map do |wft_id|
+          [
+            wft_id,
+            Hash[
+              customer_repository.keys.map do |c_id|
+                [c_id, Statistics.new(@configuration.custom_stats.find do |x|
+                  x[:customer_id] == c_id && x[:workflow_type_id] == wft_id
+                end || {})]
+              end
+            ]
+          ]
+        end
+      ]
+      reqs_received_per_workflow_and_customer = Hash[
+        workflow_type_repository.keys.map do |wft_id|
+          [wft_id, Hash[customer_repository.keys.map { |c_id| [c_id, 0] }]]
+        end
+      ]
+
       # Read policies from congfiguration
       policies = @configuration.policies || {}
       availability_policy = nil
@@ -292,28 +312,34 @@ module KUBETWIN
             @logger.debug "  Target availability percentage: #{policy[:properties][:target_availability_percentage]}"
             availability_policy = policy[:properties][:target_availability_percentage].to_f / 100.0
           end
+          next unless policy[:properties] && policy[:properties][:service_chain_max_latency_ms]
+
+          sc_max_latency = policy[:properties][:service_chain_max_latency_ms].to_f / 1E3
+          chain = policy[:chains]
+          @logger.debug "  Service Chain Max Latency: #{sc_max_latency}"
+          @logger.debug "  Targets: #{chain}"
+          # we can add this to the evaluator
+          # :chains=>["reviews", "ratings"], :targets=>[]}
+          # Check for each workflow type if the chain matches
+          per_workflow_and_customer_stats.each do |wft_id, cust_stats|
+            @logger.debug "  Workflow Type: #{wft_id}"
+            @logger.debug "  Customers: #{cust_stats.keys}"
+            workflow = workflow_type_repository[wft_id]
+            workflow_chain = workflow[:component_sequence].map { |cs| cs[:name] }
+            # CHECK IF chain is a subsequence of workflow_chain
+            @logger.debug "  Workflow Chain: #{workflow_chain}"
+            next unless workflow_chain == chain
+
+            cust_stats.each do |c_id, _|
+              @logger.debug "Customer: #{c_id}"
+              @logger.debug "Adding custom KPI for workflow #{per_workflow_and_customer_stats[wft_id][1]}"
+              per_workflow_and_customer_stats[wft_id][c_id].add_custom_kpis(longer_than: [sc_max_latency])
+            end
+          end
         end
       end
 
-      per_workflow_and_customer_stats = Hash[
-        workflow_type_repository.keys.map do |wft_id|
-          [
-            wft_id,
-            Hash[
-              customer_repository.keys.map do |c_id|
-                [c_id, Statistics.new(@configuration.custom_stats.find do |x|
-                  x[:customer_id] == c_id && x[:workflow_type_id] == wft_id
-                end || {})]
-              end
-            ]
-          ]
-        end
-      ]
-      reqs_received_per_workflow_and_customer = Hash[
-        workflow_type_repository.keys.map do |wft_id|
-          [wft_id, Hash[customer_repository.keys.map { |c_id| [c_id, 0] }]]
-        end
-      ]
+      # abort
 
       # Initialize Kubernetes internal objects/services
 
@@ -951,7 +977,7 @@ module KUBETWIN
       # costs = @evaluator.evaluate_fixed_costs_cpu(vm_allocation)
       puts "====== Evaluating new allocation ======\n" +
            "stats: #{stats}\n" +
-           # "per_workflow_and_customer_stats: #{per_workflow_and_customer_stats.to_s}\n" +
+           # "per_workflow_and_customer_stats: #{per_workflow_and_customer_stats}\n" +
            "component_stats: #{per_component_stats}\n" +
            "allocation_map: #{allocation_map}\n" +
            "node_utilization: #{node_utilization}\n" +
@@ -1031,6 +1057,22 @@ module KUBETWIN
           # sum + (value / v.closed.to_f) * @configuration.custom_stats.find { |x| x[:name] == key }[:weight]
         end
       end
+      # Let's do the same for the workflow and customer stats
+      per_workflow_and_customer_stats.each do |wft_id, cust_stats|
+        cust_stats.each do |c_id, stats_wc|
+          # @logger.debug "Looking for #{wft_id} #{c_id}"
+          next if stats_wc.closed.zero?
+
+          # @logger.debug "Calculating stats for workflow type #{wft_id} customer #{c_id} - #{per_workflow_and_customer_stats[wft_id][c_id]}"
+          weighted_sum += stats_wc.longer_than.inject(0.0) do |sum, (key, value)|
+            # @logger.debug "Workflow Type: #{wft_id} Customer: #{c_id} Longer than #{key} ms: #{value} closed: #{per_workflow_and_customer_stats[wft_id][c_id].closed}"
+            # next if per_workflow_and_customer_stats[wft_id][c_id].closed.nil? || per_workflow_and_customer_stats[wft_id][c_id].closed.nil?
+            sum + (value / stats_wc.closed.to_f) if stats_wc.closed.to_f > 0
+            # sum + (value / per_workflow_and_customer_stats[wft_id][c_id].closed.to_f) * @configuration.custom_stats.find { |x| x[:name] == key }[:weight]
+          end
+        end
+      end
+
       ## Add the availability policy
       if availability_policy
         closed_percentage = stats.closed.to_f / stats.received.to_f
