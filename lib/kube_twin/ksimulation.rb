@@ -39,7 +39,7 @@ module KUBETWIN
       @microservice_mdn = {}
       @mapping = nil
       @logger = opts[:logger] || Logger.new(STDOUT)
-      @logger.level = opts[:log_level] || Logger::DEBUG
+      @logger.level = opts[:log_level] || Logger::INFO
     end
 
     def new_event(type, data, time, destination)
@@ -278,11 +278,11 @@ module KUBETWIN
           ]
         end
       ]
-      reqs_received_per_workflow_and_customer = Hash[
-        workflow_type_repository.keys.map do |wft_id|
-          [wft_id, Hash[customer_repository.keys.map { |c_id| [c_id, 0] }]]
-        end
-      ]
+      # reqs_received_per_workflow_and_customer = Hash[
+      #  workflow_type_repository.keys.map do |wft_id|
+      #    [wft_id, Hash[customer_repository.keys.map { |c_id| [c_id, 0] }]]
+      #  end
+      # ]
 
       # Read policies from congfiguration
       policies = @configuration.policies || {}
@@ -609,7 +609,7 @@ module KUBETWIN
 
             # cluster = @cluster_repository[req.data_center_id]
             # update reqs_received_per_workflow_and_customer
-            reqs_received_per_workflow_and_customer[req.workflow_type_id][req.customer_id] += 1
+            # reqs_received_per_workflow_and_customer[req.workflow_type_id][req.customer_id] += 1
 
             # find next component name
             workflow = workflow_type_repository[req.workflow_type_id]
@@ -1003,7 +1003,7 @@ module KUBETWIN
         end
         # replication_penalties += (current_spreading.count { |x| x > 0 } - 1) * REPLICATION_PENALTY if current_spreading.count { |x| x > 0 } > 1
         replication_penalties += 10 if current_spreading.include?(0) # default value
-        @logger.debug "Current spreading for #{k}: #{current_spreading} penalties: #{replication_penalties}"
+        @logger.info "Current spreading for #{k}: #{current_spreading} penalties: #{replication_penalties}"
         # else
         #  replication_penalties -= 10
         # end
@@ -1050,7 +1050,7 @@ module KUBETWIN
         # end
 
         weighted_sum += v.longer_than.inject(0.0) do |sum, (key, value)|
-          puts "Component: #{k} Longer than #{key} ms: #{value} closed: #{v.closed}"
+          # puts "Component: #{k} Longer than #{key} ms: #{value} closed: #{v.closed}"
           next if v.closed.nil? || v.closed.nil?
 
           sum + (value / v.closed.to_f) if v.closed.to_f > 0
@@ -1065,7 +1065,7 @@ module KUBETWIN
 
           # @logger.debug "Calculating stats for workflow type #{wft_id} customer #{c_id} - #{per_workflow_and_customer_stats[wft_id][c_id]}"
           weighted_sum += stats_wc.longer_than.inject(0.0) do |sum, (key, value)|
-            # @logger.debug "Workflow Type: #{wft_id} Customer: #{c_id} Longer than #{key} ms: #{value} closed: #{per_workflow_and_customer_stats[wft_id][c_id].closed}"
+            @logger.info "Workflow Type: #{wft_id} Customer: #{c_id} Longer than #{key} s: #{value} closed: #{per_workflow_and_customer_stats[wft_id][c_id].closed}"
             # next if per_workflow_and_customer_stats[wft_id][c_id].closed.nil? || per_workflow_and_customer_stats[wft_id][c_id].closed.nil?
             sum + (value / stats_wc.closed.to_f) if stats_wc.closed.to_f > 0
             # sum + (value / per_workflow_and_customer_stats[wft_id][c_id].closed.to_f) * @configuration.custom_stats.find { |x| x[:name] == key }[:weight]
