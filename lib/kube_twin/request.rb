@@ -2,7 +2,6 @@
 
 module KUBETWIN
   class Request
-
     # # states
     # STATE_WORKING   = 1
     # STATE_SUSPENDED = 2
@@ -21,7 +20,7 @@ module KUBETWIN
                 :step_queue_time,
                 :steps_ttr
 
-    attr_accessor :arrival_at_container
+    attr_accessor :arrival_at_container, :chain_entering_time
 
     # the data_center_id attribute is updated as requests move from a Cloud
     # data center to another
@@ -53,6 +52,8 @@ module KUBETWIN
       @working_time = 0.0
       @step_queue_time = 0.0
       @steps_ttr = []
+      @chain_entering_time = nil
+      @chain_exiting_time = nil
     end
 
     def update_queuing_time(duration)
@@ -70,9 +71,17 @@ module KUBETWIN
       @next_step += 1
     end
 
+    def chain_entered(time)
+      @chain_entering_time = time
+    end
+
     def finished_processing(time)
       # save closure time
       @closure_time = time
+    end
+
+    def finished_chain(time)
+      @chain_exiting_time = time
     end
 
     def closed?
@@ -82,6 +91,10 @@ module KUBETWIN
     def ttr(time)
       # if incident isn't closed yet, just return nil without raising an exception.
       @closure_time.nil? ? (time - @arrival_at_container) : (@closure_time - @arrival_time)
+    end
+
+    def ttr_chain(time)
+      (@chain_exiting_time || time) - @chain_entering_time
     end
 
     def ttr_step(time)
@@ -94,5 +107,4 @@ module KUBETWIN
       "rid: #{@rid}, generation_time: #{@generation_time}, data_center_id: #{@data_center_id}, arrival_time: #{@arrival_time}, queuing_time #{@queuing_time}"
     end
   end
-
 end

@@ -25,9 +25,13 @@ module KUBETWIN
       @received += 1
     end
 
-    def record_request(req, time)
+    def record_request(req, time, chain = false)
       # get new sample
-      x = req.ttr(time)
+      x = if chain
+            req.ttr_chain(time)
+          else
+            req.ttr(time)
+          end
       raise "TTR #{x} for request #{req.rid} invalid!" unless x > 0.0
 
       # string operations are slow << is the fastest

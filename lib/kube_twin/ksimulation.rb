@@ -18,6 +18,7 @@ require_relative './node'
 
 require 'json'
 require 'logger'
+require 'set'
 
 module KUBETWIN
   class KSimulation
@@ -49,6 +50,14 @@ module KUBETWIN
 
     def now
       @current_time
+    end
+
+    def get_workflow_components(workflow)
+      components = []
+      workflow[:component_sequence].each do |cs|
+        components << cs[:name]
+      end
+      components
     end
 
     ## just an helper method to create the cluster configuration
@@ -241,6 +250,18 @@ module KUBETWIN
       customer_repository = @configuration.customers
       workflow_type_repository = @configuration.workflow_types
 
+      # Monkey patching to simplify the experiments
+      workflow_type_repository = {}
+      workflow_type_repository[1] = { component_sequence: [
+        { name: 'productpage' },
+        { name: 'reviews' },
+        { name: 'ratings' }
+      ] }
+
+      workflow_type_repository[2] = { component_sequence: [
+        { name: 'details' }
+      ] }
+
       # initialize statistics --- leave for later
       stats = Statistics.new
 
@@ -278,6 +299,12 @@ module KUBETWIN
           ]
         end
       ]
+
+      # Separate workflow and chain stats to do so we need to create a chain and look if microservices in that chain
+      # are within a workflow and then get the wokrflow id
+      @chain_repository = {}
+      per_chain_and_customer_stats = {}
+
       # reqs_received_per_workflow_and_customer = Hash[
       #  workflow_type_repository.keys.map do |wft_id|
       #    [wft_id, Hash[customer_repository.keys.map { |c_id| [c_id, 0] }]]
@@ -321,23 +348,53 @@ module KUBETWIN
           # we can add this to the evaluator
           # :chains=>["reviews", "ratings"], :targets=>[]}
           # Check for each workflow type if the chain matches
-          per_workflow_and_customer_stats.each do |wft_id, cust_stats|
-            @logger.debug "  Workflow Type: #{wft_id}"
-            @logger.debug "  Customers: #{cust_stats.keys}"
-            workflow = workflow_type_repository[wft_id]
-            workflow_chain = workflow[:component_sequence].map { |cs| cs[:name] }
-            # CHECK IF chain is a subsequence of workflow_chain
-            @logger.debug "  Workflow Chain: #{workflow_chain}"
-            next unless workflow_chain == chain
-
-            cust_stats.each do |c_id, _|
-              @logger.debug "Customer: #{c_id}"
-              @logger.debug "Adding custom KPI for workflow #{per_workflow_and_customer_stats[wft_id][1]}"
-              per_workflow_and_customer_stats[wft_id][c_id].add_custom_kpis(longer_than: [sc_max_latency])
+          # create the chain in the chain stats
+          wf_cid = nil
+          workflow_type_repository.each do |wft_id, wf|
+            # verify if chain is part of the workflow
+            if chain.to_set.subset?(get_workflow_components(wf).to_set)
+              wf_cid = wft_id
+              break
             end
           end
+
+          raise 'Chain not found in available workflows' if wf_cid.nil?
+
+          cs = []
+          chain.each do |name|
+            cs << { name: name }
+          end
+
+          @chain_repository[wf_cid] = { component_sequence: cs }
+
+          # @logger.info "chain_repository #{@chain_repository[wf_cid]}"
+
+          per_chain_and_customer_stats[wf_cid] = Hash[
+                customer_repository.keys.map do |c_id|
+                  [c_id, Statistics.new(@configuration.custom_stats.find do |x|
+                    x[:customer_id] == c_id && x[:workflow_type_id] == wf_cid
+                  end || {})]
+                end
+          ]
+
+          customer_repository.each do |c_id, _|
+            @logger.debug "Customer: #{c_id}"
+            @logger.debug "Adding custom KPI for workflow #{per_chain_and_customer_stats[wf_cid][1]}"
+            per_chain_and_customer_stats[wf_cid][c_id].add_custom_kpis(longer_than: [sc_max_latency])
+          end
         end
+
+        #           per_workflow_and_customer_stats.each do |wft_id, cust_stats|
+        #             @logger.debug "  Workflow Type: #{wft_id}"
+        #             @logger.debug "  Customers: #{cust_stats.keys}"
+        #             workflow = workflow_type_repository[wft_id]
+        #             workflow_chain = workflow[:component_sequence].map { |cs| cs[:name] }
+        #             # CHECK IF chain is a subsequence of workflow_chain
+        #             @logger.debug "  Workflow Chain: #{workflow_chain}"
+        #             next unless workflow_chain == chain
       end
+
+      @logger.debug "per_chain_and_customer_stats: #{per_chain_and_customer_stats}"
 
       # abort
 
@@ -613,6 +670,8 @@ module KUBETWIN
 
             # find next component name
             workflow = workflow_type_repository[req.workflow_type_id]
+            chain = @chain_repository[req.workflow_type_id] || nil
+            # next_component_name = workflow[:component_sequence][req.next_step][:name]
             # puts "next_component_name #{next_component_name}, pod.label #{pod.label}"
 
             # schedule request forwarding to pod
@@ -670,7 +729,22 @@ module KUBETWIN
           current_cluster = @cluster_repository[req.data_center_id]
           # find the next workflow
           workflow = workflow_type_repository[req.workflow_type_id]
+          chain = @chain_repository[req.workflow_type_id] || nil
+          current_component_name = workflow[:component_sequence][req.worked_step][:name]
+          # puts "current_component_name #{current_component_name}"
 
+          if !chain.nil? && chain[:component_sequence][0][:name] == current_component_name
+            # we are entering the chain, set the workflow to be the chain
+            # @logger.info "Request #{req.rid} #{current_component_name} entering chain #{chain}"
+            req.chain_entered(@current_time)
+            per_chain_and_customer_stats[req.workflow_type_id][req.customer_id].request_received
+          end
+
+          if !chain.nil? && (chain[:component_sequence][-1][:name] == current_component_name)
+            # @logger.info "Request #{req.rid} #{current_component_name} exiting chain #{chain}"
+            req.finished_chain(@current_time)
+            per_chain_and_customer_stats[req.workflow_type_id][req.customer_id].record_request(req, now, chain = true)
+          end
           # register step completion
           component_name = workflow[:component_sequence][req.worked_step][:name]
           hpa_component_stats[component_name].record_request(req, now)
@@ -1002,7 +1076,7 @@ module KUBETWIN
           end
         end
         # replication_penalties += (current_spreading.count { |x| x > 0 } - 1) * REPLICATION_PENALTY if current_spreading.count { |x| x > 0 } > 1
-        replication_penalties += 50 if current_spreading.include?(0) # default value
+        replication_penalties += 5 if current_spreading.include?(0) # default value
         @logger.info "Current spreading for #{k}: #{current_spreading} penalties: #{replication_penalties}"
         # else
         #  replication_penalties -= 10
@@ -1058,14 +1132,16 @@ module KUBETWIN
         end
       end
       # Let's do the same for the workflow and customer stats
-      per_workflow_and_customer_stats.each do |wft_id, cust_stats|
+      @logger.info 'Calculating chain and customer stats'
+      per_chain_and_customer_stats.each do |wft_id, cust_stats|
+        @logger.info "  Workflow Type: #{wft_id}"
         cust_stats.each do |c_id, stats_wc|
           # @logger.debug "Looking for #{wft_id} #{c_id}"
           next if stats_wc.closed.zero?
 
           # @logger.debug "Calculating stats for workflow type #{wft_id} customer #{c_id} - #{per_workflow_and_customer_stats[wft_id][c_id]}"
           weighted_sum += stats_wc.longer_than.inject(0.0) do |sum, (key, value)|
-            @logger.info "Workflow Type: #{wft_id} Customer: #{c_id} Longer than #{key} s: #{value} closed: #{per_workflow_and_customer_stats[wft_id][c_id].closed}"
+            @logger.info "Workflow Type: #{wft_id} Customer: #{c_id} Longer than #{key} s: #{value} closed: #{per_workflow_and_customer_stats[wft_id][c_id].closed} TTR: #{stats_wc.mean}"
             # next if per_workflow_and_customer_stats[wft_id][c_id].closed.nil? || per_workflow_and_customer_stats[wft_id][c_id].closed.nil?
             penalty_value = stats_wc.closed.to_f > 0 ? (value / stats_wc.closed.to_f) * 10 : 0
             @logger.info "penalty value: #{penalty_value}"
