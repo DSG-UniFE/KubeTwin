@@ -61,6 +61,7 @@ module KUBETWIN
       @sim_conf.replica_sets.each do |k, v|
         v[:replicas] = n_replicas
       end
+      @logger.info "#{@sim_conf.replica_sets}"
 
       @start_time = @sim_conf.start_time
     end

@@ -218,7 +218,7 @@ module KUBETWIN
           dst = @cluster_repository[lm[:dst].to_sym]
           raise "Cannot find cluster #{lm[:src]} or #{lm[:dst]}" if src.nil? || dst.nil?
 
-          { src: src.location_id, dst: dst.location_id, value: lm[:value].to_f }
+          { src: src.location_id, dst: dst.location_id, value: lm[:value].to_f / 2 }
         end
         latency_manager = LatencyManagerFederation.new(latency_models, seed: latency_seed)
       end
@@ -1002,7 +1002,7 @@ module KUBETWIN
           end
         end
         # replication_penalties += (current_spreading.count { |x| x > 0 } - 1) * REPLICATION_PENALTY if current_spreading.count { |x| x > 0 } > 1
-        replication_penalties += 2 if current_spreading.include?(0) # default value
+        replication_penalties += 50 if current_spreading.include?(0) # default value
         @logger.info "Current spreading for #{k}: #{current_spreading} penalties: #{replication_penalties}"
         # else
         #  replication_penalties -= 10
