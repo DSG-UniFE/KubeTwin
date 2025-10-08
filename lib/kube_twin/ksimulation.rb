@@ -101,7 +101,7 @@ module KUBETWIN
 
     # rss is replica set
     # css is service configuration
-    def evaluate_allocation(rss = nil, css = nil, mtt = nil, lm = nil, mapping = nil)
+    def evaluate_allocation(rss = nil, css = nil, mtt = nil, lm = nil, mapping = nil, replicas_mapping = nil)
       # seeds
       latency_seed = @configuration.seeds[:communication_latencies]
       @configuration.seeds[:service_times]
@@ -113,6 +113,7 @@ module KUBETWIN
 
       # mapping is the mapping of microservices to clusters
       @mapping ||= mapping
+      @replicas_mapping ||= replicas_mapping
 
       # setup simulation start and current time
       @current_time = @start_time = @configuration.start_time
@@ -484,8 +485,12 @@ module KUBETWIN
           if @mapping
             @logger.debug "Mapping: #{@mapping}"
             node = @kube_scheduler.get_node_from_cluster(reqs_c, reqs_m, @mapping[ms_id])
-            # if node not found --> go for what available
+          # if node not found --> go for what available
+          elsif @replicas_mapping
+            node = @kube_scheduler.get_node_from_cluster(reqs_c, reqs_m, @replicas_mapping[pod_id])
+            # @logger.info "Replicas Mapping: #{@replicas_mapping}"
           end
+
           node = @kube_scheduler.get_node(reqs_c, reqs_m, node_affinity) if node.nil?
           @logger.debug "Node: #{node} for selector: #{selector} with requirements: #{reqs_c} #{reqs_m}"
           # if still cannot be allocated
