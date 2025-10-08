@@ -1002,7 +1002,7 @@ module KUBETWIN
           end
         end
         # replication_penalties += (current_spreading.count { |x| x > 0 } - 1) * REPLICATION_PENALTY if current_spreading.count { |x| x > 0 } > 1
-        replication_penalties += 5 if current_spreading.include?(0) # default value
+        replication_penalties += 2 if current_spreading.include?(0) # default value
         @logger.info "Current spreading for #{k}: #{current_spreading} penalties: #{replication_penalties}"
         # else
         #  replication_penalties -= 10
@@ -1067,7 +1067,7 @@ module KUBETWIN
           weighted_sum += stats_wc.longer_than.inject(0.0) do |sum, (key, value)|
             @logger.info "Workflow Type: #{wft_id} Customer: #{c_id} Longer than #{key} s: #{value} closed: #{per_workflow_and_customer_stats[wft_id][c_id].closed}"
             # next if per_workflow_and_customer_stats[wft_id][c_id].closed.nil? || per_workflow_and_customer_stats[wft_id][c_id].closed.nil?
-            penalty_value = stats_wc.closed.to_f > 0 ? (value / stats_wc.closed.to_f) * 5 : 0
+            penalty_value = stats_wc.closed.to_f > 0 ? (value / stats_wc.closed.to_f) * 10 : 0
             @logger.info "penalty value: #{penalty_value}"
             sum + penalty_value
             # sum + (value / per_workflow_and_customer_stats[wft_id][c_id].closed.to_f) * @configuration.custom_stats.find { |x| x[:name] == key }[:weight]
@@ -1078,12 +1078,18 @@ module KUBETWIN
       ## Add the availability policy
       if availability_policy
         closed_percentage = (stats.closed.to_f / stats.received.to_f) # We scale penalty to 10 factor
-        availability_penalty = closed_percentage < availability_policy ? (closed_percentage - availability_policy) * 5 : 0
+        availability_penalty = closed_percentage < availability_policy ? (closed_percentage - availability_policy) * 10 : 0
         puts "Availability penalty: #{availability_penalty} closed_percentage: #{closed_percentage} availability"
         weighted_sum += availability_penalty
       end
       puts "Weighted sum: #{weighted_sum}"
       -weighted_sum
+    end
+
+    def normalize_objective(value, min_obj, max_obj)
+      (value - min_obj) / (max_obj - min_obj)
+    rescue StandardError
+      1.0
     end
   end
 end
