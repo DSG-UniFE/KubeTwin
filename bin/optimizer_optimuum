@@ -31,7 +31,7 @@ if File.expand_path(__FILE__) == File.expand_path($0)
   do_abort('Invalid simulator configuration file!') unless File.exist? ARGV[0]
 end
 
-koptim = KUBETWIN::KOptimizer.new(ARGV[0])
+koptim = KUBETWIN::KOptimizerACM.new(ARGV[0])
 koptim.optimize
 
 exit 0

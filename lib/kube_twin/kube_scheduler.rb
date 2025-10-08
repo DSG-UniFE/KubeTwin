@@ -26,7 +26,7 @@ module KUBETWIN
       else
         # puts "Filtering nodes for cluster_id: #{cluster_id}"
         node = @filtered_nodes.select! { |n| n[:cluster_id] == cluster_id }
-        return score(nil) if node.empty?
+        return score(nil) if node.nil? || node.empty?
 
         # puts "No nodes available for cluster_id: #{cluster_id} with requirements: #{requirements_cpu} #{requirements_mem}"
         # random cluster
@@ -114,4 +114,3 @@ module KUBETWIN
     end
   end
 end
-
