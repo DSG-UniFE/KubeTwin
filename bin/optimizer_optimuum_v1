@@ -31,8 +31,8 @@ if File.expand_path(__FILE__) == File.expand_path($0)
   do_abort('Invalid simulator configuration file!') unless File.exist? ARGV[0]
 end
 
-# This one instead takes decision per replica, not per microservice type
-koptim = KUBETWIN::KOptimizerACM2.new(ARGV[0])
+# This version takes decision per microservice type, not per replica
+koptim = KUBETWIN::KOptimizerACM.new(ARGV[0])
 koptim.optimize
 
 exit 0

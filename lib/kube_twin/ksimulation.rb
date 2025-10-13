@@ -89,7 +89,7 @@ module KUBETWIN
             # we assume to divide clusters equally. Each node
             # has 2000 milliCPU and 2 GB of Memory (2048 MB)
             cid += 1
-            [k, Cluster.new(id: k, fixed_hourly_cost_cpu: nil,
+            [k, Cluster.new(id: cid, fixed_hourly_cost_cpu: nil,
                             fixed_hourly_cost_memory: nil, location_id: cid,
                             node_resources_cpu: node_cpu.to_i,
                             node_resources_memory: node_mem.to_i, name: k,
@@ -154,7 +154,14 @@ module KUBETWIN
         # }
         # Convert the @configuration.federation json object into a ruby hash
         federation = JSON.parse(@configuration.federation, symbolize_names: true)
-        # puts "Federation resources: #{federation[:resources]}"
+        # puts "Federation resources: #{federation[:resources]}
+        cid = -1
+        @clusters_mapping = {}
+        federation[:resources].each_key do |k|
+          cid += 1
+          @clusters_mapping[cid] = k
+        end
+
         cid = -1
         @cluster_repository = Hash[
           federation[:resources].map do |k, v|
@@ -169,6 +176,7 @@ module KUBETWIN
             # has 2000 milliCPU and 2 GB of Memory (2048 MB)
             cid += 1
             price = evaluation_cost[cid] || 0.100
+            # @logger.info "Cluster k: #{k}"
             [k, Cluster.new(id: k, fixed_hourly_cost_cpu: price,
                             fixed_hourly_cost_memory: price, location_id: cid,
                             node_resources_cpu: node_cpu.to_i,
@@ -178,6 +186,8 @@ module KUBETWIN
           ]
       end
 
+      # @logger.info "Clusters: #{@cluster_repository[@clusters_mapping[0]].cluster_id}"
+      # abort
       node_id = 0
       @cluster_repository.values.each do |c|
         node_number = c.node_number
@@ -249,7 +259,7 @@ module KUBETWIN
 
       # information regarding customers
       customer_repository = @configuration.customers
-      workflow_type_repository = @configuration.workflow_types
+      @configuration.workflow_types
 
       # Monkey patching to simplify the experiments
       workflow_type_repository = {}
@@ -465,6 +475,7 @@ module KUBETWIN
 
       pod_id = 0
       ms_id = 0
+      saturation_penalties = 0
       @replica_sets.each do |_k, rs|
         # here we need to create pods and register them into a Service
         pods_created = 0
@@ -483,11 +494,15 @@ module KUBETWIN
           node_affinity = sct[:node_affinity]
           node = nil
           if @mapping
-            @logger.debug "Mapping: #{@mapping}"
-            node = @kube_scheduler.get_node_from_cluster(reqs_c, reqs_m, @mapping[ms_id])
+            cid = @clusters_mapping[@mapping[ms_id]]
+            @logger.debug "Mapping: #{@mapping}, got cluster_id: #{cid}"
+            node = @kube_scheduler.get_node_from_cluster(reqs_c, reqs_m, cid)
           # if node not found --> go for what available
           elsif @replicas_mapping
-            node = @kube_scheduler.get_node_from_cluster(reqs_c, reqs_m, @replicas_mapping[pod_id])
+            # let's get the mapping from somehting like this --> {:a => 10, :b => 100, :c => 30 }
+            cid = @clusters_mapping[@replicas_mapping[pod_id]]
+            node = @kube_scheduler.get_node_from_cluster(reqs_c, reqs_m, cid)
+            saturation_penalties += 1 if node.nil?
             # @logger.info "Replicas Mapping: #{@replicas_mapping}"
           end
 
@@ -1081,7 +1096,8 @@ module KUBETWIN
           end
         end
         # replication_penalties += (current_spreading.count { |x| x > 0 } - 1) * REPLICATION_PENALTY if current_spreading.count { |x| x > 0 } > 1
-        replication_penalties += 5 if current_spreading.include?(0) # default value
+        # this is to enforce availability. Distributed replicas at least in two different clusters
+        replication_penalties += 5 if current_spreading.count(0) > 1
         @logger.info "Current spreading for #{k}: #{current_spreading} penalties: #{replication_penalties}"
         # else
         #  replication_penalties -= 10
@@ -1115,7 +1131,10 @@ module KUBETWIN
       # end
       # return 0
       # return the fitness value
-      weighted_sum = stats.mean + replication_penalties
+      # normalize everything to the mean ttr value
+      mean_ttr = stats.mean
+      weighted_sum = mean_ttr + normalize_objective(replication_penalties, 0,
+                                                    mean_ttr) + normalize_objective(saturation_penalties, 0, mean_ttr)
       per_component_stats.each do |k, v|
         # misconfiguration from TOSCA
         next if v.closed == 0
@@ -1127,15 +1146,17 @@ module KUBETWIN
         # @logger.debug 'Proceed anyway'
         # next
         # end
-
-        weighted_sum += v.longer_than.inject(0.0) do |sum, (key, value)|
+        not_closed_penalty = 0
+        not_closed_penalty + v.longer_than.inject(0.0) do |sum, (_key, value)|
           # puts "Component: #{k} Longer than #{key} ms: #{value} closed: #{v.closed}"
           next if v.closed.nil? || v.closed.nil?
 
           sum + (value / v.closed.to_f) if v.closed.to_f > 0
           # sum + (value / v.closed.to_f) * @configuration.custom_stats.find { |x| x[:name] == key }[:weight]
         end
+        weighted_sum += normalize_objective(not_closed_penalty, 0, mean_ttr)
       end
+
       # Let's do the same for the workflow and customer stats
       @logger.info 'Calculating chain and customer stats'
       per_chain_and_customer_stats.each do |wft_id, cust_stats|
@@ -1144,8 +1165,9 @@ module KUBETWIN
           # @logger.debug "Looking for #{wft_id} #{c_id}"
           next if stats_wc.closed.zero?
 
+          chain_penalty = 0
           # @logger.debug "Calculating stats for workflow type #{wft_id} customer #{c_id} - #{per_workflow_and_customer_stats[wft_id][c_id]}"
-          weighted_sum += stats_wc.longer_than.inject(0.0) do |sum, (key, value)|
+          chain_penalty += stats_wc.longer_than.inject(0.0) do |sum, (key, value)|
             @logger.info "Workflow Type: #{wft_id} Customer: #{c_id} Longer than #{key} s: #{value} closed: #{per_workflow_and_customer_stats[wft_id][c_id].closed} TTR: #{stats_wc.mean}"
             # next if per_workflow_and_customer_stats[wft_id][c_id].closed.nil? || per_workflow_and_customer_stats[wft_id][c_id].closed.nil?
             penalty_value = stats_wc.closed.to_f > 0 ? (value / stats_wc.closed.to_f) * 10 : 0
@@ -1153,6 +1175,7 @@ module KUBETWIN
             sum + penalty_value
             # sum + (value / per_workflow_and_customer_stats[wft_id][c_id].closed.to_f) * @configuration.custom_stats.find { |x| x[:name] == key }[:weight]
           end
+          weighted_sum += normalize_objective(chain_penalty, 0, mean_ttr)
         end
       end
 
@@ -1161,7 +1184,7 @@ module KUBETWIN
         closed_percentage = (stats.closed.to_f / stats.received.to_f) # We scale penalty to 10 factor
         availability_penalty = closed_percentage < availability_policy ? (closed_percentage - availability_policy) * 10 : 0
         puts "Availability penalty: #{availability_penalty} closed_percentage: #{closed_percentage} availability"
-        weighted_sum += availability_penalty
+        weighted_sum += normalize_objective(availability_penalty, 0, mean_ttr)
       end
       puts "Weighted sum: #{weighted_sum}"
       -weighted_sum
