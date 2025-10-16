@@ -52,13 +52,13 @@ module KUBETWIN
       # Read number of requests per workflow
       n_requests = ENV['N_REQUESTS'] ? ENV['N_REQUESTS'].to_i : 1000
       @logger.info "Setting number of requests per workflow to #{n_requests}"
-      @sim_conf.request_gen.each do |k, v|
+      @sim_conf.request_gen.each do |_k, v|
         v[:request_distribution][:args][:rate] = rps
         v[:num_requests] = n_requests
       end
       @n_replicas = ENV['N_REPLICAS'] ? ENV['N_REPLICAS'].to_i : 5
       @logger.info "Setting number of replicas per microservice to #{@n_replicas}"
-      @sim_conf.replica_sets.each do |k, v|
+      @sim_conf.replica_sets.each do |_k, v|
         v[:replicas] = @n_replicas
       end
       @logger.info "#{@sim_conf.replica_sets}"
