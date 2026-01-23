@@ -34,7 +34,10 @@ module KUBETWIN
                 :request_queue,
                 :served_request,
                 :total_queue_time,
-                :total_queue_processing_time # endCode = 0 if all operations successfull, 0 if there's any kind of error
+                :total_queue_processing_time,
+                :max_processes,
+                :active_processes,
+                :max_concurrent_processes_used # endCode = 0 if all operations successfull, 0 if there's any kind of error
 
     Guaranteed = Struct.new(:cpu, :memory)
     Limits = Struct.new(:cpu, :memory)
@@ -60,7 +63,8 @@ module KUBETWIN
       @node = opts[:node]
       @wait_for = opts[:img_info][:wait_for].nil? ? [] : opts[:img_info][:wait_for]
 
-      @busy           = false
+      @active_processes = 0
+      @max_processes = opts[:max_processes] || 1
       @request_queue  = [] # queue incoming requests
 
       @trace = opts[:trace] ? true : false
@@ -76,6 +80,7 @@ module KUBETWIN
       @rps = opts[:img_info][:rps].to_i
       @service_time = ERV::RandomVariable.new(st_distribution) if @path.nil?
       @arrival_times = []
+      @max_concurrent_processes_used = 0
     end
 
     def check_rps(interval=8)
@@ -135,29 +140,32 @@ module KUBETWIN
       end
 
 
-      try_servicing_new_request(sim, time) unless @busy
+      try_servicing_new_request(sim, time) while @active_processes < @max_processes && !@request_queue.empty?
     end
 
     def request_finished(sim, time)
-      @busy = false
+      @active_processes -= 1 if @active_processes > 0
       # update also the metrics
       @served_request += 1
-      try_servicing_new_request(sim, time) unless @busy
+      try_servicing_new_request(sim, time) while @active_processes < @max_processes && !@request_queue.empty?
     end
 
     def try_servicing_new_request(sim, time)
 
-      if @busy
-        raise "Container is currently processing another request (id: #{@containerId})"
+      if @active_processes >= @max_processes
+        return  # No capacity available
       end
 
       unless @request_queue.empty? # || (@state == Container::CONTAINER_TERMINATED)
 
         # monkey patch for MQTT service
         if @blocking == true
-          @busy = true
+          @active_processes += 1
+          @max_concurrent_processes_used = [@max_concurrent_processes_used, @active_processes].max
         else
-          @busy = false
+          # For non-blocking services, don't count against process limit
+          @active_processes += 1 unless @max_processes == Float::INFINITY
+          @max_concurrent_processes_used = [@max_concurrent_processes_used, @active_processes].max unless @max_processes == Float::INFINITY
         end
         #puts "Start: #{time}"
         ri = @request_queue.shift
