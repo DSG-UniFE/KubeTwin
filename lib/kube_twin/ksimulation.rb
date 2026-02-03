@@ -18,7 +18,6 @@ require_relative './node'
 
 require 'json'
 require 'logger'
-require 'set'
 
 module KUBETWIN
   class KSimulation
@@ -259,19 +258,7 @@ module KUBETWIN
 
       # information regarding customers
       customer_repository = @configuration.customers
-      @configuration.workflow_types
-
-      # Monkey patching to simplify the experiments
-      workflow_type_repository = {}
-      workflow_type_repository[1] = { component_sequence: [
-        { name: 'productpage' },
-        { name: 'reviews' },
-        { name: 'ratings' }
-      ] }
-
-      workflow_type_repository[2] = { component_sequence: [
-        { name: 'details' }
-      ] }
+      workflow_type_repository = @configuration.workflow_types
 
       # initialize statistics --- leave for later
       stats = Statistics.new
@@ -638,9 +625,14 @@ module KUBETWIN
 
           # find first component name for requested workflow
           workflow = workflow_type_repository[req_attrs[:workflow_type_id]]
-          puts "DEBUG: workflow type #{req_attrs[:workflow_type_id]} = #{workflow.inspect}" if workflow.nil? || workflow[:component_sequence].nil?
-          first_component_name = workflow[:component_sequence][0][:name]
+          if workflow.nil? || workflow[:component_sequence].nil?
+            puts "DEBUG: workflow type #{req_attrs[:workflow_type_id]} = #{workflow.inspect}"
+            puts "DEBUG: workflow type repository = #{workflow_type_repository.inspect}"
+          end
 
+          first_component_name = workflow[:component_sequence][0][:name]
+          
+          # puts "DEBUG: first_component_name = #{first_component_name} #{workflow.inspect}"
           # first we need to resolve the component name using
           # the kubernetes DNS
           # TODO -- modeling internal service time
@@ -747,45 +739,115 @@ module KUBETWIN
           oc = container.free_linked_container
           oc.request_finished(self, e.time) if oc
 
+          # Handle parallel branch completion
+          if req.instance_variable_get(:@parent_request)
+            parent_req = req.instance_variable_get(:@parent_request)
+            branch_name = req.instance_variable_get(:@branch_name)
+            
+            if parent_req && parent_req.parallel_context
+              parent_req.complete_branch(branch_name, req)
+              parent_req.parallel_context[:branch_count] -= 1
+              
+              # Check if all branches are completed
+              if parent_req.parallel_context[:branch_count] <= 0
+                # All parallel branches completed, continue with parent request
+                parent_req.instance_variable_set(:@parallel_context, nil)
+                new_event(Event::ET_WORKFLOW_STEP_COMPLETED, parent_req, e.time, container)
+              end
+            end
+            # Skip further processing for branch requests
+            next
+          end
+
           current_cluster = @cluster_repository[req.data_center_id]
           # find the next workflow
           workflow = workflow_type_repository[req.workflow_type_id]
           chain = @chain_repository[req.workflow_type_id] || nil
-          current_component_name = workflow[:component_sequence][req.worked_step][:name]
+          
+          # Get current component name safely - handle parallel components
+          current_component_step = workflow[:component_sequence][req.worked_step]
+          if current_component_step[:type] == "parallel"
+            # For parallel components, we don't track them in stats since they're containers
+            current_component_name = nil
+          else
+            current_component_name = current_component_step[:name]
+          end
           # puts "current_component_name #{current_component_name}"
 
-          if !chain.nil? && chain[:component_sequence][0][:name] == current_component_name
+          if !chain.nil? && !current_component_name.nil? && chain[:component_sequence][0][:name] == current_component_name
             # we are entering the chain, set the workflow to be the chain
             # @logger.info "Request #{req.rid} #{current_component_name} entering chain #{chain}"
             req.chain_entered(@current_time)
             per_chain_and_customer_stats[req.workflow_type_id][req.customer_id].request_received
           end
 
-if !chain.nil? && (chain[:component_sequence][-1][:name] == current_component_name)
+          if !chain.nil? && !current_component_name.nil? && (chain[:component_sequence][-1][:name] == current_component_name)
             # @logger.info "Request #{req.rid} #{current_component_name} exiting chain #{chain}"
             req.finished_chain(@current_time)
             per_chain_and_customer_stats[req.workflow_type_id][req.customer_id].record_request(req, now, chain = true)
           end
 
           # Skip processing if request is waiting for parallel branches
-          if req.parallel_context && req.parallel_context[:branch_count] > 0
-            return
+          return if req.parallel_context && req.parallel_context[:branch_count] > 0
+
+          # register step completion only for regular components (not parallel containers)
+          if current_component_name
+            hpa_component_stats[current_component_name].record_request(req, now)
+            per_component_stats[current_component_name].record_request(req, now)
           end
-          # register step completion
-          component_name = workflow[:component_sequence][req.worked_step][:name]
-          hpa_component_stats[component_name].record_request(req, now)
-          per_component_stats[component_name].record_request(req, now)
 
           req.ttr_step(@current_time)
 
           # check if there are other steps left to complete the workflow
           if req.next_step < workflow[:component_sequence].size
 
-            # find next component name
-            next_component_name = workflow[:component_sequence][req.next_step][:name]
-
-            # resolve the next component name
-            service = @kube_dns.lookup(next_component_name)
+            next_step_config = workflow[:component_sequence][req.next_step]
+            
+            # Handle parallel execution
+            if next_step_config[:type] == "parallel"
+              # Start parallel execution for all branches
+              branches = next_step_config[:branches]
+              req.start_parallel_execution(branches)
+              
+              # Create separate request flows for each branch
+              branches.each do |branch|
+                branch_req = req.clone_for_parallel_branch(branch[:name])
+                
+                # Each branch starts with the branch component
+                service = @kube_dns.lookup(branch[:name])
+                next if service.nil? # Skip if service not found
+                
+                pod = service.get_pod(branch[:name])
+                next if pod.nil? # Skip if no pod available
+                
+                # Schedule the branch request
+                forwarding_time = e.time
+                cluster_id = pod.node.cluster_id
+                cluster = @cluster_repository[cluster_id]
+                
+                transmission_time =
+                  latency_manager.sample_latency_between(current_cluster.location_id, cluster.location_id)
+                branch_req.update_transfer_time(transmission_time)
+                forwarding_time += transmission_time
+                
+                branch_req.data_center_id = cluster.cluster_id
+                
+                # Create forwarding event for each branch
+                new_event(Event::ET_REQUEST_FORWARDING, branch_req, forwarding_time, pod)
+              end
+              
+              # Move to next step after parallel block (use step_completed)
+              req.step_completed(0.0) # Duration 0 for parallel initiation
+              
+              # Parent request waits for branches to complete
+              next
+            else
+              # Regular component processing
+              next_component_name = next_step_config[:name]
+              
+              # resolve the next component name
+              service = @kube_dns.lookup(next_component_name)
+            end
 
             # e.time should be equivalent to @current_time
             forwarding_time = e.time
