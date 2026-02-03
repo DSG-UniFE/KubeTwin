@@ -18,7 +18,6 @@ require_relative './node'
 
 require 'json'
 require 'logger'
-require 'set'
 
 module KUBETWIN
   class KSimulation
@@ -52,14 +51,6 @@ module KUBETWIN
       @current_time
     end
 
-    def get_workflow_components(workflow)
-      components = []
-      workflow[:component_sequence].each do |cs|
-        components << cs[:name]
-      end
-      components
-    end
-
     ## just an helper method to create the cluster configuration
     def self.create_cluster_configuration(sim_conf)
       if sim_conf.federation.nil?
@@ -89,7 +80,7 @@ module KUBETWIN
             # we assume to divide clusters equally. Each node
             # has 2000 milliCPU and 2 GB of Memory (2048 MB)
             cid += 1
-            [k, Cluster.new(id: cid, fixed_hourly_cost_cpu: nil,
+            [k, Cluster.new(id: k, fixed_hourly_cost_cpu: nil,
                             fixed_hourly_cost_memory: nil, location_id: cid,
                             node_resources_cpu: node_cpu.to_i,
                             node_resources_memory: node_mem.to_i, name: k,
@@ -101,7 +92,7 @@ module KUBETWIN
 
     # rss is replica set
     # css is service configuration
-    def evaluate_allocation(rss = nil, css = nil, mtt = nil, lm = nil, mapping = nil, replicas_mapping = nil)
+    def evaluate_allocation(rss = nil, css = nil, mtt = nil, lm = nil, mapping = nil)
       # seeds
       latency_seed = @configuration.seeds[:communication_latencies]
       @configuration.seeds[:service_times]
@@ -113,7 +104,6 @@ module KUBETWIN
 
       # mapping is the mapping of microservices to clusters
       @mapping ||= mapping
-      @replicas_mapping ||= replicas_mapping
 
       # setup simulation start and current time
       @current_time = @start_time = @configuration.start_time
@@ -154,14 +144,7 @@ module KUBETWIN
         # }
         # Convert the @configuration.federation json object into a ruby hash
         federation = JSON.parse(@configuration.federation, symbolize_names: true)
-        # puts "Federation resources: #{federation[:resources]}
-        cid = -1
-        @clusters_mapping = {}
-        federation[:resources].each_key do |k|
-          cid += 1
-          @clusters_mapping[cid] = k
-        end
-
+        # puts "Federation resources: #{federation[:resources]}"
         cid = -1
         @cluster_repository = Hash[
           federation[:resources].map do |k, v|
@@ -176,7 +159,6 @@ module KUBETWIN
             # has 2000 milliCPU and 2 GB of Memory (2048 MB)
             cid += 1
             price = evaluation_cost[cid] || 0.100
-            # @logger.info "Cluster k: #{k}"
             [k, Cluster.new(id: k, fixed_hourly_cost_cpu: price,
                             fixed_hourly_cost_memory: price, location_id: cid,
                             node_resources_cpu: node_cpu.to_i,
@@ -186,8 +168,6 @@ module KUBETWIN
           ]
       end
 
-      # @logger.info "Clusters: #{@cluster_repository[@clusters_mapping[0]].cluster_id}"
-      # abort
       node_id = 0
       @cluster_repository.values.each do |c|
         node_number = c.node_number
@@ -238,7 +218,7 @@ module KUBETWIN
           dst = @cluster_repository[lm[:dst].to_sym]
           raise "Cannot find cluster #{lm[:src]} or #{lm[:dst]}" if src.nil? || dst.nil?
 
-          { src: src.location_id, dst: dst.location_id, value: lm[:value].to_f / 2 }
+          { src: src.location_id, dst: dst.location_id, value: lm[:value].to_f }
         end
         latency_manager = LatencyManagerFederation.new(latency_models, seed: latency_seed)
       end
@@ -259,19 +239,7 @@ module KUBETWIN
 
       # information regarding customers
       customer_repository = @configuration.customers
-      @configuration.workflow_types
-
-      # Monkey patching to simplify the experiments
-      workflow_type_repository = {}
-      workflow_type_repository[1] = { component_sequence: [
-        { name: 'productpage' },
-        { name: 'reviews' },
-        { name: 'ratings' }
-      ] }
-
-      workflow_type_repository[2] = { component_sequence: [
-        { name: 'details' }
-      ] }
+      workflow_type_repository = @configuration.workflow_types
 
       # initialize statistics --- leave for later
       stats = Statistics.new
@@ -310,12 +278,6 @@ module KUBETWIN
           ]
         end
       ]
-
-      # Separate workflow and chain stats to do so we need to create a chain and look if microservices in that chain
-      # are within a workflow and then get the wokrflow id
-      @chain_repository = {}
-      per_chain_and_customer_stats = {}
-
       # reqs_received_per_workflow_and_customer = Hash[
       #  workflow_type_repository.keys.map do |wft_id|
       #    [wft_id, Hash[customer_repository.keys.map { |c_id| [c_id, 0] }]]
@@ -359,53 +321,23 @@ module KUBETWIN
           # we can add this to the evaluator
           # :chains=>["reviews", "ratings"], :targets=>[]}
           # Check for each workflow type if the chain matches
-          # create the chain in the chain stats
-          wf_cid = nil
-          workflow_type_repository.each do |wft_id, wf|
-            # verify if chain is part of the workflow
-            if chain.to_set.subset?(get_workflow_components(wf).to_set)
-              wf_cid = wft_id
-              break
+          per_workflow_and_customer_stats.each do |wft_id, cust_stats|
+            @logger.debug "  Workflow Type: #{wft_id}"
+            @logger.debug "  Customers: #{cust_stats.keys}"
+            workflow = workflow_type_repository[wft_id]
+            workflow_chain = workflow[:component_sequence].map { |cs| cs[:name] }
+            # CHECK IF chain is a subsequence of workflow_chain
+            @logger.debug "  Workflow Chain: #{workflow_chain}"
+            next unless workflow_chain == chain
+
+            cust_stats.each do |c_id, _|
+              @logger.debug "Customer: #{c_id}"
+              @logger.debug "Adding custom KPI for workflow #{per_workflow_and_customer_stats[wft_id][1]}"
+              per_workflow_and_customer_stats[wft_id][c_id].add_custom_kpis(longer_than: [sc_max_latency])
             end
           end
-
-          raise 'Chain not found in available workflows' if wf_cid.nil?
-
-          cs = []
-          chain.each do |name|
-            cs << { name: name }
-          end
-
-          @chain_repository[wf_cid] = { component_sequence: cs }
-
-          # @logger.info "chain_repository #{@chain_repository[wf_cid]}"
-
-          per_chain_and_customer_stats[wf_cid] = Hash[
-                customer_repository.keys.map do |c_id|
-                  [c_id, Statistics.new(@configuration.custom_stats.find do |x|
-                    x[:customer_id] == c_id && x[:workflow_type_id] == wf_cid
-                  end || {})]
-                end
-          ]
-
-          customer_repository.each do |c_id, _|
-            @logger.debug "Customer: #{c_id}"
-            @logger.debug "Adding custom KPI for workflow #{per_chain_and_customer_stats[wf_cid][1]}"
-            per_chain_and_customer_stats[wf_cid][c_id].add_custom_kpis(longer_than: [sc_max_latency])
-          end
         end
-
-        #           per_workflow_and_customer_stats.each do |wft_id, cust_stats|
-        #             @logger.debug "  Workflow Type: #{wft_id}"
-        #             @logger.debug "  Customers: #{cust_stats.keys}"
-        #             workflow = workflow_type_repository[wft_id]
-        #             workflow_chain = workflow[:component_sequence].map { |cs| cs[:name] }
-        #             # CHECK IF chain is a subsequence of workflow_chain
-        #             @logger.debug "  Workflow Chain: #{workflow_chain}"
-        #             next unless workflow_chain == chain
       end
-
-      @logger.debug "per_chain_and_customer_stats: #{per_chain_and_customer_stats}"
 
       # abort
 
@@ -475,7 +407,6 @@ module KUBETWIN
 
       pod_id = 0
       ms_id = 0
-      saturation_penalties = 0
       @replica_sets.each do |_k, rs|
         # here we need to create pods and register them into a Service
         pods_created = 0
@@ -494,18 +425,10 @@ module KUBETWIN
           node_affinity = sct[:node_affinity]
           node = nil
           if @mapping
-            cid = @mapping[ms_id]
-            @logger.debug "Mapping: #{@mapping}, got cluster_id: #{cid}"
-            node = @kube_scheduler.get_node_from_cluster(reqs_c, reqs_m, cid)
-          # if node not found --> go for what available
-          elsif @replicas_mapping
-            # let's get the mapping from somehting like this --> {:a => 10, :b => 100, :c => 30 }
-            cid = @clusters_mapping[@replicas_mapping[pod_id]]
-            node = @kube_scheduler.get_node_from_cluster(reqs_c, reqs_m, cid)
-            saturation_penalties += 1 if node.nil?
-            # @logger.info "Replicas Mapping: #{@replicas_mapping}"
+            @logger.debug "Mapping: #{@mapping}"
+            node = @kube_scheduler.get_node_from_cluster(reqs_c, reqs_m, @mapping[ms_id])
+            # if node not found --> go for what available
           end
-
           node = @kube_scheduler.get_node(reqs_c, reqs_m, node_affinity) if node.nil?
           @logger.debug "Node: #{node} for selector: #{selector} with requirements: #{reqs_c} #{reqs_m}"
           # if still cannot be allocated
@@ -638,7 +561,6 @@ module KUBETWIN
 
           # find first component name for requested workflow
           workflow = workflow_type_repository[req_attrs[:workflow_type_id]]
-          puts "DEBUG: workflow type #{req_attrs[:workflow_type_id]} = #{workflow.inspect}" if workflow.nil? || workflow[:component_sequence].nil?
           first_component_name = workflow[:component_sequence][0][:name]
 
           # first we need to resolve the component name using
@@ -691,8 +613,6 @@ module KUBETWIN
 
             # find next component name
             workflow = workflow_type_repository[req.workflow_type_id]
-            chain = @chain_repository[req.workflow_type_id] || nil
-            # next_component_name = workflow[:component_sequence][req.next_step][:name]
             # puts "next_component_name #{next_component_name}, pod.label #{pod.label}"
 
             # schedule request forwarding to pod
@@ -750,27 +670,7 @@ module KUBETWIN
           current_cluster = @cluster_repository[req.data_center_id]
           # find the next workflow
           workflow = workflow_type_repository[req.workflow_type_id]
-          chain = @chain_repository[req.workflow_type_id] || nil
-          current_component_name = workflow[:component_sequence][req.worked_step][:name]
-          # puts "current_component_name #{current_component_name}"
 
-          if !chain.nil? && chain[:component_sequence][0][:name] == current_component_name
-            # we are entering the chain, set the workflow to be the chain
-            # @logger.info "Request #{req.rid} #{current_component_name} entering chain #{chain}"
-            req.chain_entered(@current_time)
-            per_chain_and_customer_stats[req.workflow_type_id][req.customer_id].request_received
-          end
-
-if !chain.nil? && (chain[:component_sequence][-1][:name] == current_component_name)
-            # @logger.info "Request #{req.rid} #{current_component_name} exiting chain #{chain}"
-            req.finished_chain(@current_time)
-            per_chain_and_customer_stats[req.workflow_type_id][req.customer_id].record_request(req, now, chain = true)
-          end
-
-          # Skip processing if request is waiting for parallel branches
-          if req.parallel_context && req.parallel_context[:branch_count] > 0
-            return
-          end
           # register step completion
           component_name = workflow[:component_sequence][req.worked_step][:name]
           hpa_component_stats[component_name].record_request(req, now)
@@ -1102,8 +1002,7 @@ if !chain.nil? && (chain[:component_sequence][-1][:name] == current_component_na
           end
         end
         # replication_penalties += (current_spreading.count { |x| x > 0 } - 1) * REPLICATION_PENALTY if current_spreading.count { |x| x > 0 } > 1
-        # this is to enforce availability. Distributed replicas at least in two different clusters
-        replication_penalties += 5 if current_spreading.count(0) > 1
+        replication_penalties += 2 if current_spreading.include?(0) # default value
         @logger.info "Current spreading for #{k}: #{current_spreading} penalties: #{replication_penalties}"
         # else
         #  replication_penalties -= 10
@@ -1137,10 +1036,9 @@ if !chain.nil? && (chain[:component_sequence][-1][:name] == current_component_na
       # end
       # return 0
       # return the fitness value
-      # normalize everything to the mean ttr value
+      # Let's try to normalize all objetive to stats.mean
       mean_ttr = stats.mean
-      weighted_sum = mean_ttr + normalize_objective(replication_penalties, 0,
-                                                    mean_ttr) + normalize_objective(saturation_penalties, 0, mean_ttr)
+      weighted_sum = stats.mean + normalize_objective(replication_penalties, 0, mean_ttr)
       per_component_stats.each do |k, v|
         # misconfiguration from TOSCA
         next if v.closed == 0
@@ -1152,36 +1050,30 @@ if !chain.nil? && (chain[:component_sequence][-1][:name] == current_component_na
         # @logger.debug 'Proceed anyway'
         # next
         # end
-        not_closed_penalty = 0
-        not_closed_penalty + v.longer_than.inject(0.0) do |sum, (_key, value)|
+
+        weighted_sum += v.longer_than.inject(0.0) do |sum, (key, value)|
           # puts "Component: #{k} Longer than #{key} ms: #{value} closed: #{v.closed}"
           next if v.closed.nil? || v.closed.nil?
 
-          sum + (value / v.closed.to_f) if v.closed.to_f > 0
+          sum + normalize_objective(value / v.closed.to_f, 0, mean_ttr) if v.closed.to_f > 0
           # sum + (value / v.closed.to_f) * @configuration.custom_stats.find { |x| x[:name] == key }[:weight]
         end
-        weighted_sum += normalize_objective(not_closed_penalty, 0, mean_ttr)
       end
-
       # Let's do the same for the workflow and customer stats
-      @logger.info 'Calculating chain and customer stats'
-      per_chain_and_customer_stats.each do |wft_id, cust_stats|
-        @logger.info "  Workflow Type: #{wft_id}"
+      per_workflow_and_customer_stats.each do |wft_id, cust_stats|
         cust_stats.each do |c_id, stats_wc|
           # @logger.debug "Looking for #{wft_id} #{c_id}"
           next if stats_wc.closed.zero?
 
-          chain_penalty = 0
           # @logger.debug "Calculating stats for workflow type #{wft_id} customer #{c_id} - #{per_workflow_and_customer_stats[wft_id][c_id]}"
-          chain_penalty += stats_wc.longer_than.inject(0.0) do |sum, (key, value)|
-            @logger.info "Workflow Type: #{wft_id} Customer: #{c_id} Longer than #{key} s: #{value} closed: #{per_workflow_and_customer_stats[wft_id][c_id].closed} TTR: #{stats_wc.mean}"
+          weighted_sum += stats_wc.longer_than.inject(0.0) do |sum, (key, value)|
+            @logger.info "Workflow Type: #{wft_id} Customer: #{c_id} Longer than #{key} s: #{value} closed: #{per_workflow_and_customer_stats[wft_id][c_id].closed}"
             # next if per_workflow_and_customer_stats[wft_id][c_id].closed.nil? || per_workflow_and_customer_stats[wft_id][c_id].closed.nil?
             penalty_value = stats_wc.closed.to_f > 0 ? (value / stats_wc.closed.to_f) * 10 : 0
             @logger.info "penalty value: #{penalty_value}"
-            sum + penalty_value
+            sum + normalize_objective(penalty_value, 0, mean_ttr)
             # sum + (value / per_workflow_and_customer_stats[wft_id][c_id].closed.to_f) * @configuration.custom_stats.find { |x| x[:name] == key }[:weight]
           end
-          weighted_sum += normalize_objective(chain_penalty, 0, mean_ttr)
         end
       end
 

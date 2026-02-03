@@ -147,6 +147,19 @@ module KUBETWIN
       @active_processes -= 1 if @active_processes > 0
       # update also the metrics
       @served_request += 1
+      
+      # Check if this is a parallel branch request
+      if respond_to?(:is_parallel_branch?) && is_parallel_branch?
+        # Get parent request and branch name
+        parent_request = instance_variable_get(:@parent_request)
+        branch_name = instance_variable_get(:@branch_name)
+        
+        # Schedule parallel branch completion event
+        sim.new_event(Event::ET_PARALLEL_BRANCH_COMPLETED, 
+          { request: parent_request, branch_name: branch_name, result: "branch_result" }, 
+          time, nil)
+      end
+      
       try_servicing_new_request(sim, time) while @active_processes < @max_processes && !@request_queue.empty?
     end
 
