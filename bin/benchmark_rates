@@ -1,0 +1,241 @@
+#!/usr/bin/env ruby
+
+require 'fileutils'
+require 'tempfile'
+require 'csv'
+require 'optparse'
+require 'time'
+
+class RateBenchmark
+  def initialize
+    @results = []
+    @start_rate = 25
+    @end_rate = 400
+    @step = 25
+    @output_file = nil
+    @verbose = false
+  end
+
+  def parse_options
+    OptionParser.new do |opts|
+      opts.banner = "Usage: benchmark_rates [options] config_file"
+      
+      opts.on("-s", "--start RATE", Integer, "Starting rate (default: #{@start_rate})") do |rate|
+        @start_rate = rate
+      end
+      
+      opts.on("-e", "--end RATE", Integer, "Ending rate (default: #{@end_rate})") do |rate|
+        @end_rate = rate
+      end
+      
+      opts.on("-t", "--step STEP", Integer, "Rate step (default: #{@step})") do |step|
+        @step = step
+      end
+      
+      opts.on("-o", "--output FILE", "Output CSV file (default: benchmark_TIMESTAMP.csv)") do |file|
+        @output_file = file
+      end
+      
+      opts.on("-v", "--verbose", "Verbose output") do
+        @verbose = true
+      end
+      
+      opts.on("-h", "--help", "Show this help") do
+        puts opts
+        exit
+      end
+    end.parse!
+    
+    if ARGV.empty?
+      puts "Error: Configuration file required"
+      puts "Usage: benchmark_rates [options] config_file"
+      exit 1
+    end
+    
+    @config_file = ARGV[0]
+    unless File.exist?(@config_file)
+      puts "Error: Configuration file '#{@config_file}' not found"
+      exit 1
+    end
+    
+    @output_file ||= "benchmark_#{Time.now.strftime('%Y%m%d_%H%M%S')}.csv"
+  end
+
+  def modify_config_rate(config_content, rate)
+    # Replace the rate in request_distribution
+    # More precise regex to match the exact structure
+    config_content.gsub(
+      /(request_distribution:\s*\{[^}]*rate:\s*)\d+([^}]*\})/,
+      "\\1#{rate}\\2"
+    )
+  end
+
+  def run_simulation(config_file)
+    output = `bundle exec bin/kube_twin "#{config_file}" 2>&1`
+    exit_status = $?.exitstatus
+    
+    puts "Debug: Exit status = #{exit_status}" if @verbose
+    puts "Debug: Output sample:\n#{output[0..500]}..." if @verbose && output.length > 500
+    
+    # Extract TTR from output regardless of exit status
+    # since the simulator might return non-zero but still produce valid results
+    ttr_match = output.match(/TTR: \(mean: ([0-9.e-]+),/)
+    received_match = output.match(/stats: received: (\d+), closed: (\d+)/)
+    qtime_match = output.match(/QTIME: \(mean: ([0-9.e-]+),/)
+    
+    if ttr_match && received_match && qtime_match
+      {
+        ttr_mean: ttr_match[1].to_f,
+        requests_received: received_match[1].to_i,
+        requests_closed: received_match[2].to_i,
+        qtime_mean: qtime_match[1].to_f,
+        completion_rate: (received_match[2].to_f / received_match[1].to_f * 100).round(2),
+        exit_status: exit_status
+      }
+    else
+      puts "Warning: Could not parse simulation output. Exit status: #{exit_status}" if @verbose
+      puts "TTR match: #{ttr_match}" if @verbose
+      puts "Received match: #{received_match}" if @verbose  
+      puts "QTIME match: #{qtime_match}" if @verbose
+      nil
+    end
+  end
+
+  def run_benchmark
+    puts "Starting benchmark with rates from #{@start_rate} to #{@end_rate} (step: #{@step})"
+    puts "Configuration file: #{@config_file}"
+    puts "Output file: #{@output_file}"
+    puts
+
+    # Read original config
+    original_config = File.read(@config_file)
+    
+    (@start_rate..@end_rate).step(@step) do |rate|
+      print "Testing rate #{rate} RPS... "
+      
+      # Create temporary config file with modified rate
+      Tempfile.create(['benchmark_config', '.conf']) do |temp_file|
+        modified_config = modify_config_rate(original_config, rate)
+        temp_file.write(modified_config)
+        temp_file.flush
+        
+        # Run simulation
+        start_time = Time.now
+        result = run_simulation(temp_file.path)
+        end_time = Time.now
+        
+        if result
+          @results << {
+            rate: rate,
+            ttr_mean: result[:ttr_mean],
+            requests_received: result[:requests_received],
+            requests_closed: result[:requests_closed],
+            completion_rate: result[:completion_rate],
+            qtime_mean: result[:qtime_mean],
+            simulation_time: (end_time - start_time).round(2),
+            exit_status: result[:exit_status]
+          }
+          
+          puts "✓ TTR: #{result[:ttr_mean].round(4)}s, Completion: #{result[:completion_rate]}%, Time: #{(end_time - start_time).round(1)}s (exit: #{result[:exit_status]})"
+        else
+          puts "✗ Failed"
+        end
+      end
+    end
+    
+    save_results
+    print_summary
+  end
+
+  def save_results
+    CSV.open(@output_file, 'w') do |csv|
+      # Header
+      csv << ['Rate (RPS)', 'TTR Mean (s)', 'QTIME Mean (s)', 'Requests Received', 'Requests Closed', 'Completion Rate (%)', 'Simulation Time (s)', 'Exit Status']
+      
+      # Data
+      @results.each do |result|
+        csv << [
+          result[:rate],
+          result[:ttr_mean],
+          result[:qtime_mean],
+          result[:requests_received],
+          result[:requests_closed],
+          result[:completion_rate],
+          result[:simulation_time],
+          result[:exit_status]
+        ]
+      end
+    end
+    
+    puts "\nResults saved to: #{@output_file}"
+  end
+
+  def print_summary
+    return if @results.empty?
+    
+    puts "\n" + "="*80
+    puts "BENCHMARK SUMMARY"
+    puts "="*80
+    
+    printf "%-10s %-12s %-12s %-12s %-15s %-10s\n", 
+           "Rate", "TTR (s)", "QTIME (s)", "Received", "Completion", "Sim Time"
+    puts "-" * 80
+    
+    @results.each do |result|
+      printf "%-10d %-12.4f %-12.6f %-12d %-15.1f%% %-10.1fs\n",
+             result[:rate],
+             result[:ttr_mean],
+             result[:qtime_mean],
+             result[:requests_received],
+             result[:completion_rate],
+             result[:simulation_time]
+    end
+    
+    # Find saturation point
+    saturation_point = find_saturation_point
+    if saturation_point
+      puts "\nSaturation Analysis:"
+      puts "- System shows significant degradation starting at #{saturation_point} RPS"
+      puts "- TTR increases rapidly beyond this point"
+    end
+    
+    # Performance insights
+    best_performance = @results.min_by { |r| r[:ttr_mean] }
+    worst_performance = @results.max_by { |r| r[:ttr_mean] }
+    
+    if best_performance && worst_performance
+      puts "\nPerformance Insights:"
+      puts "- Best performance: #{best_performance[:rate]} RPS (TTR: #{best_performance[:ttr_mean].round(4)}s)"
+      puts "- Worst performance: #{worst_performance[:rate]} RPS (TTR: #{worst_performance[:ttr_mean].round(4)}s)"
+      puts "- Performance degradation: #{((worst_performance[:ttr_mean] / best_performance[:ttr_mean]) - 1) * 100}%"
+    end
+  end
+
+  def find_saturation_point
+    return nil if @results.size < 3
+    
+    # Look for point where TTR increases significantly (>50% from previous)
+    @results.each_cons(2) do |prev, curr|
+      if curr[:ttr_mean] > prev[:ttr_mean] * 1.5
+        return curr[:rate]
+      end
+    end
+    
+    nil
+  end
+
+  def run
+    parse_options
+    run_benchmark
+  rescue Interrupt
+    puts "\nBenchmark interrupted by user"
+    save_results unless @results.empty?
+    exit 1
+  rescue => e
+    puts "Error: #{e.message}"
+    exit 1
+  end
+end
+
+# Run the benchmark
+RateBenchmark.new.run

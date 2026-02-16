@@ -1,0 +1,211 @@
+#!/usr/bin/env ruby
+
+require 'csv'
+require 'optparse'
+
+class BenchmarkAnalyzer
+  def initialize
+    @csv_file = nil
+    @plot = false
+  end
+
+  def parse_options
+    OptionParser.new do |opts|
+      opts.banner = "Usage: analyze_benchmark [options] csv_file"
+      
+      opts.on("-p", "--plot", "Generate Python plot script") do
+        @plot = true
+      end
+      
+      opts.on("-h", "--help", "Show this help") do
+        puts opts
+        exit
+      end
+    end.parse!
+    
+    if ARGV.empty?
+      puts "Error: CSV file required"
+      puts "Usage: analyze_benchmark [options] csv_file"
+      exit 1
+    end
+    
+    @csv_file = ARGV[0]
+    unless File.exist?(@csv_file)
+      puts "Error: CSV file '#{@csv_file}' not found"
+      exit 1
+    end
+  end
+
+  def load_data
+    @data = []
+    CSV.foreach(@csv_file, headers: true) do |row|
+      @data << {
+        rate: row['Rate (RPS)'].to_f,
+        ttr: row['TTR Mean (s)'].to_f,
+        qtime: row['QTIME Mean (s)'].to_f,
+        received: row['Requests Received'].to_i,
+        closed: row['Requests Closed'].to_i,
+        completion_rate: row['Completion Rate (%)'].to_f,
+        sim_time: row['Simulation Time (s)'].to_f
+      }
+    end
+  end
+
+  def analyze
+    puts "BENCHMARK ANALYSIS"
+    puts "=" * 50
+    puts "Data points: #{@data.size}"
+    puts "Rate range: #{@data.first[:rate].to_i} - #{@data.last[:rate].to_i} RPS"
+    puts
+
+    # Performance analysis
+    puts "PERFORMANCE ANALYSIS:"
+    puts "-" * 30
+    
+    # Find linear region (TTR relatively stable)
+    linear_threshold = 0.001 # 1ms increase threshold
+    linear_region = []
+    
+    @data.each_cons(2) do |current, next_point|
+      increase = next_point[:ttr] - current[:ttr]
+      if increase <= linear_threshold
+        linear_region << current[:rate]
+      end
+    end
+    
+    if linear_region.any?
+      puts "Linear performance region: #{linear_region.first.to_i} - #{linear_region.last.to_i} RPS"
+    end
+    
+    # Find saturation point (significant increase)
+    saturation_threshold = 1.5 # 50% increase
+    saturation_point = nil
+    
+    @data.each_cons(2) do |current, next_point|
+      ratio = next_point[:ttr] / current[:ttr]
+      if ratio > saturation_threshold
+        saturation_point = next_point[:rate]
+        break
+      end
+    end
+    
+    puts "Saturation point: #{saturation_point ? saturation_point.to_i : 'Not found'} RPS" if saturation_point
+    
+    # Performance statistics
+    min_ttr = @data.min_by { |d| d[:ttr] }
+    max_ttr = @data.max_by { |d| d[:ttr] }
+    
+    puts "\nPERFORMANCE STATISTICS:"
+    puts "-" * 30
+    puts "Best TTR: #{min_ttr[:ttr].round(4)}s at #{min_ttr[:rate].to_i} RPS"
+    puts "Worst TTR: #{max_ttr[:ttr].round(4)}s at #{max_ttr[:rate].to_i} RPS"
+    puts "Performance degradation: #{((max_ttr[:ttr] / min_ttr[:ttr] - 1) * 100).round(1)}%"
+    
+    # Throughput analysis
+    max_throughput = @data.max_by { |d| d[:received] / d[:sim_time] }
+    puts "\nTHROUGHPUT ANALYSIS:"
+    puts "-" * 30
+    puts "Max throughput: #{(max_throughput[:received] / max_throughput[:sim_time]).round(1)} req/s"
+    puts "At rate: #{max_throughput[:rate].to_i} RPS"
+    
+    # System efficiency
+    puts "\nSYSTEM EFFICIENCY:"
+    puts "-" * 30
+    @data.each do |point|
+      efficiency = (point[:rate] * point[:completion_rate] / 100.0) / point[:rate] * 100
+      if point[:rate] <= 100
+        puts "#{point[:rate].to_i} RPS: #{efficiency.round(1)}% efficiency, TTR: #{point[:ttr].round(4)}s"
+      elsif point[:rate] % 50 == 0 # Show every 50 RPS for higher rates
+        puts "#{point[:rate].to_i} RPS: #{efficiency.round(1)}% efficiency, TTR: #{point[:ttr].round(4)}s"
+      end
+    end
+    
+    puts "\nRECOMMENDANS:"
+    puts "-" * 30
+    if saturation_point
+      puts "- Operate below #{saturation_point.to_i} RPS for optimal performance"
+      puts "- Consider scaling at #{(saturation_point * 0.8).to_i} RPS (80% of saturation)"
+    end
+    
+    if linear_region.any?
+      puts "- Linear performance region: #{linear_region.first.to_i}-#{linear_region.last.to_i} RPS"
+    end
+    
+    puts "- Best performance point: #{min_ttr[:rate].to_i} RPS"
+  end
+
+  def generate_plot_script
+    return unless @plot
+    
+    script_name = @csv_file.gsub('.csv', '_plot.py')
+    
+    File.open(script_name, 'w') do |f|
+      f.write <<~PYTHON
+        import pandas as pd
+        import matplotlib.pyplot as plt
+        import seaborn as sns
+
+        # Read the data
+        df = pd.read_csv('#{@csv_file}')
+
+        # Create subplots
+        fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(15, 10))
+        fig.suptitle('KubeTwin Performance Benchmark Analysis', fontsize=16, fontweight='bold')
+
+        # TTR vs Rate
+        ax1.plot(df['Rate (RPS)'], df['TTR Mean (s)'], 'b-o', linewidth=2, markersize=4)
+        ax1.set_xlabel('Request Rate (RPS)')
+        ax1.set_ylabel('TTR Mean (seconds)')
+        ax1.set_title('Time To Response vs Request Rate')
+        ax1.grid(True, alpha=0.3)
+        ax1.set_yscale('log')
+
+        # QTIME vs Rate  
+        ax2.plot(df['Rate (RPS)'], df['QTIME Mean (s)'], 'r-o', linewidth=2, markersize=4)
+        ax2.set_xlabel('Request Rate (RPS)')
+        ax2.set_ylabel('Queue Time Mean (seconds)')
+        ax2.set_title('Queue Time vs Request Rate')
+        ax2.grid(True, alpha=0.3)
+        ax2.set_yscale('log')
+
+        # Throughput
+        throughput = df['Requests Closed'] / df['Simulation Time (s)']
+        ax3.plot(df['Rate (RPS)'], throughput, 'g-o', linewidth=2, markersize=4)
+        ax3.set_xlabel('Request Rate (RPS)')
+        ax3.set_ylabel('Actual Throughput (req/s)')
+        ax3.set_title('Actual Throughput vs Request Rate')
+        ax3.grid(True, alpha=0.3)
+
+        # Performance degradation
+        baseline_ttr = df['TTR Mean (s)'].iloc[0]
+        degradation = (df['TTR Mean (s)'] / baseline_ttr - 1) * 100
+        ax4.plot(df['Rate (RPS)'], degradation, 'm-o', linewidth=2, markersize=4)
+        ax4.set_xlabel('Request Rate (RPS)')
+        ax4.set_ylabel('Performance Degradation (%)')
+        ax4.set_title('Performance Degradation from Baseline')
+        ax4.grid(True, alpha=0.3)
+
+        plt.tight_layout()
+        plt.savefig('#{@csv_file.gsub('.csv', '_analysis.png')}', dpi=300, bbox_inches='tight')
+        plt.show()
+        
+        print("Analysis plot saved as: #{@csv_file.gsub('.csv', '_analysis.png')}")
+      PYTHON
+    end
+    
+    puts "\nPython plot script generated: #{script_name}"
+    puts "Run with: python #{script_name}"
+  end
+
+  def run
+    parse_options
+    load_data
+    analyze
+    generate_plot_script
+  rescue => e
+    puts "Error: #{e.message}"
+    exit 1
+  end
+end
+
+BenchmarkAnalyzer.new.run
