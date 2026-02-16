@@ -100,7 +100,18 @@ module KUBETWIN
 
     def ttr(time)
       # if incident isn't closed yet, just return nil without raising an exception.
-      @closure_time.nil? ? (time - @arrival_at_container) : (@closure_time - @arrival_time)
+      base_ttr = @closure_time.nil? ? (time - @arrival_at_container) : (@closure_time - @arrival_time)
+      
+      # For requests with completed branches, include maximum branch completion time
+      if @completed_branches && !@completed_branches.empty?
+        max_branch_time = @completed_branches.map { |branch| 
+          branch[:completed_at] ? (branch[:completed_at].to_f - @arrival_time.to_f) : 0 
+        }.max
+        # Return the maximum between base TTR and branch completion times
+        [base_ttr, max_branch_time].max
+      else
+        base_ttr
+      end
     end
 
     def ttr_chain(time)
@@ -124,13 +135,13 @@ module KUBETWIN
       @branch_results = {}
     end
 
-    def complete_branch(branch_name, result_data = nil)
+    def complete_branch(branch_name, result_data = nil, completion_time = nil)
       branch = @active_branches.find { |b| b[:name] == branch_name }
       if branch
         branch[:status] = "completed"
-        branch[:completed_at] = Time.now
+        branch[:completed_at] = completion_time || Time.now
         @branch_results[branch_name] = result_data
-        @completed_branches << { name: branch_name, data: result_data, completed_at: Time.now }
+        @completed_branches << { name: branch_name, data: result_data, completed_at: completion_time || Time.now }
       end
     end
 

@@ -714,9 +714,18 @@ module KUBETWIN
           time = e.time
           pod = e.destination
 
+          # Check if this is a parallel branch request
+          branch_name = req.instance_variable_get(:@branch_name)
+          if branch_name
+            # For parallel branch requests, use the branch name directly
+            component_name = branch_name
+          else
+            # For regular requests, use the workflow sequence
+            workflow = workflow_type_repository[req.workflow_type_id]
+            component_name = workflow[:component_sequence][req.next_step][:name]
+          end
+          
           # increase count of received requests in hpa_component_stats
-          workflow = workflow_type_repository[req.workflow_type_id]
-          component_name = workflow[:component_sequence][req.next_step][:name]
           hpa_component_stats[component_name].request_received
           per_component_stats[component_name].request_received
 
@@ -744,8 +753,14 @@ module KUBETWIN
             parent_req = req.instance_variable_get(:@parent_request)
             branch_name = req.instance_variable_get(:@branch_name)
             
+            # Register branch completion statistics
+            if branch_name && hpa_component_stats[branch_name] && per_component_stats[branch_name]
+              hpa_component_stats[branch_name].record_request(req, now)
+              per_component_stats[branch_name].record_request(req, now)
+            end
+            
             if parent_req && parent_req.parallel_context
-              parent_req.complete_branch(branch_name, req)
+              parent_req.complete_branch(branch_name, req, @current_time)
               parent_req.parallel_context[:branch_count] -= 1
               
               # Check if all branches are completed
