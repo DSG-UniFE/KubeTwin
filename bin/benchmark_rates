@@ -7,12 +7,16 @@ require 'optparse'
 require 'time'
 
 class RateBenchmark
+  SERVICES = %w[productpage details reviews ratings].freeze
+
   def initialize
     @results = []
     @start_rate = 25
     @end_rate = 400
     @step = 25
     @output_file = nil
+    @params_file = nil
+    @lognormal_params = nil
     @verbose = false
   end
 
@@ -34,6 +38,10 @@ class RateBenchmark
       
       opts.on("-o", "--output FILE", "Output CSV file (default: benchmark_TIMESTAMP.csv)") do |file|
         @output_file = file
+      end
+
+      opts.on("-p", "--params FILE", "Lognormal params CSV file (mu/sigma per RPS per service)") do |file|
+        @params_file = file
       end
       
       opts.on("-v", "--verbose", "Verbose output") do
@@ -59,15 +67,82 @@ class RateBenchmark
     end
     
     @output_file ||= "benchmark_#{Time.now.strftime('%Y%m%d_%H%M%S')}.csv"
+
+    # Load lognormal params CSV if provided
+    if @params_file
+      unless File.exist?(@params_file)
+        puts "Error: Params CSV file '#{@params_file}' not found"
+        exit 1
+      end
+      load_lognormal_params
+    end
+  end
+
+  # Load lognormal parameters from CSV and build RPS range boundaries.
+  # Boundaries are set at the midpoint between consecutive CSV RPS values.
+  # E.g., for CSV rows at 10, 30, 50: RPS <= 20 uses row 10, 21-40 uses row 30, 41+ uses row 50.
+  def load_lognormal_params
+    rows = CSV.read(@params_file, headers: true)
+    @lognormal_params = rows.map do |row|
+      {
+        rps: row['rps'].to_i,
+        params: SERVICES.each_with_object({}) do |svc, h|
+          h[svc] = { mu: row["#{svc}_mu"].to_f, sigma: row["#{svc}_sigma"].to_f }
+        end
+      }
+    end.sort_by { |entry| entry[:rps] }
+
+    # Pre-compute upper boundaries for each row (midpoint to next row)
+    @lognormal_params.each_with_index do |entry, i|
+      if i < @lognormal_params.size - 1
+        next_rps = @lognormal_params[i + 1][:rps]
+        entry[:upper_bound] = (entry[:rps] + next_rps) / 2
+      else
+        entry[:upper_bound] = Float::INFINITY
+      end
+    end
+
+    puts "Loaded lognormal params for #{@lognormal_params.size} RPS levels: #{@lognormal_params.map { |e| e[:rps] }.join(', ')}" if @verbose
+  end
+
+  # Find the params row whose range covers the given rate.
+  def find_params_for_rate(rate)
+    return nil unless @lognormal_params
+
+    @lognormal_params.each do |entry|
+      return entry if rate <= entry[:upper_bound]
+    end
+    # Fallback to last entry if rate exceeds all bounds
+    @lognormal_params.last
   end
 
   def modify_config_rate(config_content, rate)
     # Replace the rate in request_distribution
-    # More precise regex to match the exact structure
-    config_content.gsub(
+    modified = config_content.gsub(
       /(request_distribution:\s*\{[^}]*rate:\s*)\d+([^}]*\})/,
       "\\1#{rate}\\2"
     )
+
+    # If lognormal params CSV is loaded, also update mu/sigma per service
+    params_entry = find_params_for_rate(rate)
+    if params_entry
+      puts "  Using lognormal params from RPS=#{params_entry[:rps]} row for rate #{rate}" if @verbose
+      SERVICES.each do |svc|
+        svc_params = params_entry[:params][svc]
+        # Replace mu value for this service's distribution block
+        modified = modified.gsub(
+          /("#{svc}"\s*=>\s*\{[^}]*lognorm,\s*args:\s*\{\s*mu:\s*)[\-0-9.]+/m,
+          "\\1#{svc_params[:mu]}"
+        )
+        # Replace sigma value for this service's distribution block
+        modified = modified.gsub(
+          /("#{svc}"\s*=>\s*\{[^}]*lognorm,\s*args:\s*\{[^}]*sigma:\s*)[0-9.]+/m,
+          "\\1#{svc_params[:sigma]}"
+        )
+      end
+    end
+
+    modified
   end
 
   def run_simulation(config_file)
@@ -104,6 +179,7 @@ class RateBenchmark
   def run_benchmark
     puts "Starting benchmark with rates from #{@start_rate} to #{@end_rate} (step: #{@step})"
     puts "Configuration file: #{@config_file}"
+    puts "Lognormal params file: #{@params_file || '(none - using fixed config values)'}" 
     puts "Output file: #{@output_file}"
     puts
 
