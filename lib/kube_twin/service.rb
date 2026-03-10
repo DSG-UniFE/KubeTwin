@@ -15,7 +15,7 @@ module KUBETWIN
                 :pods 
                 #, :targetPort
 
-    SEED = 12345
+    SEED = 45678
 
     def initialize(serviceName, selector, load_balancing=:load_balancing)
       @serviceName = serviceName

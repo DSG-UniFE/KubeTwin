@@ -1158,7 +1158,7 @@ module KUBETWIN
            "component_stats: #{per_component_stats}\n" +
            "allocation_map: #{allocation_map}\n" +
            "node_utilization: #{node_utilization}\n" +
-           "costs: #{costs} per day\n" +
+           "costs: #{costs.round(2)} per day\n" +
            "=======================================\n"
 
       # gather information of how many pods are running for each label in each node per cluster
@@ -1178,14 +1178,34 @@ module KUBETWIN
             bmap[k] = { c.name => pods_number }
           end
         end
-        # replication_penalties += (current_spreading.count { |x| x > 0 } - 1) * REPLICATION_PENALTY if current_spreading.count { |x| x > 0 } > 1
+
+        #replication_penalties += (current_spreading.count { |x| x > 0 } - 1) * REPLICATION_PENALTY if current_spreading.count { |x| x > 0 } > 1
         # this is to enforce availability. Distributed replicas at least in two different clusters
-        replication_penalties += 5 if current_spreading.count(0) > 1
-        @logger.info "Current spreading for #{k}: #{current_spreading} penalties: #{replication_penalties}"
+        #replication_penalties += 5 if current_spreading.count(0) > 1
+        #@logger.info "Current spreading for #{k}: #{current_spreading} penalties: #{replication_penalties}"
         # else
         #  replication_penalties -= 10
         # end
       end
+
+      cluster_utilization = []
+      @cluster_repository.each do |_, c|
+        total_cpu = c.node_number * c.node_resources_cpu.to_f
+        total_mem = c.node_number * c.node_resources_memory.to_f
+        used_cpu = 0
+        used_mem = 0
+        c.nodes.values.each do |n|
+          used_cpu += n.requested_resources[:cpu]
+          used_mem += n.requested_resources[:memory]
+        end
+        cpu_util = total_cpu > 0 ? used_cpu / total_cpu : 0.0
+        mem_util = total_mem > 0 ? used_mem / total_mem : 0.0
+        cluster_utilization << ((cpu_util + mem_util) / 2.0).round(2)
+      end
+
+      resource_gini = (gini_coefficient(cluster_utilization)).round(2)
+      @logger.info "Cluster utilization (cpu+mem): #{cluster_utilization} Gini coefficient: #{resource_gini}"
+        
       puts "BMAP: #{bmap}"
       # Produce txt and JSON file with the bmap information
       File.open('final_allocation.txt', 'w') do |f|
@@ -1216,8 +1236,10 @@ module KUBETWIN
       # return the fitness value
       # normalize everything to the mean ttr value
       mean_ttr = stats.mean
-      weighted_sum = mean_ttr + normalize_objective(replication_penalties, 0,
-                                                    mean_ttr) + normalize_objective(saturation_penalties, 0, mean_ttr)
+      #weighted_sum = mean_ttr + normalize_objective(replication_penalties, 0,
+      #                                              mean_ttr) + normalize_objective(saturation_penalties, 0, mean_ttr)
+      weighted_sum = mean_ttr + normalize_objective(resource_gini, 0, mean_ttr) +
+                                normalize_objective(saturation_penalties, 0, mean_ttr)
       per_component_stats.each do |k, v|
         # misconfiguration from TOSCA
         next if v.closed == 0
@@ -1271,6 +1293,22 @@ module KUBETWIN
       end
       puts "Weighted sum: #{weighted_sum}"
       -weighted_sum
+    end
+
+    # Compute gini coefficient
+    def gini_coefficient(values)
+      n = values.length
+      return 0.0 if n <= 1
+      total = values.sum.to_f
+      return 0.0 if total.zero?
+
+      abs_diff_sum = 0.0
+      values.each do |x|
+        values.each do |y|
+          abs_diff_sum += (x - y).abs
+        end
+      end
+      abs_diff_sum / (2 * n * total)
     end
 
     def normalize_objective(value, min_obj, max_obj)
