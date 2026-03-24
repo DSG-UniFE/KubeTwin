@@ -7,6 +7,8 @@ require 'logger'
 
 module KUBETWIN
   class KOptimizerACM2
+    MAX_REPLICAS = 10
+
     def do_abort(message)
       abort <<-EOS.gsub(/^\s+\|/, '')
             |#{message}
@@ -46,57 +48,83 @@ module KUBETWIN
       @msc = @sim_conf.microservice_types
       @cluster_repository = KUBETWIN::KSimulation.create_cluster_configuration(@sim_conf)
       @n_clusters = @cluster_repository.length
+      @max_replicas = MAX_REPLICAS
       # Read environment variables RPS, set default to 10 if not set
       rps = ENV['RPS'] ? ENV['RPS'].to_i : 10
       @logger.info "Setting RPS to #{rps}"
 
-      # This will be used later for automating experiments.
-      # @sim_conf.request_gen.each do |_k, v|
-      #  v[:request_distribution][:args][:rate] = rps
-      #  v[:num_requests] = n_requests
-      # end
-      # @logger.info "#{@sim_conf.replica_sets}"
-
       @start_time = @sim_conf.start_time
     end
 
+    # Encode the first n_ms elements of x as replica counts into the replica sets hash.
+    # Returns [updated_rss, replicas_per_ms_hash].
     def encode_replicas_set(x)
       rss = @rss.dup
-      n_ms = @rss.dup
       ra = rss.keys.to_a
       replicas_per_ms = {}
-      (0..(n_ms - 1)).each do |sj|
+      (0..(@n_ms - 1)).each do |sj|
         rss[ra[sj]][:replicas] = x[sj]
         replicas_per_ms[ra[sj]] = x[sj]
       end
       [rss, replicas_per_ms]
     end
 
+    # Decode the cluster assignment portion of the vector into a flat replicas_mapping
+    # array indexed by global pod_id.
+    #
+    # The vector layout is:
+    #   [rep_ms0, rep_ms1, ..., rep_msN,          # @n_ms values (1..MAX_REPLICAS)
+    #    c_ms0_r0, c_ms0_r1, ..., c_ms0_r(MAX-1), # MAX_REPLICAS values per MS
+    #    c_ms1_r0, c_ms1_r1, ..., c_ms1_r(MAX-1),
+    #    ...]
+    #
+    # For each microservice i with replica_count[i] replicas, we only take
+    # the first replica_count[i] cluster assignments from its block of MAX_REPLICAS,
+    # and ignore the rest (padding).
+    #
+    # Returns a flat array where index = global pod_id, value = cluster_id.
+    def decode_cluster_mapping(vector)
+      replica_counts = vector[0...@n_ms]
+      cluster_section = vector[@n_ms..]
+      replicas_mapping = []
+
+      (0...@n_ms).each do |ms_idx|
+        n_reps = replica_counts[ms_idx]
+        # Each MS has a block of @max_replicas entries in the cluster section
+        block_start = ms_idx * @max_replicas
+        n_reps.times do |r|
+          replicas_mapping << cluster_section[block_start + r]
+        end
+      end
+
+      replicas_mapping
+    end
+
     def optimize(num_iterations: 5, population_size: 40)
       to_optimize = lambda do |component_allocation|
         component_allocation = component_allocation.map(&:to_i)
         puts component_allocation.inspect
+
+        # Decode replica counts and update replica sets
         new_rss, = encode_replicas_set(component_allocation[0...@n_ms])
-        # load simulation configuration
-        # conf = KUBETWIN::Configuration.load_from_file(ARGV[0])
-        # Let's map the replicas to the clusters
-        # 0 means cluster 0, 1 means cluster 1, etc., n_clusters means random
-        mapping = component_allocation
+
+        # Decode the flat replicas_mapping (only uses active replicas, ignores padding)
+        replicas_mapping = decode_cluster_mapping(component_allocation)
+
         sim = KUBETWIN::KSimulation.new(configuration: @sim_conf,
                                         evaluator: KUBETWIN::Evaluator.new(@sim_conf))
         @ga_logger.debug component_allocation
-        res = sim.evaluate_allocation(new_rss, nil, nil, nil, nil, mapping)
+        res = sim.evaluate_allocation(new_rss, nil, nil, nil, nil, replicas_mapping)
         res
       end
 
+      # Fixed-size vector: n_ms replica counts + n_ms * MAX_REPLICAS cluster assignments
+      # Padding positions (beyond actual replica count) are ignored during decoding.
       solver_conf = {
         swarm_size: population_size || 40,
-        # the first part of the array encodes the number of replicas for each microservice
-        # the second part encodes the cluster assignment for each replica.
-        # maximum number of replicas is 10, and maximum number of clusters is @n_clusters
         constraints: {
-          min: [1] * @n_ms + [0] * @n_ms * @n_replicas,
-          max: [10] * @n_ms + [@n_clusters] * @n_ms * @n_replicas
+          min: [1] * @n_ms + [0] * (@n_ms * @max_replicas),
+          max: [@max_replicas] * @n_ms + [@n_clusters] * (@n_ms * @max_replicas)
         },
         logger: @ga_logger,
         log_level: :info,

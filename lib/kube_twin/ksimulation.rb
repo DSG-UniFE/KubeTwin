@@ -430,7 +430,7 @@ module KUBETWIN
 
       puts ''
       puts ''
-      puts ' ====== Replica snapshot at simulation start ======'
+      puts '====== Replica snapshot at simulation start ======'
       replicas_by_microservice.sort.each do |selector, replicas|
         puts "microservice: #{selector}, replicas: #{replicas}"
       end
@@ -1222,17 +1222,16 @@ module KUBETWIN
       @logger.info "Cluster utilization (cpu+mem): #{cluster_utilization} Gini coefficient: #{resource_gini}"
 
       replica_spreads = bmap.values.map do |cluster_counts|
-        # @logger.info "Cluster counts for microservice: #{cluster_counts.values}"
-        gini_coefficient(cluster_counts.values)
+        normalized_gini(cluster_counts.values)
       end
 
-      @logger.info "Replica spreads for microservices: #{replica_spreads.map { |s| s.round(2) }}"
+      @logger.info "Normalized replica spreads for microservices: #{replica_spreads.map { |s| s.round(2) }}"
 
       # print the spreading and related gini for each microservice (debug purpose)
-      # just debugging here, the calculation is above.
       bmap.each do |ms, cluster_counts|
-        ms_replica_spread_gini = gini_coefficient(cluster_counts.values).round(2)
-        @logger.info "Replica spread for microservice #{ms}: #{cluster_counts.values} Gini coefficient: #{ms_replica_spread_gini}"
+        raw_gini = gini_coefficient(cluster_counts.values).round(2)
+        norm_gini = normalized_gini(cluster_counts.values).round(2)
+        @logger.info "Replica spread for #{ms}: #{cluster_counts.values} raw Gini: #{raw_gini} normalized: #{norm_gini}"
       end
 
       replica_spreading = if replica_spreads.empty?
@@ -1240,7 +1239,7 @@ module KUBETWIN
                           else
                             (replica_spreads.sum / replica_spreads.length.to_f).round(2)
                           end
-      @logger.info "Replica spread Gini (avg across microservices): #{replica_spreading}"
+      @logger.info "Replica spread normalized Gini (avg across microservices): #{replica_spreading}"
 
       puts '============================================================================='
       # Produce txt and JSON file with the bmap information
@@ -1329,6 +1328,34 @@ module KUBETWIN
         end
       end
       abs_diff_sum / (2 * n * total)
+    end
+
+    # Compute the theoretical minimum Gini coefficient for r items distributed
+    # across c bins as uniformly as possible.
+    # With r replicas and c clusters, the best distribution is:
+    #   (c - r % c) bins with floor(r/c) items and (r % c) bins with ceil(r/c) items.
+    def min_gini_coefficient(r, c)
+      return 0.0 if c <= 1 || r <= 0
+
+      # Build the optimal distribution and compute its Gini
+      base = r / c
+      remainder = r % c
+      optimal = Array.new(c - remainder, base) + Array.new(remainder, base + 1)
+      gini_coefficient(optimal)
+    end
+
+    # Gini normalized by its theoretical minimum so that:
+    #   0.0 = best possible spreading for the given (replicas, clusters)
+    #   1.0 = worst possible spreading
+    # This removes the structural bias against low replica counts.
+    def normalized_gini(values)
+      raw = gini_coefficient(values)
+      r = values.sum
+      c = values.length
+      g_min = min_gini_coefficient(r, c)
+      return 0.0 if (1.0 - g_min).abs < 1e-9 # all items in one bin is the only option
+
+      (raw - g_min) / (1.0 - g_min)
     end
 
     def normalize_objective(value, min_obj, max_obj)
