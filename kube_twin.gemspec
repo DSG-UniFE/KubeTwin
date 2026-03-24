@@ -20,6 +20,7 @@ Gem::Specification.new do |spec|
   spec.add_dependency 'as-duration', '~> 0.1.1'
   spec.add_dependency 'ice_nine', '~> 0.11.2'
   spec.add_dependency 'mhl'
+  spec.add_dependency 'rumale-ensemble'
 
   spec.add_development_dependency 'bundler'
   spec.add_development_dependency 'dotenv', '~> 2.7.6'

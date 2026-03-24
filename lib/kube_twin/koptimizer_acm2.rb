@@ -59,7 +59,8 @@ module KUBETWIN
     # Encode the first n_ms elements of x as replica counts into the replica sets hash.
     # Returns [updated_rss, replicas_per_ms_hash].
     def encode_replicas_set(x)
-      rss = @rss.dup
+      # Deep copy: @rss values are hashes that must not be mutated
+      rss = @rss.each_with_object({}) { |(k, v), h| h[k] = v.dup }
       ra = rss.keys.to_a
       replicas_per_ms = {}
       (0..(@n_ms - 1)).each do |sj|
