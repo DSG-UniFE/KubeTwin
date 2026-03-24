@@ -49,33 +49,26 @@ module KUBETWIN
       # Read environment variables RPS, set default to 10 if not set
       rps = ENV['RPS'] ? ENV['RPS'].to_i : 10
       @logger.info "Setting RPS to #{rps}"
-      # Read number of requests per workflow
-      n_requests = ENV['N_REQUESTS'] ? ENV['N_REQUESTS'].to_i : 1000
-      @logger.info "Setting number of requests per workflow to #{n_requests}"
-      @sim_conf.request_gen.each do |_k, v|
-        v[:request_distribution][:args][:rate] = rps
-        v[:num_requests] = n_requests
-      end
-      @n_replicas = ENV['N_REPLICAS'] ? ENV['N_REPLICAS'].to_i : 5
-      @logger.info "Setting number of replicas per microservice to #{@n_replicas}"
-      @sim_conf.replica_sets.each do |_k, v|
-        v[:replicas] = @n_replicas
-      end
-      @logger.info "#{@sim_conf.replica_sets}"
+
+      # This will be used later for automating experiments.
+      # @sim_conf.request_gen.each do |_k, v|
+      #  v[:request_distribution][:args][:rate] = rps
+      #  v[:num_requests] = n_requests
+      # end
+      # @logger.info "#{@sim_conf.replica_sets}"
 
       @start_time = @sim_conf.start_time
     end
 
-    def encode_replicas_set(x, n_ms, rss)
+    def encode_replicas_set(x)
+      rss = @rss.dup
+      n_ms = @rss.dup
       ra = rss.keys.to_a
       replicas_per_ms = {}
       (0..(n_ms - 1)).each do |sj|
         rss[ra[sj]][:replicas] = x[sj]
         replicas_per_ms[ra[sj]] = x[sj]
       end
-      # here decide the load balancing configuration
-      # 0 would be round robin 1 is random
-      # $logger.debug "Replica Sets: #{rss}"
       [rss, replicas_per_ms]
     end
 
@@ -83,6 +76,7 @@ module KUBETWIN
       to_optimize = lambda do |component_allocation|
         component_allocation = component_allocation.map(&:to_i)
         puts component_allocation.inspect
+        new_rss, = encode_replicas_set(component_allocation[0...@n_ms])
         # load simulation configuration
         # conf = KUBETWIN::Configuration.load_from_file(ARGV[0])
         # Let's map the replicas to the clusters
@@ -91,15 +85,18 @@ module KUBETWIN
         sim = KUBETWIN::KSimulation.new(configuration: @sim_conf,
                                         evaluator: KUBETWIN::Evaluator.new(@sim_conf))
         @ga_logger.debug component_allocation
-        res = sim.evaluate_allocation(nil, nil, nil, nil, nil, mapping)
+        res = sim.evaluate_allocation(new_rss, nil, nil, nil, nil, mapping)
         res
       end
 
       solver_conf = {
         swarm_size: population_size || 40,
+        # the first part of the array encodes the number of replicas for each microservice
+        # the second part encodes the cluster assignment for each replica.
+        # maximum number of replicas is 10, and maximum number of clusters is @n_clusters
         constraints: {
-          min: [0] * @n_ms * @n_replicas,
-          max: [@n_clusters] * @n_ms * @n_replicas
+          min: [1] * @n_ms + [0] * @n_ms * @n_replicas,
+          max: [10] * @n_ms + [@n_clusters] * @n_ms * @n_replicas
         },
         logger: @ga_logger,
         log_level: :info,

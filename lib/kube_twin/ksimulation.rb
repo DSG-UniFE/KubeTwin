@@ -428,8 +428,8 @@ module KUBETWIN
         replicas_by_microservice[rs.selector] += rs.replicas.to_i
       end
 
-      puts ""
-      puts ""
+      puts ''
+      puts ''
       puts ' ====== Replica snapshot at simulation start ======'
       replicas_by_microservice.sort.each do |selector, replicas|
         puts "microservice: #{selector}, replicas: #{replicas}"
@@ -645,7 +645,7 @@ module KUBETWIN
           end
 
           first_component_name = workflow[:component_sequence][0][:name]
-          
+
           # puts "DEBUG: first_component_name = #{first_component_name} #{workflow.inspect}"
           # first we need to resolve the component name using
           # the kubernetes DNS
@@ -738,7 +738,7 @@ module KUBETWIN
             workflow = workflow_type_repository[req.workflow_type_id]
             component_name = workflow[:component_sequence][req.next_step][:name]
           end
-          
+
           # increase count of received requests in hpa_component_stats
           hpa_component_stats[component_name].request_received
           per_component_stats[component_name].request_received
@@ -766,17 +766,17 @@ module KUBETWIN
           if req.instance_variable_get(:@parent_request)
             parent_req = req.instance_variable_get(:@parent_request)
             branch_name = req.instance_variable_get(:@branch_name)
-            
+
             # Register branch completion statistics
             if branch_name && hpa_component_stats[branch_name] && per_component_stats[branch_name]
               hpa_component_stats[branch_name].record_request(req, now)
               per_component_stats[branch_name].record_request(req, now)
             end
-            
+
             if parent_req && parent_req.parallel_context
               parent_req.complete_branch(branch_name, req, @current_time)
               parent_req.parallel_context[:branch_count] -= 1
-              
+
               # Check if all branches are completed
               if parent_req.parallel_context[:branch_count] <= 0
                 # All parallel branches completed, continue with parent request
@@ -792,15 +792,15 @@ module KUBETWIN
           # find the next workflow
           workflow = workflow_type_repository[req.workflow_type_id]
           chain = @chain_repository[req.workflow_type_id] || nil
-          
+
           # Get current component name safely - handle parallel components
           current_component_step = workflow[:component_sequence][req.worked_step]
-          if current_component_step[:type] == "parallel"
-            # For parallel components, we don't track them in stats since they're containers
-            current_component_name = nil
-          else
-            current_component_name = current_component_step[:name]
-          end
+          current_component_name = if current_component_step[:type] == 'parallel'
+                                     # For parallel components, we don't track them in stats since they're containers
+                                     nil
+                                   else
+                                     current_component_step[:name]
+                                   end
           # puts "current_component_name #{current_component_name}"
 
           if !chain.nil? && !current_component_name.nil? && chain[:component_sequence][0][:name] == current_component_name
@@ -831,49 +831,49 @@ module KUBETWIN
           if req.next_step < workflow[:component_sequence].size
 
             next_step_config = workflow[:component_sequence][req.next_step]
-            
+
             # Handle parallel execution
-            if next_step_config[:type] == "parallel"
+            if next_step_config[:type] == 'parallel'
               # Start parallel execution for all branches
               branches = next_step_config[:branches]
               req.start_parallel_execution(branches)
-              
+
               # Create separate request flows for each branch
               branches.each do |branch|
                 branch_req = req.clone_for_parallel_branch(branch[:name])
-                
+
                 # Each branch starts with the branch component
                 service = @kube_dns.lookup(branch[:name])
                 next if service.nil? # Skip if service not found
-                
+
                 pod = service.get_pod(branch[:name])
                 next if pod.nil? # Skip if no pod available
-                
+
                 # Schedule the branch request
                 forwarding_time = e.time
                 cluster_id = pod.node.cluster_id
                 cluster = @cluster_repository[cluster_id]
-                
+
                 transmission_time =
                   latency_manager.sample_latency_between(current_cluster.location_id, cluster.location_id)
                 branch_req.update_transfer_time(transmission_time)
                 forwarding_time += transmission_time
-                
+
                 branch_req.data_center_id = cluster.cluster_id
-                
+
                 # Create forwarding event for each branch
                 new_event(Event::ET_REQUEST_FORWARDING, branch_req, forwarding_time, pod)
               end
-              
+
               # Move to next step after parallel block (use step_completed)
               req.step_completed(0.0) # Duration 0 for parallel initiation
-              
+
               # Parent request waits for branches to complete
               next
             else
               # Regular component processing
               next_component_name = next_step_config[:name]
-              
+
               # resolve the next component name
               service = @kube_dns.lookup(next_component_name)
             end
@@ -1177,7 +1177,6 @@ module KUBETWIN
 
       # gather information of how many pods are running for each label in each node per cluster
       bmap = {}
-      replication_penalties = 0
       @services.each do |k, s|
         current_spreading = []
         @cluster_repository.each do |_, c|
@@ -1193,14 +1192,16 @@ module KUBETWIN
           end
         end
 
-        #replication_penalties += (current_spreading.count { |x| x > 0 } - 1) * REPLICATION_PENALTY if current_spreading.count { |x| x > 0 } > 1
+        # replication_penalties += (current_spreading.count { |x| x > 0 } - 1) * REPLICATION_PENALTY if current_spreading.count { |x| x > 0 } > 1
         # this is to enforce availability. Distributed replicas at least in two different clusters
-        #replication_penalties += 5 if current_spreading.count(0) > 1
-        #@logger.info "Current spreading for #{k}: #{current_spreading} penalties: #{replication_penalties}"
+        # replication_penalties += 5 if current_spreading.count(0) > 1
+        # @logger.info "Current spreading for #{k}: #{current_spreading} penalties: #{replication_penalties}"
         # else
         #  replication_penalties -= 10
         # end
       end
+
+      puts "BMAP #{bmap}"
 
       cluster_utilization = []
       @cluster_repository.each do |_, c|
@@ -1217,26 +1218,30 @@ module KUBETWIN
         cluster_utilization << ((cpu_util + mem_util) / 2.0).round(2)
       end
 
-      resource_gini = (gini_coefficient(cluster_utilization)).round(2)
+      resource_gini = gini_coefficient(cluster_utilization).round(2)
       @logger.info "Cluster utilization (cpu+mem): #{cluster_utilization} Gini coefficient: #{resource_gini}"
 
       replica_spreads = bmap.values.map do |cluster_counts|
+        # @logger.info "Cluster counts for microservice: #{cluster_counts.values}"
         gini_coefficient(cluster_counts.values)
       end
 
+      @logger.info "Replica spreads for microservices: #{replica_spreads.map { |s| s.round(2) }}"
+
       # print the spreading and related gini for each microservice (debug purpose)
+      # just debugging here, the calculation is above.
       bmap.each do |ms, cluster_counts|
         ms_replica_spread_gini = gini_coefficient(cluster_counts.values).round(2)
         @logger.info "Replica spread for microservice #{ms}: #{cluster_counts.values} Gini coefficient: #{ms_replica_spread_gini}"
       end
-      
+
       replica_spreading = if replica_spreads.empty?
-                              0.0
-                            else
-                              (replica_spreads.sum / replica_spreads.length.to_f).round(2)
-                            end
+                            0.0
+                          else
+                            (replica_spreads.sum / replica_spreads.length.to_f).round(2)
+                          end
       @logger.info "Replica spread Gini (avg across microservices): #{replica_spreading}"
-      
+
       puts '============================================================================='
       # Produce txt and JSON file with the bmap information
       File.open('final_allocation.txt', 'w') do |f|
@@ -1247,31 +1252,12 @@ module KUBETWIN
         f.write(JSON.pretty_generate(bmap))
       end
 
-      # debug info here
-      # we want to minimize the cost, so we define fitness as the opposite of
-      # the sum of all costs incurred
-      # -costs.values.inject(0.0){|s,x| s += x }
-      # 99-th percentile ttr + closed_request +
-      # (- 0.99 )
-      # -stats.mean
-      # res = -per_workflow_and_customer_stats[1][1].longer_than[0.51] /
-      #    per_workflow_and_customer_stats[1][1].closed.to_f
-      # puts "Res: #{res}"
-      # res
-
-      # puts "Percentage of requests within ms"
-      # per_workflow_and_customer_stats[1][1].shorter_than.each_key do |t|
-      #  puts "#{(per_workflow_and_customer_stats[1][1].shorter_than[t] / per_workflow_and_customer_stats[1][1].closed.to_f) * 100}% #{t}s"
-      # end
-      # return 0
-      # return the fitness value
-      # normalize everything to the mean ttr value
       mean_ttr = stats.mean
-      #weighted_sum = mean_ttr + normalize_objective(replication_penalties, 0,
+      # weighted_sum = mean_ttr + normalize_objective(replication_penalties, 0,
       #                                              mean_ttr) + normalize_objective(saturation_penalties, 0, mean_ttr)
       weighted_sum = mean_ttr + normalize_objective(resource_gini, 0, mean_ttr) +
-                                normalize_objective(replica_spreading, 0, mean_ttr) +
-                                normalize_objective(saturation_penalties, 0, mean_ttr) 
+                     normalize_objective(replica_spreading, 0, mean_ttr) +
+                     normalize_objective(saturation_penalties, 0, mean_ttr)
 
       per_component_stats.each do |k, v|
         # misconfiguration from TOSCA
@@ -1332,6 +1318,7 @@ module KUBETWIN
     def gini_coefficient(values)
       n = values.length
       return 0.0 if n <= 1
+
       total = values.sum.to_f
       return 0.0 if total.zero?
 
