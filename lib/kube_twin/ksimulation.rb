@@ -309,7 +309,7 @@ module KUBETWIN
       #  end
       # ]
 
-      # Read policies from congfiguration
+      # Read policies from configuration
       policies = @configuration.policies || {}
       availability_policy = nil
 
@@ -422,6 +422,20 @@ module KUBETWIN
         @replica_sets[name] = ReplicaSet.new(name, conf[:selector],
                                              conf[:replicas], nil)
       end
+
+      replicas_by_microservice = Hash.new(0)
+      @replica_sets.each_value do |rs|
+        replicas_by_microservice[rs.selector] += rs.replicas.to_i
+      end
+
+      puts ""
+      puts ""
+      puts ' ====== Replica snapshot at simulation start ======'
+      replicas_by_microservice.sort.each do |selector, replicas|
+        puts "microservice: #{selector}, replicas: #{replicas}"
+      end
+      puts "total_replicas: #{replicas_by_microservice.values.inject(0) { |sum, value| sum + value }}"
+      puts '=================================================='
 
       # @logger.debug @replica_sets
 
@@ -1205,8 +1219,25 @@ module KUBETWIN
 
       resource_gini = (gini_coefficient(cluster_utilization)).round(2)
       @logger.info "Cluster utilization (cpu+mem): #{cluster_utilization} Gini coefficient: #{resource_gini}"
-        
-      puts "BMAP: #{bmap}"
+
+      replica_spreads = bmap.values.map do |cluster_counts|
+        gini_coefficient(cluster_counts.values)
+      end
+
+      # print the spreading and related gini for each microservice (debug purpose)
+      bmap.each do |ms, cluster_counts|
+        ms_replica_spread_gini = gini_coefficient(cluster_counts.values).round(2)
+        @logger.info "Replica spread for microservice #{ms}: #{cluster_counts.values} Gini coefficient: #{ms_replica_spread_gini}"
+      end
+      
+      replica_spreading = if replica_spreads.empty?
+                              0.0
+                            else
+                              (replica_spreads.sum / replica_spreads.length.to_f).round(2)
+                            end
+      @logger.info "Replica spread Gini (avg across microservices): #{replica_spreading}"
+      
+      puts '============================================================================='
       # Produce txt and JSON file with the bmap information
       File.open('final_allocation.txt', 'w') do |f|
         f.puts bmap
@@ -1239,7 +1270,9 @@ module KUBETWIN
       #weighted_sum = mean_ttr + normalize_objective(replication_penalties, 0,
       #                                              mean_ttr) + normalize_objective(saturation_penalties, 0, mean_ttr)
       weighted_sum = mean_ttr + normalize_objective(resource_gini, 0, mean_ttr) +
-                                normalize_objective(saturation_penalties, 0, mean_ttr)
+                                normalize_objective(replica_spreading, 0, mean_ttr) +
+                                normalize_objective(saturation_penalties, 0, mean_ttr) 
+
       per_component_stats.each do |k, v|
         # misconfiguration from TOSCA
         next if v.closed == 0
