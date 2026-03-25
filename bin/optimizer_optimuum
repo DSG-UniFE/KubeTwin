@@ -32,7 +32,8 @@ if File.expand_path(__FILE__) == File.expand_path($0)
 end
 
 # This one instead takes decision per replica, not per microservice type
-koptim = KUBETWIN::KOptimizerACM2.new(ARGV[0])
+#koptim = KUBETWIN::KOptimizerACM2.new(ARGV[0])
+koptim = KUBETWIN::KOptimizerMultiobjective.new(ARGV[0])
 koptim.optimize
 
 exit 0

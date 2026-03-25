@@ -1203,23 +1203,23 @@ module KUBETWIN
 
       puts "BMAP #{bmap}"
 
-      cluster_utilization = []
-      @cluster_repository.each do |_, c|
-        total_cpu = c.node_number * c.node_resources_cpu.to_f
-        total_mem = c.node_number * c.node_resources_memory.to_f
-        used_cpu = 0
-        used_mem = 0
-        c.nodes.values.each do |n|
-          used_cpu += n.requested_resources[:cpu]
-          used_mem += n.requested_resources[:memory]
-        end
-        cpu_util = total_cpu > 0 ? used_cpu / total_cpu : 0.0
-        mem_util = total_mem > 0 ? used_mem / total_mem : 0.0
-        cluster_utilization << ((cpu_util + mem_util) / 2.0).round(2)
-      end
+      #cluster_utilization = []
+      #@cluster_repository.each do |_, c|
+      #  total_cpu = c.node_number * c.node_resources_cpu.to_f
+      #  total_mem = c.node_number * c.node_resources_memory.to_f
+      #  used_cpu = 0
+      #  used_mem = 0
+      #  c.nodes.values.each do |n|
+      #    used_cpu += n.requested_resources[:cpu]
+      #    used_mem += n.requested_resources[:memory]
+      #  end
+      #  cpu_util = total_cpu > 0 ? used_cpu / total_cpu : 0.0
+      #  mem_util = total_mem > 0 ? used_mem / total_mem : 0.0
+      #  cluster_utilization << ((cpu_util + mem_util) / 2.0).round(2)
+      #end
 
-      resource_gini = gini_coefficient(cluster_utilization).round(2)
-      @logger.info "Cluster utilization (cpu+mem): #{cluster_utilization} Gini coefficient: #{resource_gini}"
+      #resource_gini = gini_coefficient(cluster_utilization).round(2)
+      #@logger.info "Cluster utilization (cpu+mem): #{cluster_utilization} Gini coefficient: #{resource_gini}"
 
       replica_spreads = bmap.values.map do |cluster_counts|
         normalized_gini(cluster_counts.values)
@@ -1254,7 +1254,7 @@ module KUBETWIN
       mean_ttr = stats.mean
       # weighted_sum = mean_ttr + normalize_objective(replication_penalties, 0,
       #                                              mean_ttr) + normalize_objective(saturation_penalties, 0, mean_ttr)
-      weighted_sum = mean_ttr + normalize_objective(resource_gini, 0, mean_ttr) +
+      weighted_sum = mean_ttr + #normalize_objective(resource_gini, 0, mean_ttr) +
                      normalize_objective(replica_spreading, 0, mean_ttr) +
                      normalize_objective(saturation_penalties, 0, mean_ttr)
 
@@ -1310,7 +1310,24 @@ module KUBETWIN
         weighted_sum += normalize_objective(availability_penalty, 0, mean_ttr)
       end
       puts "Weighted sum: #{weighted_sum}"
+      # Store multiobjective metrics for external access
+      @last_mean_ttr = mean_ttr
+      @last_replica_spreading = replica_spreading
       -weighted_sum
+    end
+
+    # Returns multiobjective metrics as a hash without weighted aggregation.
+    # This is used for NSGA-II and multiobjective optimization.
+    # Takes the same parameters as evaluate_allocation.
+    def evaluate_allocation_multiobjective(rss = nil, css = nil, mtt = nil, lm = nil, mapping = nil, replicas_mapping = nil)
+      # Call the full evaluation to compute all metrics
+      evaluate_allocation(rss, css, mtt, lm, mapping, replicas_mapping)
+
+      # Return the raw multiobjective metrics (stored by evaluate_allocation)
+      {
+        mean_ttr: @last_mean_ttr,
+        replica_spreading: @last_replica_spreading
+      }
     end
 
     # Compute gini coefficient
