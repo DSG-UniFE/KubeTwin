@@ -1241,6 +1241,20 @@ module KUBETWIN
                           end
       @logger.info "Replica spread normalized Gini (avg across microservices): #{replica_spreading}"
 
+      global_cluster_distribution = Array.new(@cluster_repository.length, 0)
+      bmap.each_value do |cluster_counts|
+        cluster_counts.values.each_with_index do |pods, idx|
+          global_cluster_distribution[idx] += pods
+        end
+      end
+
+      global_cluster_spreading = if global_cluster_distribution.empty?
+                                   0.0
+                                 else
+                                   normalized_gini(global_cluster_distribution).round(2)
+                                 end
+      @logger.info "Global cluster spreading normalized Gini: #{global_cluster_spreading} distribution: #{global_cluster_distribution}"
+
       puts '============================================================================='
       # Produce txt and JSON file with the bmap information
       File.open('final_allocation.txt', 'w') do |f|
@@ -1313,6 +1327,8 @@ module KUBETWIN
       # Store multiobjective metrics for external access
       @last_mean_ttr = mean_ttr
       @last_replica_spreading = replica_spreading
+      @last_global_cluster_spreading = global_cluster_spreading
+      @last_bmap = Marshal.load(Marshal.dump(bmap)) # Deep copy of bmap for external access
       -weighted_sum
     end
 
@@ -1326,7 +1342,9 @@ module KUBETWIN
       # Return the raw multiobjective metrics (stored by evaluate_allocation)
       {
         mean_ttr: @last_mean_ttr,
-        replica_spreading: @last_replica_spreading
+        replica_spreading: @last_replica_spreading,
+        global_cluster_spreading: @last_global_cluster_spreading,
+        bmap: @last_bmap
       }
     end
 
@@ -1361,6 +1379,14 @@ module KUBETWIN
       gini_coefficient(optimal)
     end
 
+    # Compute the theoretical maximum Gini coefficient for r items distributed
+    # across c bins, which is when all items are in one bin and the rest are empty.
+    def max_gini_coefficient(r, c)
+      return 0.0 if c <= 1 || r <= 0
+      # One bin has all items, the rest are empty
+      gini_coefficient([r] + Array.new(c - 1, 0))
+    end
+
     # Gini normalized by its theoretical minimum so that:
     #   0.0 = best possible spreading for the given (replicas, clusters)
     #   1.0 = worst possible spreading
@@ -1370,9 +1396,11 @@ module KUBETWIN
       r = values.sum
       c = values.length
       g_min = min_gini_coefficient(r, c)
-      return 0.0 if (1.0 - g_min).abs < 1e-9 # all items in one bin is the only option
+      g_max = max_gini_coefficient(r, c)
 
-      (raw - g_min) / (1.0 - g_min)
+      return 0.0 if (g_max - g_min).abs < 1e-9
+
+      (raw - g_min) / (g_max - g_min)
     end
 
     def normalize_objective(value, min_obj, max_obj)

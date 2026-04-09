@@ -3,6 +3,7 @@
 require 'mhl'
 require 'logger'
 require 'csv'
+require 'json'
 
 module KUBETWIN
 	class KOptimizerMultiobjective
@@ -73,8 +74,8 @@ module KUBETWIN
 				# Retrieve both objectives directly from simulation
 				metrics = sim.evaluate_allocation_multiobjective(new_rss, nil, nil, nil, nil, replicas_mapping)
 
-				# Return both objectives: mean TTR and normalized replica spreading (both minimized)
-				[metrics[:mean_ttr], metrics[:replica_spreading]]
+				# Return objectives: mean TTR, per-microservice spreading, and global cluster spreading (all minimized)
+				[metrics[:mean_ttr], metrics[:replica_spreading], metrics[:global_cluster_spreading]]
 			end
 
 			# Fixed-size vector: n_ms replica counts + n_ms * MAX_REPLICAS cluster assignments
@@ -93,6 +94,7 @@ module KUBETWIN
 			solver = MHL::NSGA2Solver.new(solver_conf)
 			pareto_front = solver.solve(to_optimize, { concurrent: false })
 			csv_path = export_pareto_front_csv(pareto_front)
+			csv_path_json = export_pareto_solution_allocations_json(pareto_front)
 
 			@logger.info("NSGA-II completed with Pareto front size: #{pareto_front.size}")
 			@logger.info("Pareto front exported to #{csv_path}")
@@ -106,7 +108,7 @@ module KUBETWIN
 			file_path = "pareto_front_#{timestamp}.csv"
 
 			max_variables = pareto_front.map { |entry| entry[:variables].length }.max || 0
-			headers = ['solution_id', 'mean_ttr', 'replica_spreading']
+			headers = ['solution_id', 'mean_ttr', 'replica_spreading', 'global_cluster_spreading']
 			headers += (0...max_variables).map { |i| "var_#{i}" }
 
 			CSV.open(file_path, 'w') do |csv|
@@ -114,14 +116,51 @@ module KUBETWIN
 				pareto_front.each_with_index do |entry, index|
 					objectives = entry[:objectives] || []
 					variables = entry[:variables] || []
-					row = [index, objectives[0], objectives[1]]
-					#row += variables
-					#row += [nil] * (max_variables - variables.length)
+					row = [index, objectives[0], objectives[1], objectives[2]]
+					row += variables
+					row += [nil] * (max_variables - variables.length)
 					csv << row
 				end
 			end
 
 			file_path
 		end
+
+		def export_pareto_solution_allocations_json(pareto_front)
+        	timestamp = Time.now.strftime('%Y%m%d%H%M%S')
+        	file_path = "final_allocation_multi_objective_#{timestamp}.json"
+
+        	allocations = pareto_front.each_with_index.map do |entry, index|
+            	component_allocation = (entry[:variables] || []).map(&:to_i)
+
+            	new_rss, = encode_replicas_set(component_allocation[0...@n_ms])
+            	replicas_mapping = decode_cluster_mapping(component_allocation)
+
+            	sim = KUBETWIN::KSimulation.new(
+                	configuration: @sim_conf,
+                	evaluator: KUBETWIN::Evaluator.new(@sim_conf)
+           	 	)
+
+            	metrics = sim.evaluate_allocation_multiobjective(
+                	new_rss, nil, nil, nil, nil, replicas_mapping
+            	)
+
+            	{
+                	solution_id: index,
+                	objectives: {
+                    	mean_ttr: (entry[:objectives] || [])[0],
+	                    replica_spreading: (entry[:objectives] || [])[1],
+	                    global_cluster_spreading: (entry[:objectives] || [])[2]
+                	},
+                	microservice_allocation: metrics[:bmap]
+            	}
+        	end
+
+        	File.open(file_path, 'w') do |f|
+            	f.write(JSON.pretty_generate(allocations))
+        	end
+
+        	file_path
+    	end
 	end
 end
