@@ -50,6 +50,13 @@ module KUBETWIN
       # Dedicated RNG for sampling — immune to srand() calls inside the simulator
       @sampling_rng = Random.new
 
+      # Microservice names in vector order (derived from replica_sets ordering)
+      @ms_names = @rss.map { |_k, v| v[:selector] }
+      @cluster_names = @cluster_repository.keys.map(&:to_s)
+
+      # Human-readable label for each dimension of the search vector
+      @feature_labels = build_feature_labels
+
       rps = ENV['RPS'] ? ENV['RPS'].to_i : 10
       @logger.info "Setting RPS to #{rps}"
       @start_time = @sim_conf.start_time
@@ -135,7 +142,7 @@ module KUBETWIN
     # ─── Surrogate model ───
 
     # Train a RandomForest regressor on the collected samples.
-    # Returns the trained Rumale model.
+    # Returns [model, r2] — the trained Rumale model and the training R².
     def train_surrogate(x_samples, y_samples)
       @logger.info "Surrogate: training RandomForest on #{x_samples.length} samples " \
                     "(#{@n_dims} features)..."
@@ -165,7 +172,7 @@ module KUBETWIN
       @logger.info "Surrogate: training R² = #{r2.round(4)}"
       @ga_logger.info "Surrogate model R² on training data: #{r2.round(4)}"
 
-      model
+      [model, r2]
     end
 
     # ─── PSO on surrogate ───
@@ -242,7 +249,10 @@ module KUBETWIN
       x_samples, y_samples = sample_initial_points(n_initial_samples)
 
       # Phase 2: Train surrogate
-      model = train_surrogate(x_samples, y_samples)
+      model, training_r2 = train_surrogate(x_samples, y_samples)
+
+      # Persist surrogate model + training data for offline analysis
+      save_surrogate_bundle(model, x_samples, y_samples, training_r2)
 
       # Phase 3: PSO on surrogate
       pso_result = run_pso_on_surrogate(model,
@@ -277,6 +287,48 @@ module KUBETWIN
     end
 
     private
+
+    # Build a human-readable label for each dimension of the search vector.
+    #
+    # Vector layout:
+    #   [replicas_ms0, replicas_ms1, ..., replicas_msN,
+    #    cluster_ms0_r0, ..., cluster_ms0_r(MAX-1),
+    #    cluster_ms1_r0, ..., cluster_ms1_r(MAX-1), ...]
+    def build_feature_labels
+      labels = @ms_names.map { |name| "replicas_#{name}" }
+      @ms_names.each do |name|
+        @max_replicas.times { |r| labels << "cluster_#{name}_r#{r}" }
+      end
+      labels
+    end
+
+    # Persist the trained surrogate model, training data, and metadata so that
+    # offline analysis (feature importance, metrics, etc.) can be performed
+    # without re-running the expensive sampling phase.
+    def save_surrogate_bundle(model, x_samples, y_samples, training_r2)
+      timestamp = Time.now.strftime('%Y%m%d%H%M%S')
+      path = "surrogate_bundle_#{timestamp}.bin"
+
+      bundle = {
+        model: model,
+        x_samples: x_samples,
+        y_samples: y_samples,
+        feature_labels: @feature_labels,
+        ms_names: @ms_names,
+        cluster_names: @cluster_names,
+        n_ms: @n_ms,
+        n_clusters: @n_clusters,
+        max_replicas: @max_replicas,
+        n_dims: @n_dims,
+        timestamp: timestamp,
+        training_r2: training_r2
+      }
+
+      File.open(path, 'wb') { |f| f.write(Marshal.dump(bundle)) }
+      @logger.info "Surrogate bundle saved to #{path}"
+      @ga_logger.info "Surrogate bundle saved to #{path}"
+      path
+    end
 
     # Generate n_candidates vectors near the given vector by small random perturbations.
     # This gives diversity in the validation phase.

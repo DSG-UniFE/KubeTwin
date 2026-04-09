@@ -1,0 +1,38 @@
+#!/usr/bin/env ruby
+
+begin
+  require 'kube_twin'
+  require 'mhl'
+  require 'logger'
+rescue LoadError
+  require 'rubygems'
+  require 'kube_twin'
+  require 'mhl'
+end
+
+def do_abort(message)
+  abort <<-EOS.gsub(/^\s+\|/, '')
+      |#{message}
+      |
+      |Usage:
+      |    #{File.basename(__FILE__)} simulator_config_file
+      |
+  EOS
+end
+
+if File.expand_path(__FILE__) == File.expand_path($0)
+  case ARGV.size
+  when 0
+    do_abort('Missing simulator configuration files!')
+  end
+
+  do_abort('Invalid simulator configuration file!') unless File.exist? ARGV[0]
+end
+
+# Two-phase RF surrogate optimizer with feature selection:
+# trains a full RF to identify important features, then retrains
+# a reduced RF on only those features for better generalization.
+koptim = KUBETWIN::KOptimizerACM2SurrogateRF2.new(ARGV[0])
+koptim.optimize
+
+exit 0

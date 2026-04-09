@@ -15,9 +15,11 @@ require_relative './latency_manager'
 require_relative './kube_dns'
 require_relative './kube_scheduler'
 require_relative './node'
+require_relative './mdn'
 
 require 'json'
 require 'logger'
+require 'torch-rb'
 
 module KUBETWIN
   class KSimulation
@@ -248,10 +250,17 @@ module KUBETWIN
       @microservice_types.each do |k, v|
         next if v[:mdn_file].nil?
 
-        model = keras.models.load_model(v[:mdn_file])
-        # @logger.debug "model: #{model}"
+        model = KUBETWIN::MDN.new(
+          weights_path: v[:mdn_file],
+          scaler_path: v[:mdn_file]
+        )
         @microservice_mdn[k] = { model: model, st: {} }
-        # @logger.debug "v: #{@microservice_mdn}"
+      end
+
+      def retrieve_mdn_model(service_name, _rps)
+        return nil unless @microservice_mdn[service_name]
+
+        @microservice_mdn[service_name][:model]
       end
 
       # @logger.debug "init mdns #{@microservice_mdn}"
@@ -1203,8 +1212,8 @@ module KUBETWIN
 
       puts "BMAP #{bmap}"
 
-      #cluster_utilization = []
-      #@cluster_repository.each do |_, c|
+      # cluster_utilization = []
+      # @cluster_repository.each do |_, c|
       #  total_cpu = c.node_number * c.node_resources_cpu.to_f
       #  total_mem = c.node_number * c.node_resources_memory.to_f
       #  used_cpu = 0
@@ -1216,10 +1225,10 @@ module KUBETWIN
       #  cpu_util = total_cpu > 0 ? used_cpu / total_cpu : 0.0
       #  mem_util = total_mem > 0 ? used_mem / total_mem : 0.0
       #  cluster_utilization << ((cpu_util + mem_util) / 2.0).round(2)
-      #end
+      # end
 
-      #resource_gini = gini_coefficient(cluster_utilization).round(2)
-      #@logger.info "Cluster utilization (cpu+mem): #{cluster_utilization} Gini coefficient: #{resource_gini}"
+      # resource_gini = gini_coefficient(cluster_utilization).round(2)
+      # @logger.info "Cluster utilization (cpu+mem): #{cluster_utilization} Gini coefficient: #{resource_gini}"
 
       replica_spreads = bmap.values.map do |cluster_counts|
         normalized_gini(cluster_counts.values)
@@ -1268,7 +1277,7 @@ module KUBETWIN
       mean_ttr = stats.mean
       # weighted_sum = mean_ttr + normalize_objective(replication_penalties, 0,
       #                                              mean_ttr) + normalize_objective(saturation_penalties, 0, mean_ttr)
-      weighted_sum = mean_ttr + #normalize_objective(resource_gini, 0, mean_ttr) +
+      weighted_sum = mean_ttr + # normalize_objective(resource_gini, 0, mean_ttr) +
                      normalize_objective(replica_spreading, 0, mean_ttr) +
                      normalize_objective(saturation_penalties, 0, mean_ttr)
 
@@ -1335,7 +1344,8 @@ module KUBETWIN
     # Returns multiobjective metrics as a hash without weighted aggregation.
     # This is used for NSGA-II and multiobjective optimization.
     # Takes the same parameters as evaluate_allocation.
-    def evaluate_allocation_multiobjective(rss = nil, css = nil, mtt = nil, lm = nil, mapping = nil, replicas_mapping = nil)
+    def evaluate_allocation_multiobjective(rss = nil, css = nil, mtt = nil, lm = nil, mapping = nil,
+                                           replicas_mapping = nil)
       # Call the full evaluation to compute all metrics
       evaluate_allocation(rss, css, mtt, lm, mapping, replicas_mapping)
 
@@ -1383,6 +1393,7 @@ module KUBETWIN
     # across c bins, which is when all items are in one bin and the rest are empty.
     def max_gini_coefficient(r, c)
       return 0.0 if c <= 1 || r <= 0
+
       # One bin has all items, the rest are empty
       gini_coefficient([r] + Array.new(c - 1, 0))
     end

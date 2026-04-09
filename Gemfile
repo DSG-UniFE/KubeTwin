@@ -6,4 +6,6 @@ gemspec
 gem 'erv', git: 'https://github.com/DSG-UNIFE/ruby-erv'
 gem 'mhl', git: 'https://github.com/DSG-UniFE/ruby-mhl'
 
+gem 'torch-rb'
+
 gem 'rumale-ensemble'
