@@ -71,6 +71,7 @@ module KUBETWIN
       @rps = opts[:img_info][:rps].to_i
       @service_time = ERV::RandomVariable.new(st_distribution) if @path.nil?
       @arrival_times = []
+      @arrival_window_head = 0
       @max_concurrent_processes_used = 0
     end
 
@@ -79,11 +80,30 @@ module KUBETWIN
 
       window = 10.0 # 10 second window
       now = @arrival_times.last || 0
-      recent = @arrival_times.select { |t| t > now - window }
-      return @rps if recent.size < 2
+      cutoff = now - window
+
+      @arrival_window_head += 1 while @arrival_window_head < @arrival_times.length &&
+                                    @arrival_times[@arrival_window_head] <= cutoff
+
+      recent_count = @arrival_times.length - @arrival_window_head
+      return @rps if recent_count < 2
 
       # RPS = number of arrivals in window / window duration
-      recent.size / window
+      recent_count / window
+    end
+
+    def trim_old_arrivals(time)
+      keep_cutoff = time - 60.0
+      trim_count = 0
+
+      while trim_count < @arrival_times.length && @arrival_times[trim_count] < keep_cutoff
+        trim_count += 1
+      end
+
+      return if trim_count < 1024
+
+      @arrival_times = @arrival_times[trim_count..] || []
+      @arrival_window_head = [@arrival_window_head - trim_count, 0].max
     end
 
     def utilization
@@ -126,8 +146,8 @@ module KUBETWIN
       # Track arrival time for RPS calculation
       @arrival_times << time
 
-      # Keep only last 60 seconds of arrivals to avoid memory growth
-      @arrival_times.shift while @arrival_times.any? && @arrival_times.first < time - 60
+      # Periodically compact the arrival buffer to avoid unbounded growth.
+      trim_old_arrivals(time)
 
       # Determine RPS: use dynamic RPS if available, otherwise fallback to static
       rps = if @path.nil?
@@ -136,15 +156,18 @@ module KUBETWIN
               # Use dynamic RPS from traffic if we have enough data, else use static
               computed_rps = current_rps
               computed_rps > 0 ? computed_rps.to_i : @rps
+              # computed_rps > 120 ? 120 : computed_rps.to_i # cap RPS to avoid extreme values
             end
 
       @last_request_time = time
       # Retrieve MDN model with computed RPS if so
       if @path.nil?
+        # warn "Service time model for MDN: #{@service_time}"
         while (st = @service_time.sample) <= 1E-6; end
       else
+        # warn "Using MDN to sample processing time for RPS: #{rps}"
         @service_time = sim.retrieve_mdn_model(name, rps)
-        st = @service_time.forward(rps)
+        st = [1E-6, @service_time.sample].max
       end
 
       ri = RequestInfo.new(r, st, time)

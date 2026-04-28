@@ -257,10 +257,22 @@ module KUBETWIN
         @microservice_mdn[k] = { model: model, st: {} }
       end
 
-      def retrieve_mdn_model(service_name, _rps)
+      def retrieve_mdn_model(service_name, rps)
         return nil unless @microservice_mdn[service_name]
 
-        @microservice_mdn[service_name][:model]
+        # warn "Called retrieve_mdn_model for service #{service_name} with RPS: #{rps}"
+        model = @microservice_mdn[service_name][:model]
+
+        if @microservice_mdn[service_name][:st][rps].nil?
+          params = model.get_mixture_params_for_helper(rps)
+          components = ERV::GaussianMixtureHelper.RawParametersToMixtureArgsFixedWeights(*params)
+          mixture_hash = { distribution: :mixture, args: components }
+          @microservice_mdn[service_name][:st][rps] = ERV::RandomVariable.new(mixture_hash)
+        end
+
+        # warn "MDN: loaded model for service #{service_name}: #{@microservice_mdn[service_name][:st]&.length}"
+
+        @microservice_mdn[service_name][:st][rps]
       end
 
       # @logger.debug "init mdns #{@microservice_mdn}"
