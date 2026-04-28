@@ -7,7 +7,7 @@ require_relative './service'
 require_relative './event'
 require_relative './generator'
 require_relative './request_generator'
-require_relative './sorted_array'
+require_relative './priority_queue'
 require_relative './statistics'
 require_relative './component_statistics'
 require_relative './pod'
@@ -564,7 +564,7 @@ module KUBETWIN
 
       # create event queue
       # this stores all simulation events
-      @event_queue = SortedArray.new
+      @event_queue = PriorityQueue.new
 
       # puts "========== Simulation Start =========="
       # generate first request
