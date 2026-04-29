@@ -72,6 +72,7 @@ module KUBETWIN
       @service_time = ERV::RandomVariable.new(st_distribution) if @path.nil?
       @arrival_times = []
       @arrival_window_head = 0
+      @arrival_retention_head = 0
       @max_concurrent_processes_used = 0
     end
 
@@ -94,16 +95,16 @@ module KUBETWIN
 
     def trim_old_arrivals(time)
       keep_cutoff = time - 60.0
-      trim_count = 0
 
-      while trim_count < @arrival_times.length && @arrival_times[trim_count] < keep_cutoff
-        trim_count += 1
-      end
+      @arrival_retention_head += 1 while @arrival_retention_head < @arrival_times.length &&
+                                         @arrival_times[@arrival_retention_head] < keep_cutoff
 
-      return if trim_count < 1024
+      return if @arrival_retention_head < 1024
 
+      trim_count = @arrival_retention_head
       @arrival_times = @arrival_times[trim_count..] || []
       @arrival_window_head = [@arrival_window_head - trim_count, 0].max
+      @arrival_retention_head = 0
     end
 
     def utilization
