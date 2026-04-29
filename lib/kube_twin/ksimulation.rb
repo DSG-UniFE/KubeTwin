@@ -257,24 +257,6 @@ module KUBETWIN
         @microservice_mdn[k] = { model: model, st: {} }
       end
 
-      def retrieve_mdn_model(service_name, rps)
-        return nil unless @microservice_mdn[service_name]
-
-        # warn "Called retrieve_mdn_model for service #{service_name} with RPS: #{rps}"
-        model = @microservice_mdn[service_name][:model]
-
-        if @microservice_mdn[service_name][:st][rps].nil?
-          params = model.get_mixture_params_for_helper(rps)
-          components = ERV::GaussianMixtureHelper.RawParametersToMixtureArgsFixedWeights(*params)
-          mixture_hash = { distribution: :mixture, args: components }
-          @microservice_mdn[service_name][:st][rps] = ERV::RandomVariable.new(mixture_hash)
-        end
-
-        # warn "MDN: loaded model for service #{service_name}: #{@microservice_mdn[service_name][:st]&.length}"
-
-        @microservice_mdn[service_name][:st][rps]
-      end
-
       # @logger.debug "init mdns #{@microservice_mdn}"
 
       # information regarding customers
@@ -1351,6 +1333,24 @@ module KUBETWIN
       @last_global_cluster_spreading = global_cluster_spreading
       @last_bmap = Marshal.load(Marshal.dump(bmap)) # Deep copy of bmap for external access
       -weighted_sum
+    end
+
+    def retrieve_mdn_model(service_name, rps)
+      return nil unless @microservice_mdn[service_name]
+
+      # warn "Called retrieve_mdn_model for service #{service_name} with RPS: #{rps}"
+      model = @microservice_mdn[service_name][:model]
+
+      if @microservice_mdn[service_name][:st][rps].nil?
+        params = model.get_mixture_params_for_helper(rps)
+        components = ERV::GaussianMixtureHelper.RawParametersToMixtureArgsFixedWeights(*params)
+        mixture_hash = { distribution: :mixture, args: components }
+        @microservice_mdn[service_name][:st][rps] = ERV::RandomVariable.new(mixture_hash)
+      end
+
+      # warn "MDN: loaded model for service #{service_name}: #{@microservice_mdn[service_name][:st]&.length}"
+
+      @microservice_mdn[service_name][:st][rps]
     end
 
     # Returns multiobjective metrics as a hash without weighted aggregation.
