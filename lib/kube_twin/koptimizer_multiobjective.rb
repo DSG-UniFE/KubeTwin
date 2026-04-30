@@ -84,7 +84,7 @@ module KUBETWIN
 				population_size: population_size || 40,
 				num_objectives: 2,
 				constraints: {
-					min: [1] * @n_ms + [0] * (@n_ms * @max_replicas),
+					min: [@n_clusters] * @n_ms + [0] * (@n_ms * @max_replicas),
 					max: [@max_replicas] * @n_ms + [@n_clusters] * (@n_ms * @max_replicas)
 				},
 				logger: @ga_logger,
