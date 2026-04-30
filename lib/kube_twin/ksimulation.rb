@@ -1364,8 +1364,9 @@ module KUBETWIN
       # Return the raw multiobjective metrics (stored by evaluate_allocation)
       {
         mean_ttr: @last_mean_ttr,
-        replica_spreading: @last_replica_spreading,
-        global_cluster_spreading: @last_global_cluster_spreading,
+        #replica_spreading: @last_replica_spreading,
+        #global_cluster_spreading: @last_global_cluster_spreading,
+        overall_spreading: @last_replica_spreading + @last_global_cluster_spreading, # Example of combining spreading metrics
         bmap: @last_bmap
       }
     end

@@ -75,7 +75,8 @@ module KUBETWIN
 				metrics = sim.evaluate_allocation_multiobjective(new_rss, nil, nil, nil, nil, replicas_mapping)
 
 				# Return objectives: mean TTR, per-microservice spreading, and global cluster spreading (all minimized)
-				[metrics[:mean_ttr], metrics[:replica_spreading], metrics[:global_cluster_spreading]]
+				#[metrics[:mean_ttr], metrics[:replica_spreading], metrics[:global_cluster_spreading]]
+				[metrics[:mean_ttr], metrics[:overall_spreading]]
 			end
 
 			# Fixed-size vector: n_ms replica counts + n_ms * MAX_REPLICAS cluster assignments
@@ -108,7 +109,7 @@ module KUBETWIN
 			file_path = "pareto_front_#{timestamp}.csv"
 
 			max_variables = pareto_front.map { |entry| entry[:variables].length }.max || 0
-			headers = ['solution_id', 'mean_ttr', 'replica_spreading', 'global_cluster_spreading']
+			headers = ['solution_id', 'mean_ttr', 'overall_spreading']
 			headers += (0...max_variables).map { |i| "var_#{i}" }
 
 			CSV.open(file_path, 'w') do |csv|
@@ -116,7 +117,7 @@ module KUBETWIN
 				pareto_front.each_with_index do |entry, index|
 					objectives = entry[:objectives] || []
 					variables = entry[:variables] || []
-					row = [index, objectives[0], objectives[1], objectives[2]]
+					row = [index, objectives[0], objectives[1]]
 					row += variables
 					row += [nil] * (max_variables - variables.length)
 					csv << row
@@ -149,8 +150,9 @@ module KUBETWIN
                 	solution_id: index,
                 	objectives: {
                     	mean_ttr: (entry[:objectives] || [])[0],
-	                    replica_spreading: (entry[:objectives] || [])[1],
-	                    global_cluster_spreading: (entry[:objectives] || [])[2]
+	                    #replica_spreading: (entry[:objectives] || [])[1],
+	                    #global_cluster_spreading: (entry[:objectives] || [])[2]
+						overall_spreading: (entry[:objectives] || [])[1]
                 	},
                 	microservice_allocation: metrics[:bmap]
             	}
