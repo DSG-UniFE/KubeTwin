@@ -56,9 +56,76 @@ module KUBETWIN
     def get_workflow_components(workflow)
       components = []
       workflow[:component_sequence].each do |cs|
-        components << cs[:name]
+        if cs[:type] == 'parallel'
+          cs[:branches].each do |branch|
+            branch_sequence = branch[:component_sequence] || [{ name: branch[:name] }]
+            components.concat(get_workflow_components(component_sequence: branch_sequence))
+          end
+        else
+          components << cs[:name]
+          components.concat(get_workflow_components(component_sequence: cs[:calls])) if cs[:calls]
+        end
       end
       components
+    end
+
+    def request_component_sequence(req, workflow)
+      req.component_sequence || workflow[:component_sequence]
+    end
+
+    def request_step_key(req, component_sequence)
+      [component_sequence.object_id, req.worked_step]
+    end
+
+    def schedule_request_forward(req, component_name, source_cluster, base_time, latency_manager, waiting_container: nil)
+      service = @kube_dns.lookup(component_name)
+      return false if service.nil?
+
+      pod = service.get_pod(component_name)
+      return false if pod.nil?
+
+      forwarding_time = base_time
+      cluster_id = pod.node.cluster_id
+      cluster = @cluster_repository[cluster_id]
+      transmission_time = latency_manager.sample_latency_between(source_cluster.location_id, cluster.location_id)
+      req.update_transfer_time(transmission_time)
+      forwarding_time += transmission_time
+      req.data_center_id = cluster.cluster_id
+      pod.container.to_free(waiting_container) if waiting_container && !waiting_container.wait_for.empty?
+      @forwarded += 1
+      new_event(Event::ET_REQUEST_FORWARDING, req, forwarding_time, pod)
+      true
+    end
+
+    def dispatch_nested_call(parent_req, call, current_time, latency_manager)
+      parent_container = parent_req.nested_waiting_container
+      return false if parent_container.nil?
+
+      child_req = parent_req.clone_for_nested_call(call)
+      child_sequence = child_req.component_sequence
+      component_name = child_sequence[child_req.next_step][:name]
+      source_cluster = @cluster_repository[parent_container.instance_variable_get(:@node).cluster_id]
+      parent_req.data_center_id = source_cluster.cluster_id
+
+      schedule_request_forward(child_req, component_name, source_cluster, current_time, latency_manager)
+    end
+
+    def nested_return_latency(parent_req, child_req, latency_manager)
+      parent_container = parent_req.nested_waiting_container
+      return [0.0, nil] if parent_container.nil?
+
+      parent_cluster = @cluster_repository[parent_container.instance_variable_get(:@node).cluster_id]
+      child_cluster = @cluster_repository[child_req.data_center_id]
+      latency = latency_manager.sample_latency_between(child_cluster.location_id, parent_cluster.location_id)
+      parent_req.update_transfer_time(latency)
+      parent_req.data_center_id = parent_cluster.cluster_id
+      [latency, parent_cluster]
+    end
+
+    def release_container_after_wait(container, time)
+      container.request_finished(self, time) if container.wait_for.empty?
+      old_container = container.free_linked_container
+      old_container.request_finished(self, time) if old_container
     end
 
     ## just an helper method to create the cluster configuration
@@ -732,15 +799,9 @@ module KUBETWIN
           pod = e.destination
 
           # Check if this is a parallel branch request
-          branch_name = req.instance_variable_get(:@branch_name)
-          if branch_name
-            # For parallel branch requests, use the branch name directly
-            component_name = branch_name
-          else
-            # For regular requests, use the workflow sequence
-            workflow = workflow_type_repository[req.workflow_type_id]
-            component_name = workflow[:component_sequence][req.next_step][:name]
-          end
+          workflow = workflow_type_repository[req.workflow_type_id]
+          component_sequence = request_component_sequence(req, workflow)
+          component_name = component_sequence[req.next_step][:name]
 
           # increase count of received requests in hpa_component_stats
           hpa_component_stats[component_name].request_received
@@ -757,53 +818,30 @@ module KUBETWIN
           container = e.destination
           @processed += 1
 
-          # unless next_ms
-          container.request_finished(self, e.time) if container.wait_for.empty?
-
-          # tell the old container that it can start processing another request
-          # if microservice should wait for one other
-          oc = container.free_linked_container
-          oc.request_finished(self, e.time) if oc
-
-          # Handle parallel branch completion
-          if req.instance_variable_get(:@parent_request)
-            parent_req = req.instance_variable_get(:@parent_request)
-            branch_name = req.instance_variable_get(:@branch_name)
-
-            # Register branch completion statistics
-            if branch_name && hpa_component_stats[branch_name] && per_component_stats[branch_name]
-              hpa_component_stats[branch_name].record_request(req, now)
-              per_component_stats[branch_name].record_request(req, now)
-            end
-
-            if parent_req && parent_req.parallel_context
-              parent_req.complete_branch(branch_name, req, @current_time)
-              parent_req.parallel_context[:branch_count] -= 1
-
-              # Check if all branches are completed
-              if parent_req.parallel_context[:branch_count] <= 0
-                # All parallel branches completed, continue with parent request
-                parent_req.instance_variable_set(:@parallel_context, nil)
-                new_event(Event::ET_WORKFLOW_STEP_COMPLETED, parent_req, e.time, container)
-              end
-            end
-            # Skip further processing for branch requests
-            next
-          end
-
           current_cluster = @cluster_repository[req.data_center_id]
           # find the next workflow
           workflow = workflow_type_repository[req.workflow_type_id]
+          component_sequence = request_component_sequence(req, workflow)
           chain = @chain_repository[req.workflow_type_id] || nil
 
           # Get current component name safely - handle parallel components
-          current_component_step = workflow[:component_sequence][req.worked_step]
+          current_component_step = component_sequence[req.worked_step]
           current_component_name = if current_component_step[:type] == 'parallel'
-                                     # For parallel components, we don't track them in stats since they're containers
-                                     nil
-                                   else
-                                     current_component_step[:name]
-                                   end
+                                      # For parallel components, we don't track them in stats since they're containers
+                                      nil
+                                    else
+                                      current_component_step[:name]
+                                    end
+
+          if current_component_step[:calls] && !req.calls_completed?(request_step_key(req, component_sequence))
+            req.start_nested_calls(current_component_step[:calls], container, request_step_key(req, component_sequence))
+            next_call = req.next_nested_call
+            raise "Cannot dispatch nested call for #{req.rid}" unless dispatch_nested_call(req, next_call, e.time, latency_manager)
+
+            next
+          end
+
+          release_container_after_wait(container, e.time)
           # puts "current_component_name #{current_component_name}"
 
           if !chain.nil? && !current_component_name.nil? && chain[:component_sequence][0][:name] == current_component_name
@@ -820,7 +858,7 @@ module KUBETWIN
           end
 
           # Skip processing if request is waiting for parallel branches
-          return if req.parallel_context && req.parallel_context[:branch_count] > 0
+          next if req.parallel_context && req.parallel_context[:branch_count] > 0
 
           # register step completion only for regular components (not parallel containers)
           if current_component_name
@@ -831,9 +869,9 @@ module KUBETWIN
           req.ttr_step(@current_time)
 
           # check if there are other steps left to complete the workflow
-          if req.next_step < workflow[:component_sequence].size
+          if req.next_step < component_sequence.size
 
-            next_step_config = workflow[:component_sequence][req.next_step]
+            next_step_config = component_sequence[req.next_step]
 
             # Handle parallel execution
             if next_step_config[:type] == 'parallel'
@@ -843,29 +881,15 @@ module KUBETWIN
 
               # Create separate request flows for each branch
               branches.each do |branch|
-                branch_req = req.clone_for_parallel_branch(branch[:name])
+                branch_req = req.clone_for_parallel_branch(branch)
 
                 # Each branch starts with the branch component
-                service = @kube_dns.lookup(branch[:name])
-                next if service.nil? # Skip if service not found
-
-                pod = service.get_pod(branch[:name])
-                next if pod.nil? # Skip if no pod available
-
-                # Schedule the branch request
-                forwarding_time = e.time
-                cluster_id = pod.node.cluster_id
-                cluster = @cluster_repository[cluster_id]
-
-                transmission_time =
-                  latency_manager.sample_latency_between(current_cluster.location_id, cluster.location_id)
-                branch_req.update_transfer_time(transmission_time)
-                forwarding_time += transmission_time
-
-                branch_req.data_center_id = cluster.cluster_id
-
-                # Create forwarding event for each branch
-                new_event(Event::ET_REQUEST_FORWARDING, branch_req, forwarding_time, pod)
+                branch_component_name = branch_req.component_sequence[branch_req.next_step][:name]
+                raise "Cannot dispatch parallel branch #{branch_component_name}" unless schedule_request_forward(branch_req,
+                                                                                                                 branch_component_name,
+                                                                                                                 current_cluster,
+                                                                                                                 e.time,
+                                                                                                                 latency_manager)
               end
 
               # Move to next step after parallel block (use step_completed)
@@ -876,45 +900,48 @@ module KUBETWIN
             else
               # Regular component processing
               next_component_name = next_step_config[:name]
-
-              # resolve the next component name
-              service = @kube_dns.lookup(next_component_name)
             end
-
-            # e.time should be equivalent to @current_time
-            forwarding_time = e.time
-
-            # get a pod from the one available
-            pod = service.get_pod(next_component_name) # same as selector
-
-            # we need to get a reference to the cluster where the pod is running
-            cluster_id = pod.node.cluster_id
-            cluster = @cluster_repository[cluster_id]
-
-            transmission_time =
-              latency_manager.sample_latency_between(current_cluster.location_id, cluster.location_id)
-            req.update_transfer_time(transmission_time)
-            forwarding_time += transmission_time
-
-            # update request's current data_center_id / cluster_id
-            req.data_center_id = cluster.cluster_id
-
-            # make sure we actually found a pod
-            unless pod
-              raise 'Cannot find a Pod running a component of type ' +
-                    "#{next_component_name} in any cluster!"
-            end
-
-            # schedule request forwarding to pod
-            @forwarded += 1
 
             # http chained microservices
             # if the current microservice is the one which the old was waiting, free the old container
-            pod.container.to_free(container) unless container.wait_for.empty?
+            raise "Cannot dispatch next component #{next_component_name}" unless schedule_request_forward(req,
+                                                                                                           next_component_name,
+                                                                                                           current_cluster,
+                                                                                                           e.time,
+                                                                                                           latency_manager,
+                                                                                                           waiting_container: container)
 
-            new_event(Event::ET_REQUEST_FORWARDING, req, forwarding_time, pod)
+          else # workflow or branch sequence is finished
+            if req.parent_request
+              parent_req = req.parent_request
 
-          else # workflow is finished
+              if req.is_parallel_branch? && parent_req.parallel_context
+                parent_req.complete_branch(req.branch_name, req, @current_time)
+                parent_req.parallel_context[:branch_count] -= 1
+
+                if parent_req.parallel_context[:branch_count] <= 0
+                  parent_req.instance_variable_set(:@parallel_context, nil)
+                  new_event(Event::ET_WORKFLOW_STEP_COMPLETED, parent_req, e.time, container)
+                end
+              elsif req.is_nested_call? && parent_req.nested_calls_active?
+                return_latency, = nested_return_latency(parent_req, req, latency_manager)
+                resume_time = e.time + return_latency
+
+                if parent_req.nested_calls_remaining?
+                  next_call = parent_req.next_nested_call
+                  raise "Cannot dispatch nested call for #{parent_req.rid}" unless dispatch_nested_call(parent_req,
+                                                                                                         next_call,
+                                                                                                         resume_time,
+                                                                                                         latency_manager)
+                else
+                  waiting_container = parent_req.finish_nested_calls
+                  release_container_after_wait(waiting_container, resume_time)
+                  new_event(Event::ET_WORKFLOW_STEP_COMPLETED, parent_req, resume_time, waiting_container)
+                end
+              end
+              next
+            end
+
             # calculate transmission time
             transmission_time =
               latency_manager.sample_latency_between(

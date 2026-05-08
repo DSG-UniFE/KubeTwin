@@ -1,10 +1,9 @@
 #!/usr/bin/env ruby
 
 require 'mhl'
-require 'rumale/ensemble/random_forest_regressor'
-require 'numo/narray'
 require_relative './configuration'
 require_relative './ksimulation'
+require_relative './random_forest_surrogate_rf2'
 require 'logger'
 
 module KUBETWIN
@@ -137,129 +136,16 @@ module KUBETWIN
       [x_samples, y_samples]
     end
 
-    # --- Phase 1: Full-dimensional RF for feature selection ---
-
-    # Train a RandomForest on all features and return [model, r2, mdi_importances].
-    def train_full_rf(x_samples, y_samples)
-      @logger.info "Phase 1: training full RF on #{x_samples.length} samples " \
-                   "(#{@n_dims} features)..."
-
-      x_numo = Numo::DFloat.cast(x_samples)
-      y_numo = Numo::DFloat.cast(y_samples)
-
-      n_max_features = Math.sqrt(@n_dims).ceil
-
-      model = Rumale::Ensemble::RandomForestRegressor.new(
-        n_estimators: 100,
-        max_depth: nil,
-        max_features: n_max_features,
-        min_samples_leaf: 2,
-        random_seed: 42
-      )
-      model.fit(x_numo, y_numo)
-
-      y_pred = model.predict(x_numo)
-      ss_res = ((y_numo - y_pred) ** 2).sum
-      ss_tot = ((y_numo - y_numo.mean) ** 2).sum
-      r2 = ss_tot > 0 ? 1.0 - ss_res / ss_tot : 0.0
-
-      importances = model.feature_importances.to_a
-
-      @logger.info "Phase 1: training R² = #{r2.round(4)}"
-      @ga_logger.info "Phase 1 full RF: R² = #{r2.round(4)}"
-
-      [model, r2, importances]
-    end
-
-    # --- Feature selection ---
-
-    # Select feature indices whose cumulative MDI importance reaches the
-    # threshold fraction of total importance.
-    # Returns an array of original feature indices, sorted by importance (descending).
-    def select_top_features(importances, threshold:)
-      total = importances.sum
-      return (0...importances.length).to_a if total <= 0
-
-      # Sort by importance descending, keeping track of original index
-      ranked = importances.each_with_index
-                          .map { |imp, idx| { idx: idx, imp: imp } }
-                          .sort_by { |h| -h[:imp] }
-
-      selected = []
-      cumulative = 0.0
-
-      ranked.each do |h|
-        selected << h[:idx]
-        cumulative += h[:imp]
-        break if cumulative / total >= threshold
-      end
-
-      @logger.info "Feature selection: #{selected.length}/#{importances.length} features " \
-                   "cover #{(cumulative / total * 100).round(1)}% of total MDI importance"
-      @ga_logger.info "Selected features (#{selected.length}): #{selected.inspect}"
-
-      # Log which features were selected
-      selected.each_with_index do |idx, rank|
-        @logger.info "  #{rank + 1}. #{@feature_labels[idx]} " \
-                     "(MDI: #{importances[idx].round(6)})"
-      end
-
-      selected
-    end
-
-    # --- Phase 2: Reduced-dimensional RF ---
-
-    # Train a new RF using only the selected feature columns.
-    # Returns [model, r2].
-    def train_reduced_rf(x_samples, y_samples, selected_indices)
-      n_selected = selected_indices.length
-      @logger.info "Phase 2: retraining RF on #{n_selected} selected features " \
-                   "(was #{@n_dims})..."
-
-      x_full = Numo::DFloat.cast(x_samples)
-      y_numo = Numo::DFloat.cast(y_samples)
-
-      # Extract only selected columns
-      x_reduced = x_full[true, selected_indices]
-
-      n_max_features = [Math.sqrt(n_selected).ceil, 1].max
-
-      model = Rumale::Ensemble::RandomForestRegressor.new(
-        n_estimators: 200,       # more trees since fewer features
-        max_depth: nil,
-        max_features: n_max_features,
-        min_samples_leaf: 2,
-        random_seed: 42
-      )
-      model.fit(x_reduced, y_numo)
-
-      y_pred = model.predict(x_reduced)
-      ss_res = ((y_numo - y_pred) ** 2).sum
-      ss_tot = ((y_numo - y_numo.mean) ** 2).sum
-      r2 = ss_tot > 0 ? 1.0 - ss_res / ss_tot : 0.0
-
-      @logger.info "Phase 2: reduced RF training R² = #{r2.round(4)} " \
-                   "(samples/features ratio: #{(x_samples.length.to_f / n_selected).round(1)})"
-      @ga_logger.info "Phase 2 reduced RF: R² = #{r2.round(4)}, " \
-                      "#{x_samples.length} samples / #{n_selected} features"
-
-      [model, r2]
-    end
-
     # --- PSO on reduced surrogate ---
 
     # Run PSO using the reduced surrogate.  PSO still explores the full
     # 44-dim space, but only the selected columns are fed to the model.
-    def run_pso_on_surrogate(model, selected_indices, num_iterations:, swarm_size:)
+    def run_pso_on_surrogate(surrogate, num_iterations:, swarm_size:)
       @logger.info "RF2 Surrogate: running PSO (#{swarm_size} particles, " \
-                   "#{num_iterations} iterations, #{selected_indices.length} active features)..."
+                   "#{num_iterations} iterations, #{surrogate.selected_feature_indices.length} active features)..."
 
       surrogate_fn = lambda do |position|
-        int_vec = position.map(&:to_i)
-        # Extract only the selected features for prediction
-        reduced = selected_indices.map { |i| int_vec[i] }
-        x = Numo::DFloat.cast([reduced])
-        model.predict(x)[0]
+        surrogate.predict(position, reduced: true)
       end
 
       solver_conf = {
@@ -316,20 +202,36 @@ module KUBETWIN
 
       # Phase 1: Sample + full RF for feature selection
       x_samples, y_samples = sample_initial_points(n_initial_samples)
-      full_model, full_r2, importances = train_full_rf(x_samples, y_samples)
+      surrogate = RandomForestSurrogateRF2.new(
+        feature_labels: @feature_labels,
+        ms_names: @ms_names,
+        cluster_names: @cluster_names,
+        n_ms: @n_ms,
+        n_clusters: @n_clusters,
+        max_replicas: @max_replicas,
+        logger: @logger
+      )
+      surrogate.fit(x_samples, y_samples, importance_threshold: importance_threshold)
+      @selected_indices = surrogate.selected_feature_indices
 
-      # Feature selection: keep features covering >= threshold of MDI importance
-      @selected_indices = select_top_features(importances, threshold: importance_threshold)
+      @logger.info "Phase 1: training R² = #{surrogate.full_r2.round(4)}"
+      @logger.info "Phase 2: reduced RF training R² = #{surrogate.reduced_r2.round(4)} " \
+                   "(samples/features ratio: #{(x_samples.length.to_f / @selected_indices.length).round(1)})"
+      @ga_logger.info "Phase 1 full RF: R² = #{surrogate.full_r2.round(4)}"
+      @ga_logger.info "Phase 2 reduced RF: R² = #{surrogate.reduced_r2.round(4)}, " \
+                      "#{x_samples.length} samples / #{@selected_indices.length} features"
+      @ga_logger.info "Selected features (#{@selected_indices.length}): #{@selected_indices.inspect}"
+      @selected_indices.each_with_index do |idx, rank|
+        @logger.info "  #{rank + 1}. #{@feature_labels[idx]} " \
+                     "(MDI: #{surrogate.mdi_importances[idx].round(6)})"
+      end
 
-      # Phase 2: Retrain on selected features only
-      reduced_model, reduced_r2 = train_reduced_rf(x_samples, y_samples, @selected_indices)
-
-      # Persist both models + training data for offline analysis
-      save_surrogate_bundle(full_model, reduced_model, x_samples, y_samples,
-                            full_r2, reduced_r2, importances)
+      bundle_path = surrogate.save_bundle(x_samples: x_samples, y_samples: y_samples)
+      @logger.info "RF2 Surrogate bundle saved to #{bundle_path}"
+      @ga_logger.info "RF2 Surrogate bundle saved to #{bundle_path}"
 
       # Phase 3: PSO on reduced surrogate
-      pso_result = run_pso_on_surrogate(reduced_model, @selected_indices,
+      pso_result = run_pso_on_surrogate(surrogate,
                                         num_iterations: surrogate_iterations,
                                         swarm_size: surrogate_swarm_size)
 
@@ -349,7 +251,7 @@ module KUBETWIN
       @logger.info "Total real simulator calls: #{n_initial_samples + top_k + 1} " \
                    "(vs #{surrogate_swarm_size * surrogate_iterations} surrogate evaluations)"
       @logger.info "Feature reduction: #{@n_dims} -> #{@selected_indices.length} " \
-                   "(#{(@selected_indices.length.to_f / @n_dims * 100).round(1)}% of original)"
+                    "(#{(@selected_indices.length.to_f / @n_dims * 100).round(1)}% of original)"
 
       puts "Best configuration: #{best[:position].inspect}"
       puts "Best fitness: #{best[:fitness].round(4)}"
@@ -365,47 +267,6 @@ module KUBETWIN
         @max_replicas.times { |r| labels << "cluster_#{name}_r#{r}" }
       end
       labels
-    end
-
-    # Save a bundle compatible with SurrogateAnalysis, plus the extra
-    # RF2-specific fields (reduced model, selected features, etc.).
-    def save_surrogate_bundle(full_model, reduced_model, x_samples, y_samples,
-                              full_r2, reduced_r2, importances)
-      timestamp = Time.now.strftime('%Y%m%d%H%M%S')
-      path = "surrogate_rf2_bundle_#{timestamp}.bin"
-
-      # Build labels for the reduced feature set
-      selected_labels = @selected_indices.map { |i| @feature_labels[i] }
-
-      bundle = {
-        # Standard fields (compatible with SurrogateAnalysis)
-        model: full_model,
-        x_samples: x_samples,
-        y_samples: y_samples,
-        feature_labels: @feature_labels,
-        ms_names: @ms_names,
-        cluster_names: @cluster_names,
-        n_ms: @n_ms,
-        n_clusters: @n_clusters,
-        max_replicas: @max_replicas,
-        n_dims: @n_dims,
-        timestamp: timestamp,
-        training_r2: full_r2,
-        # RF2-specific fields
-        surrogate_type: 'rf2_feature_selection',
-        reduced_model: reduced_model,
-        reduced_r2: reduced_r2,
-        selected_feature_indices: @selected_indices,
-        selected_feature_labels: selected_labels,
-        mdi_importances: importances,
-        importance_threshold: 0.80,
-        n_selected_features: @selected_indices.length
-      }
-
-      File.open(path, 'wb') { |f| f.write(Marshal.dump(bundle)) }
-      @logger.info "RF2 Surrogate bundle saved to #{path}"
-      @ga_logger.info "RF2 Surrogate bundle saved to #{path}"
-      path
     end
 
     def generate_nearby_candidates(base_vec, n_candidates)
