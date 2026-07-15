@@ -4,11 +4,13 @@ require 'erv'
 
 module KUBETWIN
   class LatencyManagerFederation
+    MIN_LATENCY = 1E-3
+
     def initialize(latency_models, seed: nil)
       @latency_models = latency_models
       @intra_dc_latency = ERV::RandomVariable.new(distribution: :gaussian,
                                                   args: { mean: 5E-3,
-                                                          sd: 1E-3, seed: seed || 12_345 })
+                                                           sd: 1E-3, seed: seed || 12_345 })
       @noise = ERV::RandomVariable.new(distribution: :gaussian, args: { mean: 0.0, sd: 10E-3, seed: seed || 12_345 })
     end
 
@@ -17,14 +19,13 @@ module KUBETWIN
       @latency_models.each do |model|
         if (model[:src] == loc1 && model[:dst] == loc2) ||
            (model[:src] == loc2 && model[:dst] == loc1)
-          # value is a constant value in seconds. Let's add some noise to it
-          while (noise_value = @noise.next) < 1E-3; end
-          lat = model[:value] + noise_value
+          # value is a constant value in seconds. Add jitter and clamp the final latency.
+          lat = clamp_latency(model[:value] + @noise.next)
           # puts "latency between #{loc1} and #{loc2} is #{lat} seconds"
           return lat
         elsif loc1 == loc2
           # return intra-dc latency. Let's approximate it from 1 to 5 ms and convert to seconds
-          while (lat = @intra_dc_latency.next) < 1E-3; end
+          while (lat = @intra_dc_latency.next) < MIN_LATENCY; end
           lat
         end
       end
@@ -33,7 +34,7 @@ module KUBETWIN
         # This is to simulate Liqo connectivity between leaf nodes via the home DC
         # If only a cluster is specified, we still need to return the intra-dc latency
         if loc1 == 0 || loc2 == 0
-          while (lat = @intra_dc_latency.next) < 1E-3; end
+          while (lat = @intra_dc_latency.next) < MIN_LATENCY; end
         else
           src_to_loc1 = @latency_models.find { |model| model[:src] == 0 && model[:dst] == loc1 }
           dst_to_loc2 = @latency_models.find { |model| model[:src] == 0 && model[:dst] == loc2 }
@@ -41,11 +42,16 @@ module KUBETWIN
             raise "Latency model not found for locations #{loc1} and #{loc2} #{@latency_models}"
           end
 
-          while (noise_value = @noise.next) < 1E-3; end
-          lat = src_to_loc1[:value] + dst_to_loc2[:value] + noise_value
+          lat = clamp_latency(src_to_loc1[:value] + dst_to_loc2[:value] + @noise.next)
         end
       end
       lat
+    end
+
+    private
+
+    def clamp_latency(value)
+      [value, MIN_LATENCY].max
     end
   end
 
