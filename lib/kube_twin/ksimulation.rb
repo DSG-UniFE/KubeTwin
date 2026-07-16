@@ -1299,8 +1299,8 @@ module KUBETWIN
       # weighted_sum = mean_ttr + normalize_objective(replication_penalties, 0,
       #                                              mean_ttr) + normalize_objective(saturation_penalties, 0, mean_ttr)
       weighted_sum = mean_ttr + # normalize_objective(resource_gini, 0, mean_ttr) +
-                     normalize_objective(replica_spreading, 0, mean_ttr) +
-                     normalize_objective(saturation_penalties, 0, mean_ttr)
+                     normalize_objective(replica_spreading, 0, mean_ttr) #+
+                     #normalize_objective(saturation_penalties, 0, mean_ttr)
 
       per_component_stats.each do |k, v|
         # misconfiguration from TOSCA
@@ -1393,7 +1393,7 @@ module KUBETWIN
         mean_ttr: @last_mean_ttr,
         #replica_spreading: @last_replica_spreading,
         #global_cluster_spreading: @last_global_cluster_spreading,
-        overall_spreading: @last_replica_spreading + @last_global_cluster_spreading, # Example of combining spreading metrics
+        overall_spreading: @last_replica_spreading, #+ @last_global_cluster_spreading, # Example of combining spreading metrics
         bmap: @last_bmap
       }
     end
