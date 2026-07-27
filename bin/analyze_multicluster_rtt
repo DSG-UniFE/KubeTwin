@@ -1,0 +1,207 @@
+#!/usr/bin/env ruby
+
+begin
+  require 'kube_twin'
+rescue LoadError
+  require 'rubygems'
+  require 'kube_twin'
+end
+
+require 'json'
+
+def do_abort(message)
+  abort <<~EOS
+    #{message}
+
+    Usage:
+        #{File.basename(__FILE__)} simulator_config allocation_json solution_id [rps] [samples]
+  EOS
+end
+
+config_path = ARGV[0] or do_abort('Missing simulator config path')
+allocation_path = ARGV[1] or do_abort('Missing allocation json path')
+solution_id = ARGV[2] or do_abort('Missing solution_id')
+rps = (ARGV[3] || 30).to_i
+samples = (ARGV[4] || 10_000).to_i
+
+do_abort('Invalid simulator config path') unless File.exist?(config_path)
+do_abort('Invalid allocation json path') unless File.exist?(allocation_path)
+
+module KUBETWIN
+  class MulticlusterRttAnalyzer
+    CONNECT_TIME = KUBETWIN::KSimulation::CONNECT_TIME
+
+    def initialize(config_path:, allocation_path:, solution_id:, rps:, samples:)
+      @config = KUBETWIN::Configuration.load_from_file(config_path)
+      @allocation = load_solution(allocation_path, solution_id)
+      @rps = rps
+      @samples = samples
+      @cluster_repository = KUBETWIN::KSimulation.create_cluster_configuration(@config)
+      @cluster_names = @cluster_repository.keys.map(&:to_s)
+      @cluster_index_to_location = {}
+      @cluster_repository.values.each_with_index do |cluster, idx|
+        @cluster_index_to_location[idx] = cluster.location_id
+      end
+      @customer_locations = @config.customers.values.map { |c| c[:location_id] }
+      build_latency_manager
+      build_models
+      build_cluster_weights
+    end
+
+    def run
+      service_totals = Hash.new(0.0)
+      service_counts = Hash.new(0)
+      hop_totals = Hash.new(0.0)
+      total_samples = []
+
+      @samples.times do
+        customer_loc = @customer_locations.sample
+        workflow = @config.workflow_types.values.first
+        top_step = workflow[:component_sequence].first
+        top_name = top_step[:name]
+        top_cluster_idx = sample_cluster_for(top_name)
+        top_loc = @cluster_index_to_location[top_cluster_idx]
+
+        total = 0.0
+        total += CONNECT_TIME
+        entry_latency = @latency_manager.sample_latency_between(customer_loc, top_loc)
+        hop_totals["client->#{top_name}"] += entry_latency
+        total += entry_latency
+
+        step_total = simulate_step(top_step, top_cluster_idx, service_totals, service_counts, hop_totals)
+        total += step_total
+
+        exit_latency = @latency_manager.sample_latency_between(top_loc, customer_loc)
+        hop_totals["#{top_name}->client"] += exit_latency
+        total += exit_latency
+
+        total_samples << total
+      end
+
+      sorted = total_samples.sort
+      report = {
+        samples: @samples,
+        rps: @rps,
+        mean_ms: ms(avg(total_samples)),
+        p50_ms: ms(percentile(sorted, 0.50)),
+        p90_ms: ms(percentile(sorted, 0.90)),
+        p95_ms: ms(percentile(sorted, 0.95)),
+        p99_ms: ms(percentile(sorted, 0.99)),
+        service_means_ms: service_totals.transform_values.with_index { |sum, _| nil }
+      }
+
+      service_means = service_totals.keys.sort.map do |name|
+        [name, ms(service_totals[name] / service_counts[name].to_f)]
+      end.to_h
+
+      hop_means = hop_totals.keys.sort.map do |hop|
+        [hop, ms(hop_totals[hop] / @samples.to_f)]
+      end.to_h
+
+      puts "Samples: #{@samples}, RPS: #{@rps}"
+      puts "Estimated end-to-end without queueing"
+      puts "  mean: #{ms(avg(total_samples))} ms"
+      puts "  p50 : #{ms(percentile(sorted, 0.50))} ms"
+      puts "  p90 : #{ms(percentile(sorted, 0.90))} ms"
+      puts "  p95 : #{ms(percentile(sorted, 0.95))} ms"
+      puts "  p99 : #{ms(percentile(sorted, 0.99))} ms"
+      puts
+      puts 'Mean service times from MDN'
+      service_means.each { |name, value| puts "  #{name}: #{value} ms" }
+      puts "  total: #{service_means.values.sum.round(4)} ms"
+      puts
+      puts 'Mean hop latencies'
+      hop_means.each { |hop, value| puts "  #{hop}: #{value} ms" }
+      puts "  total network+connect: #{(hop_means.values.sum + ms(CONNECT_TIME)).round(4)} ms"
+      puts "  connect_time: #{ms(CONNECT_TIME)} ms"
+    end
+
+    private
+
+    def load_solution(path, solution_id)
+      data = JSON.parse(File.read(path))
+      solution = data.find { |entry| entry['solution_id'].to_i == solution_id.to_i }
+      raise ArgumentError, "Solution #{solution_id} not found" if solution.nil?
+
+      solution['microservice_allocation']
+    end
+
+    def build_latency_manager
+      federation = JSON.parse(@config.federation, symbolize_names: true)
+      latency_models = federation[:latencies].map do |lm|
+        src = @cluster_repository[lm[:src].to_sym]
+        dst = @cluster_repository[lm[:dst].to_sym]
+        { src: src.location_id, dst: dst.location_id, value: lm[:value].to_f / 2.0 }
+      end
+      @latency_manager = KUBETWIN::LatencyManagerFederation.new(latency_models,
+                                                                seed: @config.seeds[:communication_latencies])
+    end
+
+    def build_models
+      @models = @config.microservice_types.each_with_object({}) do |(name, cfg), acc|
+        acc[name.to_s] = KUBETWIN::MDN.new(weights_path: cfg[:mdn_file], scaler_path: cfg[:mdn_file])
+      end
+    end
+
+    def build_cluster_weights
+      @cluster_weights = @allocation.each_with_object({}) do |(service, cluster_counts), acc|
+        weights = []
+        @cluster_names.each_with_index do |cluster_name, cluster_idx|
+          cluster_counts.fetch(cluster_name, 0).to_i.times { weights << cluster_idx }
+        end
+        raise "No replicas available for #{service}" if weights.empty?
+
+        acc[service.to_s] = weights
+      end
+    end
+
+    def sample_cluster_for(service_name)
+      @cluster_weights.fetch(service_name.to_s).sample
+    end
+
+    def simulate_step(step, cluster_idx, service_totals, service_counts, hop_totals)
+      service_name = step[:name].to_s
+      local_processing = @models.fetch(service_name).forward(@rps)
+      service_totals[service_name] += local_processing
+      service_counts[service_name] += 1
+      total = local_processing
+
+      Array(step[:calls]).each do |child|
+        child_name = child[:name].to_s
+        child_cluster_idx = sample_cluster_for(child_name)
+        parent_loc = @cluster_index_to_location[cluster_idx]
+        child_loc = @cluster_index_to_location[child_cluster_idx]
+
+        out_latency = @latency_manager.sample_latency_between(parent_loc, child_loc)
+        hop_totals["#{service_name}->#{child_name}"] += out_latency
+        total += out_latency
+
+        total += simulate_step(child, child_cluster_idx, service_totals, service_counts, hop_totals)
+
+        return_latency = @latency_manager.sample_latency_between(child_loc, parent_loc)
+        hop_totals["#{child_name}->#{service_name}"] += return_latency
+        total += return_latency
+      end
+
+      total
+    end
+
+    def avg(values)
+      values.sum / values.length.to_f
+    end
+
+    def percentile(sorted_values, q)
+      sorted_values[(q * (sorted_values.length - 1)).to_i]
+    end
+
+    def ms(seconds)
+      (seconds * 1000.0).round(4)
+    end
+  end
+end
+
+KUBETWIN::MulticlusterRttAnalyzer.new(config_path: config_path,
+                                      allocation_path: allocation_path,
+                                      solution_id: solution_id,
+                                      rps: rps,
+                                      samples: samples).run
