@@ -130,6 +130,8 @@ module KUBETWIN
     end
 
     def ttr_chain(time)
+      return 0.0 if @chain_entering_time.nil?
+
       (@chain_exiting_time || time) - @chain_entering_time
     end
 
@@ -216,7 +218,7 @@ module KUBETWIN
     end
 
     def clone_for_parallel_branch(branch)
-      branch_sequence = branch[:component_sequence] || [{ name: branch[:name] }]
+      branch_sequence = nested_sequence_for(branch)
       branch_name = branch[:name] || branch_sequence.first[:name]
 
       # Create a new request for parallel branch execution
@@ -238,12 +240,13 @@ module KUBETWIN
       cloned.instance_variable_set(:@completed_branches, [])
       cloned.instance_variable_set(:@parallel_context, nil)
       cloned.instance_variable_set(:@branch_results, {})
+      cloned.chain_entering_time = @chain_entering_time
 
       cloned
     end
 
     def clone_for_nested_call(call)
-      call_sequence = call[:component_sequence] || [{ name: call[:name] }]
+      call_sequence = nested_sequence_for(call)
       call_name = call[:name] || call_sequence.first[:name]
 
       cloned = self.class.new(
@@ -263,6 +266,7 @@ module KUBETWIN
       cloned.instance_variable_set(:@completed_branches, [])
       cloned.instance_variable_set(:@parallel_context, nil)
       cloned.instance_variable_set(:@branch_results, {})
+      cloned.chain_entering_time = @chain_entering_time
 
       cloned
     end
@@ -273,6 +277,16 @@ module KUBETWIN
 
     def is_nested_call?
       @child_kind == :nested_call
+    end
+
+    private
+
+    def nested_sequence_for(step)
+      if step[:component_sequence]
+        Marshal.load(Marshal.dump(step[:component_sequence]))
+      else
+        [Marshal.load(Marshal.dump(step))]
+      end
     end
 
     def to_s

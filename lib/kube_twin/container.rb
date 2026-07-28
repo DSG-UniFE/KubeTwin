@@ -69,6 +69,8 @@ module KUBETWIN
       @last_request_time = nil
       @path = opts[:img_info][:mdn_file]
       @rps = opts[:img_info][:rps].to_i
+      @use_configured_rps = opts[:img_info][:use_configured_rps] == true
+      @rps_correction_factor = opts[:img_info][:rps_correction_factor]&.to_f || 1.0
       @service_time = ERV::RandomVariable.new(st_distribution) if @path.nil?
       @arrival_times = []
       @arrival_window_head = 0
@@ -153,10 +155,13 @@ module KUBETWIN
       # Determine RPS: use dynamic RPS if available, otherwise fallback to static
       rps = if @path.nil?
               @rps
+            elsif @use_configured_rps
+              @rps
             else
               # Use dynamic RPS from traffic if we have enough data, else use static
               computed_rps = current_rps
-              computed_rps > 0 ? computed_rps.to_i : @rps
+              raw_rps = computed_rps > 0 ? computed_rps : @rps
+              [(@rps_correction_factor * raw_rps).round, 1].max
               # computed_rps > 120 ? 120 : computed_rps.to_i # cap RPS to avoid extreme values
             end
 

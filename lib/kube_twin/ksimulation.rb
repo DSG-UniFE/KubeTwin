@@ -42,6 +42,7 @@ module KUBETWIN
       @mapping = nil
       @logger = opts[:logger] || Logger.new(STDOUT)
       @logger.level = opts[:log_level] || Logger::INFO
+      @trace_requests = ENV['KUBETWIN_TRACE_REQUESTS'] == '1'
     end
 
     def new_event(type, data, time, destination)
@@ -77,7 +78,14 @@ module KUBETWIN
       [component_sequence.object_id, req.worked_step]
     end
 
-    def schedule_request_forward(req, component_name, source_cluster, base_time, latency_manager, waiting_container: nil)
+    def trace_request(req, message)
+      return unless @trace_requests
+
+      puts format('[TRACE t=%.6f rid=%s dc=%s] %s', @current_time || 0.0, req.rid, req.data_center_id, message)
+    end
+
+    def schedule_request_forward(req, component_name, source_cluster, base_time, latency_manager,
+                                 waiting_container: nil)
       service = @kube_dns.lookup(component_name)
       return false if service.nil?
 
@@ -91,6 +99,7 @@ module KUBETWIN
       req.update_transfer_time(transmission_time)
       forwarding_time += transmission_time
       req.data_center_id = cluster.cluster_id
+      trace_request(req, "forward #{source_cluster.name}->#{cluster.name} to #{component_name}, latency=#{format('%.6f', transmission_time)}, event_time=#{format('%.6f', forwarding_time)}")
       pod.container.to_free(waiting_container) if waiting_container && !waiting_container.wait_for.empty?
       @forwarded += 1
       new_event(Event::ET_REQUEST_FORWARDING, req, forwarding_time, pod)
@@ -119,6 +128,7 @@ module KUBETWIN
       latency = latency_manager.sample_latency_between(child_cluster.location_id, parent_cluster.location_id)
       parent_req.update_transfer_time(latency)
       parent_req.data_center_id = parent_cluster.cluster_id
+      trace_request(parent_req, "return #{child_cluster.name}->#{parent_cluster.name} from #{child_req.branch_name}, latency=#{format('%.6f', latency)}")
       [latency, parent_cluster]
     end
 
@@ -806,6 +816,7 @@ module KUBETWIN
           # increase count of received requests in hpa_component_stats
           hpa_component_stats[component_name].request_received
           per_component_stats[component_name].request_received
+          trace_request(req, "arrived at #{component_name}")
 
           # here we should use the delegator
           # puts "#{now},#{pod.container.containerId},#{pod.container.request_queue.length}\n"
@@ -827,16 +838,19 @@ module KUBETWIN
           # Get current component name safely - handle parallel components
           current_component_step = component_sequence[req.worked_step]
           current_component_name = if current_component_step[:type] == 'parallel'
-                                      # For parallel components, we don't track them in stats since they're containers
-                                      nil
-                                    else
-                                      current_component_step[:name]
-                                    end
+                                     # For parallel components, we don't track them in stats since they're containers
+                                     nil
+                                   else
+                                     current_component_step[:name]
+                                   end
+          trace_request(req, "completed local step #{current_component_name || current_component_step[:type]}")
 
           if current_component_step[:calls] && !req.calls_completed?(request_step_key(req, component_sequence))
             req.start_nested_calls(current_component_step[:calls], container, request_step_key(req, component_sequence))
             next_call = req.next_nested_call
-            raise "Cannot dispatch nested call for #{req.rid}" unless dispatch_nested_call(req, next_call, e.time, latency_manager)
+            trace_request(req, "opening nested calls from #{current_component_name}: #{current_component_step[:calls].map { |c| c[:name] }.join(' -> ')}")
+            raise "Cannot dispatch nested call for #{req.rid}" unless dispatch_nested_call(req, next_call, e.time,
+                                                                                           latency_manager)
 
             next
           end
@@ -844,14 +858,14 @@ module KUBETWIN
           release_container_after_wait(container, e.time)
           # puts "current_component_name #{current_component_name}"
 
-          if !chain.nil? && !current_component_name.nil? && chain[:component_sequence][0][:name] == current_component_name
+          if req.parent_request.nil? && !chain.nil? && !current_component_name.nil? && chain[:component_sequence][0][:name] == current_component_name
             # we are entering the chain, set the workflow to be the chain
             # @logger.info "Request #{req.rid} #{current_component_name} entering chain #{chain}"
             req.chain_entered(@current_time)
             per_chain_and_customer_stats[req.workflow_type_id][req.customer_id].request_received
           end
 
-          if !chain.nil? && !current_component_name.nil? && (chain[:component_sequence][-1][:name] == current_component_name)
+          if req.parent_request.nil? && !chain.nil? && !current_component_name.nil? && (chain[:component_sequence][-1][:name] == current_component_name)
             # @logger.info "Request #{req.rid} #{current_component_name} exiting chain #{chain}"
             req.finished_chain(@current_time)
             per_chain_and_customer_stats[req.workflow_type_id][req.customer_id].record_request(req, now, chain = true)
@@ -905,11 +919,11 @@ module KUBETWIN
             # http chained microservices
             # if the current microservice is the one which the old was waiting, free the old container
             raise "Cannot dispatch next component #{next_component_name}" unless schedule_request_forward(req,
-                                                                                                           next_component_name,
-                                                                                                           current_cluster,
-                                                                                                           e.time,
-                                                                                                           latency_manager,
-                                                                                                           waiting_container: container)
+                                                                                                          next_component_name,
+                                                                                                          current_cluster,
+                                                                                                          e.time,
+                                                                                                          latency_manager,
+                                                                                                          waiting_container: container)
 
           else # workflow or branch sequence is finished
             if req.parent_request
@@ -929,12 +943,14 @@ module KUBETWIN
 
                 if parent_req.nested_calls_remaining?
                   next_call = parent_req.next_nested_call
+                  trace_request(parent_req, "resuming after nested call #{req.branch_name}, next nested call #{next_call[:name]}")
                   raise "Cannot dispatch nested call for #{parent_req.rid}" unless dispatch_nested_call(parent_req,
-                                                                                                         next_call,
-                                                                                                         resume_time,
-                                                                                                         latency_manager)
+                                                                                                        next_call,
+                                                                                                        resume_time,
+                                                                                                        latency_manager)
                 else
                   waiting_container = parent_req.finish_nested_calls
+                  trace_request(parent_req, "all nested calls completed for #{current_component_name || req.branch_name}, resuming parent")
                   release_container_after_wait(waiting_container, resume_time)
                   new_event(Event::ET_WORKFLOW_STEP_COMPLETED, parent_req, resume_time, waiting_container)
                 end
@@ -966,6 +982,7 @@ module KUBETWIN
 
           # request is closed
           req.finished_processing(e.time)
+          trace_request(req, "request closed; total_ttr=#{format('%.6f', req.ttr(@current_time))}")
           # puts "#{req.arrival_time} #{now}"
           if now >= @configuration.end_time
             raise "Processing request after the simulation time current:#{now} end:#{@configuration.end_time}"
@@ -1299,8 +1316,8 @@ module KUBETWIN
       # weighted_sum = mean_ttr + normalize_objective(replication_penalties, 0,
       #                                              mean_ttr) + normalize_objective(saturation_penalties, 0, mean_ttr)
       weighted_sum = mean_ttr + # normalize_objective(resource_gini, 0, mean_ttr) +
-                     normalize_objective(replica_spreading, 0, mean_ttr) #+
-                     #normalize_objective(saturation_penalties, 0, mean_ttr)
+                     normalize_objective(replica_spreading, 0, mean_ttr) # +
+      # normalize_objective(saturation_penalties, 0, mean_ttr)
 
       per_component_stats.each do |k, v|
         # misconfiguration from TOSCA
@@ -1391,9 +1408,9 @@ module KUBETWIN
       # Return the raw multiobjective metrics (stored by evaluate_allocation)
       {
         mean_ttr: @last_mean_ttr,
-        #replica_spreading: @last_replica_spreading,
-        #global_cluster_spreading: @last_global_cluster_spreading,
-        overall_spreading: @last_replica_spreading, #+ @last_global_cluster_spreading, # Example of combining spreading metrics
+        # replica_spreading: @last_replica_spreading,
+        # global_cluster_spreading: @last_global_cluster_spreading,
+        overall_spreading: @last_replica_spreading, # + @last_global_cluster_spreading, # Example of combining spreading metrics
         bmap: @last_bmap
       }
     end

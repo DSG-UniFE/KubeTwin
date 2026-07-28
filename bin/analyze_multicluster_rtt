@@ -46,6 +46,7 @@ module KUBETWIN
       build_latency_manager
       build_models
       build_cluster_weights
+      build_service_rps
     end
 
     def run
@@ -155,13 +156,35 @@ module KUBETWIN
       end
     end
 
+    def build_service_rps
+      workflow = @config.workflow_types.values.first
+      visit_counts = Hash.new(0)
+      count_visits(workflow[:component_sequence], visit_counts)
+      @service_rps = visit_counts.transform_values { |visits| @rps * visits }
+    end
+
+    def count_visits(sequence, counts)
+      Array(sequence).each do |step|
+        if step[:type] == 'parallel'
+          step[:branches].each do |branch|
+            branch_sequence = branch[:component_sequence] || [{ name: branch[:name] }]
+            count_visits(branch_sequence, counts)
+          end
+        else
+          counts[step[:name].to_s] += 1
+          count_visits(step[:calls], counts) if step[:calls]
+        end
+      end
+    end
+
     def sample_cluster_for(service_name)
       @cluster_weights.fetch(service_name.to_s).sample
     end
 
     def simulate_step(step, cluster_idx, service_totals, service_counts, hop_totals)
       service_name = step[:name].to_s
-      local_processing = @models.fetch(service_name).forward(@rps)
+      effective_rps = @service_rps.fetch(service_name) / @cluster_weights.fetch(service_name).length.to_f
+      local_processing = @models.fetch(service_name).forward(effective_rps)
       service_totals[service_name] += local_processing
       service_counts[service_name] += 1
       total = local_processing
