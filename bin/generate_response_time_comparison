@@ -41,6 +41,7 @@ class ScenarioComparisonGenerator
   def run
     scenarios = extract_scenarios
     comparisons = scenarios.map { |scenario| compare_scenario(scenario) }
+    write_csv(comparisons)
     write_report(comparisons)
   end
 
@@ -110,6 +111,21 @@ class ScenarioComparisonGenerator
     }
   end
 
+  def write_csv(comparisons)
+    path = 'response_time_scenarios_comparison.csv'
+    File.open(path, 'w') do |f|
+      f.puts 'solution_id,old_expected_ms,testbed_avg_ms,testbed_p90_ms,testbed_p95_ms,simulated_mean_ms,delta_ms,delta_pct,overall_spreading,title'
+      comparisons.each do |row|
+        f.puts [
+          row[:solution_id], row[:old_expected_ms], row[:observed_avg_ms], row[:observed_p90_ms],
+          row[:observed_p95_ms], row[:simulated_mean_ms], row[:delta_ms], row[:delta_pct],
+          row[:overall_spreading], csv_escape(row[:title])
+        ].join(',')
+      end
+    end
+    path
+  end
+
   def write_report(comparisons)
     timestamp = Time.now.utc.iso8601
     path = 'response_time_scenarios_comparison.md'
@@ -123,6 +139,8 @@ class ScenarioComparisonGenerator
       f.puts "Allocation file: `#{@allocation_path}`"
       f.puts
       f.puts 'The simulator values below were recomputed with the current multicluster workflow model and the calibrated `rps_correction_factor` present in the configuration file.'
+      f.puts
+      f.puts '![Scenario Comparison](response_time_scenarios_comparison.png)'
       f.puts
       f.puts '| Scenario | Solution | Old Expected (ms) | Testbed Avg (ms) | Testbed P90 (ms) | Testbed P95 (ms) | Simulated Mean (ms) | Delta (ms) | Delta (%) | Spreading |'
       f.puts '| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |'
@@ -147,6 +165,10 @@ class ScenarioComparisonGenerator
 
   def numeric_ms(value)
     value.to_s.sub(/\s*ms\z/i, '').to_f
+  end
+
+  def csv_escape(value)
+    %("#{value.to_s.gsub('"', '""')}")
   end
 end
 

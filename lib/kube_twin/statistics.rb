@@ -19,6 +19,7 @@ module KUBETWIN
       @shorter_than = init_counters_for_shorter_than_stats(opts)
       @received = 0
       @csv = []
+      @samples = []
     end
 
     def request_received
@@ -38,6 +39,7 @@ module KUBETWIN
       steps = req.steps_ttr.join(',')
       # @csv << req.rid << ',' << x << ',' << steps << '\n'
       @csv << "#{req.rid},#{x},#{steps}\n"
+      @samples << x
 
       qx = req.queuing_time
 
@@ -74,9 +76,32 @@ module KUBETWIN
       @shorter_than.merge!(init_counters_for_shorter_than_stats(custom_kpis_config))
     end
 
+    def percentile(q)
+      return 0.0 if @samples.empty?
+
+      sorted = @samples.sort
+      sorted[(q * (sorted.length - 1)).to_i]
+    end
+
+    def p50
+      percentile(0.50)
+    end
+
+    def p90
+      percentile(0.90)
+    end
+
+    def p95
+      percentile(0.95)
+    end
+
+    def p99
+      percentile(0.99)
+    end
+
     def to_s
       "received: #{@received}, closed: #{@n}\n" +
-        "TTR: (mean: #{@mean}, variance: #{variance}, longer_than: #{@longer_than}) shorter_than: #{@shorter_than}\n" +
+        "TTR: (mean: #{@mean}, variance: #{variance}, p50: #{p50}, p90: #{p90}, p95: #{p95}, p99: #{p99}, longer_than: #{@longer_than}) shorter_than: #{@shorter_than}\n" +
         "QTIME: (mean: #{@q_mean}, variance: #{q_variance})"
     end
 
