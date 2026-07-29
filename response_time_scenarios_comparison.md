@@ -1,12 +1,11 @@
 # Response Time Scenario Comparison
 
-Generated at: `2026-07-29T08:01:18Z`
-
 Simulator config: `examples/bookinfo-3c-xr.conf`
 
 Allocation file: `final_allocation_kubetwin_2_objectives_16072026.json`
 
-The simulator values below were recomputed with the current multicluster workflow model and the calibrated `rps_correction_factor` present in the configuration file.
+La differenza principale sembra essere dovuta ai tempi di servizio. Il simulatore, tramite un semplice algoritmo, stima l'RPS a livello del container.
+Il valore di RPS viene poi utilizzato per campionare i tempi di servizio dalla MDN. Aumentando questo valore di RPS con un `rps_correction_factor` si ottengono dei risultati molto più vicini al testbed. Un'altra soluzione è quella di impostare l'RPS a un valore statico (30 in questi esperimenti). La configurazione statica produce tempi molto elevati.
 
 ![Scenario Comparison](response_time_scenarios_comparison.png)
 
@@ -19,6 +18,6 @@ The simulator values below were recomputed with the current multicluster workflo
 
 ## Notes
 
-- `Old Expected` is the value written in the original markdown file.
-- `Simulated Mean` is the current simulator end-to-end mean TTR for the same allocation.
-- `Delta` is `simulated_mean - testbed_avg`.
+- `Old Expected` Il valore di ttr calcolato in precedenza dal simulatore.
+- `Simulated Mean` Il nuovo TTR calcolato dal simulatore.
+- `Delta = simulated_mean - testbed_avg`.
