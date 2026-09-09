@@ -121,6 +121,13 @@ arbitrary set of clusters and the latency between every pair of them, and
 is what you'd reach for when hand-writing a topology or when you need
 per-cluster `type`/`tier` control that `federation` can't express.
 
+`federation` also assumes a specific, simplified deployment shape: a
+[Liqo](https://liqo.io/)-based multi-cluster setup where inter-cluster
+traffic is routed through a root node, rather than clusters communicating
+with each other directly. That's part of why its `latencies` list only
+needs one entry per cluster pair (or can even route unlisted pairs through
+location 0) instead of the full pairwise matrix `latency_models` supports.
+
 **They are not additive** — `lib/kube_twin/ksimulation.rb` checks
 `federation.nil?` at every call site: if `federation` is set, `clusters` and
 `latency_models` are silently ignored even if also present in the file
