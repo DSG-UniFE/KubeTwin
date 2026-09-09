@@ -111,12 +111,22 @@ seeds({ communication_latencies: 12345 })
 
 ## 2. Infrastructure topology: `federation` vs `clusters`+`latency_models`
 
-There are two ways to describe clusters and inter-cluster latency, and
-**they are not additive** — `lib/kube_twin/ksimulation.rb` checks
+These are two intentionally different, supported topology models, not an
+old-vs-new pair. `federation` is a simplified, JSON-based description meant
+to be generated/consumed by the Optimuum framework, which KubeTwin
+integrates with — it trades expressiveness for being easy to produce
+programmatically from Optimuum's own cluster/latency model. `clusters` +
+`latency_models` is the lower-level, more detailed way to describe an
+arbitrary set of clusters and the latency between every pair of them, and
+is what you'd reach for when hand-writing a topology or when you need
+per-cluster `type`/`tier` control that `federation` can't express.
+
+**They are not additive** — `lib/kube_twin/ksimulation.rb` checks
 `federation.nil?` at every call site: if `federation` is set, `clusters` and
 `latency_models` are silently ignored even if also present in the file
 (this is the exact situation in `examples/test.conf`, which defines both —
-`federation` wins there).
+`federation` wins there, since it's the format an Optimuum-driven run would
+supply).
 
 ### `federation` (JSON string)
 
