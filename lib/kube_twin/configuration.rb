@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 require_relative './support/dsl_helper'
-
 require_relative './logger'
 
 require 'as-duration'
@@ -15,20 +14,36 @@ module ERV
         { distribution: :gaussian, weight: a * c, args: { mean: b, sd: c } }
       end
     end
+
+    def self.RawParametersToMixtureArgsFixedWeights(*args)
+      raise ArgumentError, "Arguments must be a multiple of 3!" if (args.count % 3) != 0
+      args.each_slice(3).map do |(a,b,c)|
+        { distribution: :gaussian, weight: a, args: { mean: b, sd: c } }
+      end
+    end
+
     def self.RawParametersToMixtureArgsSeed(*args, seed)
       raise ArgumentError, "Arguments must be a multiple of 3!" if (args.count % 3) != 0
       args.each_slice(3).map do |(a,b,c)|
-        { distribution: :gaussian, weight: a * c, args: { mean: b, sd: c, seed: seed} }
+        { distribution: :gaussian, weight: a * c, args: { mean: b, sd: c, seed: seed } }
+      end
+    end
+
+    def self.RawParametersToMixtureArgsFixedWeightsSeed(*args, seed)
+      raise ArgumentError, "Arguments must be a multiple of 3!" if (args.count % 3) != 0
+      args.each_slice(3).map do |(a,b,c)|
+        { distribution: :gaussian, weight: a, args: { mean: b, sd: c, seed: seed } }
       end
     end
   end
+
   module GammaMixtureHelper
     def self.RawParametersToMixtureArgsSeed(*args, seed)
       raise ArgumentError, "Arguments must be a multiple of 3!" if (args.count % 3) != 0
       args.each_slice(3).map do |(a,b,c)|
-        { distribution: :gamma, weight: a, args: { scale: c, shape: b, seed: seed} }
+        { distribution: :gamma, weight: a, args: { scale: c, shape: b, seed: seed } }
       end
-end
+    end
   end
 end
 
@@ -64,6 +79,7 @@ module KUBETWIN
                  :custom_stats,
                  :stats_print_interval,
                  :data_centers,
+                 :federation,
                  :clusters,
                  :node,
                  :replica_sets,
@@ -81,7 +97,8 @@ module KUBETWIN
                  :warmup_duration,
                  :cooldown_duration,
                  :workflow_types,
-                 :seed
+                 :seed,
+                 :policies
   end
 
   class Configuration
@@ -99,27 +116,22 @@ module KUBETWIN
       @start_time + @duration
     end
 
-
-
     def validate
       # convert datetimes and integers into floats
-      @start_time      = @start_time.to_f
-      @duration        = @duration.to_f
-      @warmup_duration = @warmup_duration.to_f
+      @start_time        = @start_time.to_f
+      @duration          = @duration.to_f
+      @warmup_duration   = @warmup_duration.to_f
       @cooldown_duration = @cooldown_duration.to_f
       @cooldown_duration = 10 if @cooldown_duration.nil?
 
       # initialize kpi_customization to empty hash if needed
       @kpi_customization ||= {}
 
-      # TODO: might want to restrict this substitution only to the :filename
-      # and :command keys
-      
-      #if @request_generation is not defined in the configuration file, use request_gen
+      # if @request_generation is not defined in the configuration file, use request_gen
       if @request_generation.nil?
         @request_generation = @request_gen
       else
-        @request_generation.each do |k,v|
+        @request_generation.each do |k, v|
           @request_generation[k] = v.gsub('<pwd>', File.expand_path(File.dirname(@filename)))
         end
       end
@@ -134,6 +146,7 @@ module KUBETWIN
       IceNine.deep_freeze(@custom_stats)
       IceNine.deep_freeze(@data_centers)
       IceNine.deep_freeze(@clusters)
+      IceNine.deep_freeze(@federation)
       IceNine.deep_freeze(@duration)
       IceNine.deep_freeze(@evaluation)
       IceNine.deep_freeze(@kpi_customization)
@@ -152,22 +165,19 @@ module KUBETWIN
 
       # create configuration object
       conf = Configuration.new(filename)
-
       # take the file content and pass it to instance_eval
       conf.instance_eval(File.new(filename, 'r').read)
-
       # validate and finalize configuration
       conf.validate if validate
-
       # return new object
       conf
     end
-    
+
     def set_start(time)
       @start_time = time
     end
 
-    def set_rgen(filename,dist=nil)
+    def set_rgen(filename, dist = nil)
       if dist.nil?
         @request_generation[:filename] = filename
       else

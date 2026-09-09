@@ -29,7 +29,7 @@ if File.expand_path(__FILE__) == File.expand_path($0)
     end
   
     # make sure simulator config file exists
-    unless File.exists? ARGV[0]
+    unless File.exist? ARGV[0]
       do_abort("Invalid simulator configuration file!")
     end
 end
@@ -39,7 +39,7 @@ end
 $logger = Logger.new(STDOUT)
 $logger.level = Logger::INFO
 time = Time.now.strftime('%Y%m%d%H%M%S')
-GA_LOG = "ga_log_oracle_#{time}.log"
+GA_LOG = "KT_optimizer_log_#{time}.log"
 File.delete(GA_LOG) if File.exist?(GA_LOG)
 ga_logger = Logger.new(GA_LOG)
 ga_logger.level = Logger::INFO
@@ -52,7 +52,7 @@ msc = sim_conf.microservice_types
 
 $start_time = sim_conf.start_time
 
-def encode_replicas_set(x, n_ms, rss, slb, msc)
+def encode_replicas_set(x, n_ms, rss, slb)
   ra = rss.keys.to_a
   (0..(n_ms - 1)).each do |sj|
     rss[ra[sj]][:replicas] = x[sj]
@@ -70,32 +70,8 @@ def encode_replicas_set(x, n_ms, rss, slb, msc)
     end
     slb[ss[sj]][:load_balancing] = policy
   end
-
-  # affinity based on tier
-  # here 0 means local
-  # 1 means tier1
-  # 2 means tier2
-  # 3 means remote dc
-  msck = msc.keys.to_a
-  (0..(n_ms - 1)).each do |sj|
-    # shift to right
-    xj = sj + 2 * n_ms
-    if x[xj] == 0
-      affinity = "local"
-    elsif x[xj] == 1
-      affinity = "t1"
-    elsif x[xj] == 2
-      affinity = "t2"
-    else
-      affinity = "rdc"
-    end
-    msc[msck[sj]][:node_affinity] = affinity
-  end
-  # puts msc
-  # plus the node affinty for pods
-  
   #$logger.debug "Replica Sets: #{rss}"
-  return rss, slb, msc
+  return rss, slb
 end
 
 
@@ -106,14 +82,13 @@ to_optimize = lambda do |component_allocation|
     rss = sim_conf.replica_sets
     slb = sim_conf.services
     msc = sim_conf.microservice_types
-
-    rss, slb, msc = encode_replicas_set(component_allocation, n_ms, rss, slb, msc)
-
-    # create a simulator and launch it
-    $logger.debug component_allocation
+    rss, slb = encode_replicas_set(component_allocation, n_ms, rss, slb)
     sim = KUBETWIN::KSimulation.new(configuration: conf,
                                 evaluator: KUBETWIN::Evaluator.new(conf))
-    res = sim.evaluate_allocation(rss, slb, msc)
+    # create a simulator and launch it
+    $logger.debug component_allocation
+
+    res = sim.evaluate_allocation(rss, slb, nil)
     res
 end
 
@@ -130,20 +105,12 @@ solver_conf = {
       dimensions: n_ms * 3,
       recombination_type: :intermediate,
       random_func: lambda { Array.new(n_ms) { rand(1..10) } + Array.new(n_ms) {rand(0..1)} + Array.new(n_ms) {rand(0..2)}},
-      constraints: [
+      constraints: 
         # for rss configuration
-        {from: 1, to: 400},
-        {from: 1, to: 400},
-        {from: 1, to: 400},
+        Array.new(n_ms) {{from: 1, to: 10}} +
         # for load balancing configuration
-        {from: 0, to: 1},
-        {from: 0, to: 1},
-        {from: 0, to: 1},
-        # for node affinity
-        {from: 0, to: 2},
-        {from: 0, to: 2},
-        {from: 0, to: 2},
-      ]
+        Array.new(n_ms) {{from: 0, to: 1}} 
+      
   },
   exit_condition: lambda { |iteration, _| iteration > 15 }
 }

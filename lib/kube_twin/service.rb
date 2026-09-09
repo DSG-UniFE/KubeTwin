@@ -4,7 +4,6 @@ require_relative './pod'
 
 module KUBETWIN
   class Service
-
     # removing :targetPort for now
     # we are not dealing with TCP/IP here...
     # consider it for future work
@@ -12,19 +11,20 @@ module KUBETWIN
 
     attr_reader :serviceName,
                 :selector,
-                :pods 
-                #, :targetPort
+                :pods
 
-    SEED = 12345
+    # , :targetPort
 
-    def initialize(serviceName, selector, load_balancing=:load_balancing)
+    SEED = 45_678
+
+    def initialize(serviceName, selector, load_balancing = :random)
       @serviceName = serviceName
       @selector = selector
       @pods = {}
       # round robin pod selector
       @rri = 0
       @load_balancing = load_balancing
-      srand(SEED)
+      # srand(SEED)
     end
 
     # assign a pod to a service
@@ -33,43 +33,42 @@ module KUBETWIN
       pod_label = pod.label
       @pods[pod_label] ||= []
       raise 'Error! Pod is already present!' if @pods[pod_label].include? pod
+
       @pods[pod.label] << pod if @selector == pod.label
     end
 
     def get_pod(label)
-     if @load_balancing == :random
-       pod = get_random_pod(label)
-     elsif 
-       # this is for round robin
-       pod = get_pod_rr(label)
-     end
-     return pod
+      if @load_balancing == :random
+        pod = get_random_pod(label)
+      elsif pod = get_pod_rr(label)
+        # this is for round robin
+      end
+      pod
     end
-    
+
     # who calls this method?
     def get_random_pod(label, random: nil)
-      if @pods.key? label
-        if random
-          @pods[label].sample(random: random)
-        else
-          @pods[label].sample
-        end
+      return unless @pods.key? label
+
+      if random
+        @pods[label].sample(random: random)
+      else
+        @pods[label].sample
       end
     end
 
     def get_pod_rr(label)
-      if @pods.key? label
-        index = @rri
-        # update rri
-        @rri = @pods.length > 0 ? (@rri + 1) % @pods[label].length : 0
-        @pods[label][index]
-      end
+      return unless @pods.key? label
+
+      index = @rri
+      # update rri
+      @rri = @pods.length > 0 ? (@rri + 1) % @pods[label].length : 0
+      @pods[label][index]
     end
 
     def delete_pod(label, pod)
       @rri = 0
       @pods[label].delete pod
     end
-
   end
 end

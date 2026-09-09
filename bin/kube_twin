@@ -15,7 +15,7 @@ def do_abort(message)
     |#{message}
     |
     |Usage:
-    |    #{File.basename(__FILE__)} simulator_config_file 
+    |    #{File.basename(__FILE__)} simulator_config_file [allocation_json] [solution_id]
     |
   EOS
 end
@@ -36,14 +36,21 @@ if File.expand_path(__FILE__) == File.expand_path($0)
   # load simulation configuration
   conf = KUBETWIN::Configuration.load_from_file(ARGV[0])
 
-  # load vm allocation
-  # keep track of this for futre references
-  # vm_allocation = eval(File.read(ARGV[1]))
-
   # create a simulator and launch it
   sim = KUBETWIN::KSimulation.new(configuration: conf,
-                              evaluator: KUBETWIN::Evaluator.new(conf))
-  res = sim.evaluate_allocation()#(vm_allocation)
+                               evaluator: KUBETWIN::Evaluator.new(conf))
+
+  if ARGV[1]
+    unless File.exist? ARGV[1]
+      do_abort('Invalid allocation JSON file!')
+    end
+
+    replay = KUBETWIN::AllocationReplay.new(conf)
+    rss, replicas_mapping = replay.load_from_file(ARGV[1], solution_id: ARGV[2])
+    res = sim.evaluate_allocation(rss, nil, nil, nil, nil, replicas_mapping)
+  else
+    res = sim.evaluate_allocation
+  end
 
   # Print results
   puts 'Result:'

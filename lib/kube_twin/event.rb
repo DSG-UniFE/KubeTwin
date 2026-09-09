@@ -16,6 +16,9 @@ module KUBETWIN
     ET_PASSING_WAIT            = 9
     # ET_VM_SUSPEND              = 5
     # ET_VM_RESUME               = 6
+    ET_PARALLEL_BRANCH_COMPLETED = 10   # One parallel branch finished
+    ET_PARALLEL_SYNC_REACHED      = 11   # All parallel branches completed
+    ET_PARALLEL_DISPATCH          = 12   # Dispatch parallel requests
     ET_END_OF_SIMULATION       = 100
 
     # let the comparable mixin provide the < and > operators for us

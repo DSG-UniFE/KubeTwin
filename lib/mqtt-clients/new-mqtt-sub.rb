@@ -1,0 +1,231 @@
+require 'mqtt'
+require 'base64'
+require 'json'
+require 'yaml'
+require 'open3'
+require 'fileutils'
+require 'securerandom'
+require_relative './mqtt_publish'
+require_relative './exec_KT'
+require_relative './log_manager'  # Include the logging module
+require_relative './mqtt_publish'
+require_relative 'signals_handler'
+
+# Constants for MQTT connection
+MQTT_HOST = 'localhost'
+MQTT_PORT = 1883
+
+# MQTT topics
+TOPIC_PUB_TO_FLASK = 'parsing/from-kt/success' # topic to publish the optimized config file successfully processed
+TOPIC_PUB_TO_FLASK_ERROR = 'parsing/from-kt/error' # topic to publish the error message to Flask
+TOPIC_SUB_LISTEN_FROM_FLASK = 'parsing/to-kt' # topic to listen messages from Flask. Request to optimize the config file. 
+#TOPIC_PUB_TO_TORCH = 'parsed/to-torch/error' # topic to publish the optimized config file to Torch
+
+# Constants for file paths
+FINAL_ALLOCATION_FILE_TXT = './final_allocation.txt'
+FINAL_ALLOCATION_FILE_JSON = './final_allocation.json'
+UPLOAD_FOLDER = './uploads/'
+
+# Define max attempts for retrying connection
+MAX_ATTEMPTS = 50
+MAX_SECONDS_TO_RETRY = 60
+
+
+
+module MQTTSubscriber
+  # Function to decode and process the message with the execution of the oprimization
+  def self.process_received_message_and_exec_it(message, loggers)
+    begin
+      decoded_message = JSON.parse(Base64.decode64(message))
+
+      filename, config_data, yaml_data = decoded_message.values_at('filename', 'config', 'yaml')
+
+      # Create the upload directory if it doesn't exist
+      FileUtils.mkdir_p(UPLOAD_FOLDER) unless File.directory?(UPLOAD_FOLDER)
+
+      # Generate a random identifier (UUID) to ensure a unique folder name
+      random_identifier = SecureRandom.uuid
+      folder_name = "#{filename}_#{random_identifier}"
+      subfolder_path = File.join(UPLOAD_FOLDER, folder_name)
+      FileUtils.mkdir_p(subfolder_path) # Create the subfolder to save the files with the same name + UUID
+
+      # Construct file paths within the subfolder
+      path_to_save_yaml = File.join(subfolder_path, "#{filename}.yaml")
+      path_to_save_conf = File.join(subfolder_path, "#{filename}.conf")
+      #path_to_save_txt = File.join(subfolder_path, "#{filename}.txt")
+      path_to_save_json = File.join(subfolder_path, "#{filename}.json")
+
+      # Write data to files
+      write_to_file(path_to_save_yaml, yaml_data, loggers)
+      write_to_file(path_to_save_conf, config_data, loggers)
+
+      loggers[:info].info("Files saved: YAML (#{path_to_save_yaml}), CONF (#{path_to_save_conf})")
+
+      begin
+        # Run KubeTwin to optimize the config file
+        ExecKubeTwin.exec_KT(path_to_save_conf, loggers)
+      rescue StandardError => e
+        loggers[:error].error("An error occurred while running KubeTwin: #{e.message}")
+        # Publish error message
+        error_message = "Error running KubeTwin: #{e.message}" # This message will be convert in JSON format in the MQTTPublisher.publish_error_message
+        MQTTPublisher.publish_error_message(MQTT_HOST, MQTT_PORT, TOPIC_PUB_TO_FLASK_ERROR, error_message, loggers)
+        #raise # Re-raise the exception to be handled by the outer rescue block
+        return nil # Return nil to indicate failure in processing the message and send an error message to the Flask once time
+      end
+
+      # Read the optimized config file
+      #optimized_config_txt_data = read_from_file(FINAL_ALLOCATION_FILE_TXT, loggers)
+
+      # read the optimized config json file
+      optimized_config_json_data = read_from_file(FINAL_ALLOCATION_FILE_JSON, loggers)
+
+      # Save the optimized config data to a text file
+      #write_to_file(path_to_save_txt, optimized_config_txt_data, loggers)
+      write_to_file(path_to_save_json, optimized_config_json_data, loggers)
+
+      loggers[:info].info("Optimized config data saved to: #{path_to_save_json}")
+      [optimized_config_json_data, subfolder_path, filename]
+    rescue JSON::ParserError => e
+      loggers[:error].error("JSON parsing error: #{e.message}")
+      #error_message = { error: "JSON parsing error: #{e.message}" }.to_json
+      error_message = "JSON parsing error: #{e.message}" # This message will be convert in JSON format in the MQTTPublisher.publish_error_message
+      # Publish the error message back to MQTT
+      MQTTPublisher.publish_error_message(MQTT_HOST, MQTT_PORT, TOPIC_PUB_TO_FLASK_ERROR, error_message, loggers)
+      nil
+    rescue StandardError => e
+      loggers[:error].error("An error occurred while processing the message: #{e.message}")
+      #error_message = { error: "Error processing the message: #{e.message}" }.to_json
+      error_message = "Error processing the message: #{e.message}" # This message will be convert in JSON format in the MQTTPublisher.publish_error_message
+      # Publish the error message back to MQTT
+      MQTTPublisher.publish_error_message(MQTT_HOST, MQTT_PORT, TOPIC_PUB_TO_FLASK_ERROR, error_message, loggers)
+      nil
+    end
+  end
+
+  def self.process_to_send_data(subfolder_path, filename, loggers)
+    begin
+      # Construct file paths within the subfolder
+      path_yaml_file = File.join(subfolder_path, "#{filename}.yaml")
+      path_conf_file = File.join(subfolder_path, "#{filename}.conf")
+      #path_txt_file = File.join(subfolder_path, "#{filename}.txt")
+      path_json_file = File.join(subfolder_path, "#{filename}.json")
+
+      # Read data from files
+      yaml_data = read_from_file(path_yaml_file, loggers)
+      config_data = read_from_file(path_conf_file, loggers)
+      #txt_data = read_from_file(path_txt_file, loggers)
+      json_data = read_from_file(path_json_file, loggers)
+
+
+      message = {
+        filename: filename,
+        yaml: yaml_data,
+        config: config_data,
+        #txt: txt_data,
+        json: json_data
+      }
+
+      json_message = message.to_json  # Convert the JSON object to a string
+      # print all the data to be sent formatted in JSON
+
+
+      base64_message = Base64.strict_encode64(json_message)
+      loggers[:info].info("Data processed for sending: #{filename} and encoded in Base64.")
+      base64_message
+    rescue StandardError => e
+      loggers[:error].error("An error occurred while processing the message for sending: #{e.message}")
+      error_message = { error: "Error processing the message for sending: #{e.message}" }.to_json
+      # Publish the error message back to MQTT
+      MQTTPublisher.publish_error_message(MQTT_HOST, MQTT_PORT, TOPIC_PUB_TO_FLASK_ERROR, error_message, loggers)
+      nil
+    end
+  end
+
+  # Helper function to write data to a file
+  def self.write_to_file(filename, data, loggers)
+    File.open(filename, 'w') { |file| file.write(data) }
+    loggers[:info].info("Data written to file: #{filename}")
+  rescue StandardError => e
+    loggers[:error].error("Error writing to file #{filename}: #{e.message}")
+    error_message = { error: "Error writing to file #{filename}: #{e.message}" }.to_json
+    # Publish the error message back to MQTT
+    MQTTPublisher.publish_error_message(MQTT_HOST, MQTT_PORT, TOPIC_PUB_TO_FLASK_ERROR, error_message, loggers)
+  end
+
+  # Helper function to read data from a file
+  def self.read_from_file(filename, loggers)
+    File.read(filename)
+  rescue StandardError => e
+    loggers[:error].error("Error reading file #{filename}: #{e.message}")
+    nil
+  end
+
+  # MQTT connection and message handling
+  def self.mqtt_listen_and_publish(loggers, attempt = 0)
+    #SignalsHandler.setup_signal_handler(loggers) # Setup the signal handler for Ctrl+C (SIGINT)
+    
+    begin
+      MQTT::Client.connect(host: MQTT_HOST, port: MQTT_PORT) do |client|
+        
+        loggers[:info].info("Connected to the broker...")
+
+        # Subscribe and listen to the topic
+        client.get(TOPIC_SUB_LISTEN_FROM_FLASK) do |topic, message|
+          loggers[:info].info("Received message on topic #{topic}")
+
+          # Process the message
+          optimized_config_data, subfolder_path, filename = process_received_message_and_exec_it(message, loggers)
+
+          if optimized_config_data
+            encoded_message = process_to_send_data(subfolder_path, filename, loggers)
+            # Publish the optimized config data back to MQTT
+            MQTTPublisher.publish_mqtt_message_from_sub(MQTT_HOST, MQTT_PORT, TOPIC_PUB_TO_FLASK, encoded_message, loggers)
+          else
+            loggers[:error].error("Failed optimization and processing of the message. Function name: mqtt_listen_and_publish")
+            #error_message = { error: "Failed optimization and processing of the message" }.to_json
+            error_message = "Failed optimization and processing of the message"
+            # Publish the error message back to MQTT
+            MQTTPublisher.publish_error_message(MQTT_HOST, MQTT_PORT, TOPIC_PUB_TO_FLASK_ERROR, error_message, loggers)
+          end
+        end
+      end
+    rescue MQTT::ProtocolException => e
+      loggers[:error].error("MQTT protocol error: #{e.message}")
+      retry_connection(loggers, attempt)
+    rescue StandardError => e
+      loggers[:error].error("Error in MQTT connection: #{e.message}")
+      retry_connection(loggers, attempt)
+    end
+  end
+
+  # Retry connection with exponential backoff
+  def self.retry_connection(loggers, attempt, max_attempts = MAX_ATTEMPTS)
+    if attempt >= max_attempts
+      loggers[:fatal].fatal("All retry attempts failed. The subcriber is closed definitely.")
+      return # Exit if max attempts have been reached
+    end
+
+    delay = 2 * (2 ** attempt) # Exponential backoff formula
+    return loggers[:warn].warn("Retrying is over #{MAX_SECONDS_TO_RETRY} seconds. The subcriber is closed definitely.") if delay > MAX_SECONDS_TO_RETRY # Limit the delay to 60 seconds maximum although it can be increased thanks to the attempt limit
+    loggers[:warn].warn("Retrying connection in #{delay} seconds... (Attempt #{attempt + 1}/#{max_attempts})")
+    sleep delay
+
+    begin
+      mqtt_listen_and_publish(loggers, attempt + 1) # Increment attempt 
+    rescue StandardError => e
+      loggers[:error].error("Retry attempt #{attempt + 1} failed: #{e.message}")
+      retry_connection(loggers, attempt + 1, max_attempts) # Continue retrying
+    end
+  end
+
+  
+end
+
+# Main function to start MQTT listening and publishing
+if __FILE__ == $0
+  enable_cli_logging = true # Set this to true to enable CLI logging
+  enable_debug_logging = true # Set this to false to disable debug logging
+  loggers = LogManager.setup_loggers(enable_cli: enable_cli_logging, enable_debug_log: enable_debug_logging)
+
+  MQTTSubscriber.mqtt_listen_and_publish(loggers)
+end

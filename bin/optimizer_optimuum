@@ -1,0 +1,39 @@
+#!/usr/bin/env ruby
+
+begin
+  require 'kube_twin'
+  require 'mhl'
+  require 'logger'
+rescue LoadError
+  require 'rubygems'
+  require 'kube_twin'
+  require 'mhl'
+end
+
+def do_abort(message)
+  abort <<-EOS.gsub(/^\s+\|/, '')
+      |#{message}
+      |
+      |Usage:
+      |    #{File.basename(__FILE__)} simulator_config_file#{' '}
+      |
+  EOS
+end
+
+if File.expand_path(__FILE__) == File.expand_path($0)
+  # make sure both required arguments were given
+  case ARGV.size
+  when 0
+    do_abort('Missing simulator configuration files!')
+  end
+
+  # make sure simulator config file exists
+  do_abort('Invalid simulator configuration file!') unless File.exist? ARGV[0]
+end
+
+# This one instead takes decision per replica, not per microservice type
+#koptim = KUBETWIN::KOptimizerACM2.new(ARGV[0])
+koptim = KUBETWIN::KOptimizerMultiobjective.new(ARGV[0])
+koptim.optimize
+
+exit 0

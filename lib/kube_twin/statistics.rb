@@ -2,15 +2,14 @@
 
 require_relative './request'
 
-
 module KUBETWIN
   class Statistics
     attr_reader :mean, :n, :received, :longer_than, :shorter_than
-    alias_method :closed, :n
+    alias closed n
 
     # see http://en.wikipedia.org/wiki/Algorithms_for_calculating_variance#Online_algorithm
     # and https://www.johndcook.com/blog/standard_deviation/
-    def initialize(opts={})
+    def initialize(opts = {})
       @n    = 0 # number of requests
       @mean = 0.0
       @m_2  = 0.0
@@ -20,21 +19,27 @@ module KUBETWIN
       @shorter_than = init_counters_for_shorter_than_stats(opts)
       @received = 0
       @csv = []
+      @samples = []
     end
 
     def request_received
       @received += 1
     end
 
-    def record_request(req, time)
+    def record_request(req, time, chain = false)
       # get new sample
-      x = req.ttr(time)
+      x = if chain
+            req.ttr_chain(time)
+          else
+            req.ttr(time)
+          end
       raise "TTR #{x} for request #{req.rid} invalid!" unless x > 0.0
 
       # string operations are slow << is the fastest
       steps = req.steps_ttr.join(',')
-      #@csv << req.rid << ',' << x << ',' << steps << '\n'
+      # @csv << req.rid << ',' << x << ',' << steps << '\n'
       @csv << "#{req.rid},#{x},#{steps}\n"
+      @samples << x
 
       qx = req.queuing_time
 
@@ -62,42 +67,71 @@ module KUBETWIN
     end
 
     def q_variance
-      @q_m_2 / (@n -1)
+      @q_m_2 / (@n - 1)
+    end
+
+    def add_custom_kpis(custom_kpis_config)
+      # add custom kpis to the longer_than and shorter_than counters
+      @longer_than.merge!(init_counters_for_longer_than_stats(custom_kpis_config))
+      @shorter_than.merge!(init_counters_for_shorter_than_stats(custom_kpis_config))
+    end
+
+    def percentile(q)
+      return 0.0 if @samples.empty?
+
+      sorted = @samples.sort
+      sorted[(q * (sorted.length - 1)).to_i]
+    end
+
+    def p50
+      percentile(0.50)
+    end
+
+    def p90
+      percentile(0.90)
+    end
+
+    def p95
+      percentile(0.95)
+    end
+
+    def p99
+      percentile(0.99)
     end
 
     def to_s
       "received: #{@received}, closed: #{@n}\n" +
-      "TTR: (mean: #{@mean}, variance: #{variance}, longer_than: #{@longer_than.to_s}) shorter_than: #{@shorter_than.to_s}\n" +
-      "QTIME: (mean: #{@q_mean}, variance: #{q_variance})"
+        "TTR: (mean: #{@mean}, variance: #{variance}, p50: #{p50}, p90: #{p90}, p95: #{p95}, p99: #{p99}, longer_than: #{@longer_than}) shorter_than: #{@shorter_than}\n" +
+        "QTIME: (mean: #{@q_mean}, variance: #{q_variance})"
     end
 
     def to_csv
-      header = "rid,ttr" 
-      return "#{header}\n#{@csv.join}"
+      header = 'rid,ttr'
+      "#{header}\n#{@csv.join}"
     end
 
     private
-      def init_counters_for_longer_than_stats(custom_kpis_config)
-        # prepare an infinite length enumerator that always returns zero
-        zeros = Enumerator.new(){|x| loop do x << 0 end }
 
-        Hash[
-          # wrap the values in custom_kpis_config[:longer_than] in an array
-          Array(custom_kpis_config[:longer_than]).
-            # and interval the numbers contained in that array with zeroes
-            zip(zeros) ]
-      end
+    def init_counters_for_longer_than_stats(custom_kpis_config)
+      # prepare an infinite length enumerator that always returns zero
+      zeros = Enumerator.new { |x| loop { x << 0 } }
 
-      def init_counters_for_shorter_than_stats(custom_kpis_config)
-        # prepare an infinite length enumerator that always returns zero
-        zeros = Enumerator.new(){|x| loop do x << 0 end }
+      Hash[
+        # wrap the values in custom_kpis_config[:longer_than] in an array
+        Array(custom_kpis_config[:longer_than]).
+        # and interval the numbers contained in that array with zeroes
+        zip(zeros) ]
+    end
 
-        Hash[
-          # wrap the values in custom_kpis_config[:longer_than] in an array
-          Array(custom_kpis_config[:longer_than]).
-            # and interval the numbers contained in that array with zeroes
-            zip(zeros) ]
-      end
+    def init_counters_for_shorter_than_stats(custom_kpis_config)
+      # prepare an infinite length enumerator that always returns zero
+      zeros = Enumerator.new { |x| loop { x << 0 } }
 
+      Hash[
+        # wrap the values in custom_kpis_config[:longer_than] in an array
+        Array(custom_kpis_config[:longer_than]).
+        # and interval the numbers contained in that array with zeroes
+        zip(zeros) ]
+    end
   end
 end

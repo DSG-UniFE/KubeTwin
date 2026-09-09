@@ -1,0 +1,177 @@
+#!/usr/bin/env ruby
+
+begin
+  require 'kube_twin'
+  require 'kube_twin/evaluation'
+rescue LoadError
+  require 'rubygems'
+  require 'kube_twin'
+  require 'kube_twin/evaluation'
+end
+
+require 'logger'
+require 'time'
+
+def do_abort(message)
+  abort <<~EOS
+    #{message}
+
+    Usage:
+        #{File.basename(__FILE__)} response_time_scenarios.md allocation.json [config]
+  EOS
+end
+
+markdown_path = ARGV[0] or do_abort('Missing response_time_scenarios.md path')
+allocation_path = ARGV[1] or do_abort('Missing allocation json path')
+config_path = ARGV[2] || 'examples/bookinfo-3c-xr.conf'
+
+do_abort('Invalid markdown path') unless File.exist?(markdown_path)
+do_abort('Invalid allocation json path') unless File.exist?(allocation_path)
+do_abort('Invalid config path') unless File.exist?(config_path)
+
+class ScenarioComparisonGenerator
+  Scenario = Struct.new(:title, :solution_id, :old_expected_ms, :observed_avg_ms, :observed_p90_ms, :observed_p95_ms)
+
+  def initialize(markdown_path:, allocation_path:, config_path:)
+    @markdown_path = markdown_path
+    @allocation_path = allocation_path
+    @config_path = config_path
+  end
+
+  def run
+    scenarios = extract_scenarios
+    comparisons = scenarios.map { |scenario| compare_scenario(scenario) }
+    write_csv(comparisons)
+    write_report(comparisons)
+  end
+
+  private
+
+  def extract_scenarios
+    content = File.read(@markdown_path)
+    sections = content.split(/^### /).drop(1)
+
+    sections.filter_map do |section|
+      header, *rest = section.lines
+      next unless header.include?('OPTIMUUM')
+
+      body = rest.join
+      solution_id_match = header.match(/Soluzione\s+(\d+)/)
+      next unless solution_id_match
+
+      old_expected_match = body.match(/_(?:expected rtt|avg_rt|rtt)_\s*:\s*(\d+(?:\.\d+)?)\s*ms/i)
+
+      main_table_match = body.match(/#### End-to-End latency\s+\n(?<table>(?:\|.*\n){3,})/m)
+      next unless main_table_match
+
+      row = main_table_match[:table].lines.find { |line| line.include?('| T#1|') || line.include?('| T#1 |') }
+      next unless row
+
+      cells = row.split('|').map(&:strip).reject(&:empty?)
+      next unless cells.length >= 8
+
+      Scenario.new(
+        header.strip,
+        solution_id_match[1].to_i,
+        old_expected_match && old_expected_match[1].to_f,
+        numeric_ms(cells[1]),
+        numeric_ms(cells[5]),
+        numeric_ms(cells[6])
+      )
+    end
+  end
+
+  def compare_scenario(scenario)
+    conf = KUBETWIN::Configuration.load_from_file(@config_path)
+    replay = KUBETWIN::AllocationReplay.new(conf)
+    rss, replicas_mapping = replay.load_from_file(@allocation_path, solution_id: scenario.solution_id)
+    null_logger = Logger.new(File::NULL)
+    sim = KUBETWIN::KSimulation.new(configuration: conf,
+                                    evaluator: KUBETWIN::Evaluator.new(conf),
+                                    logger: null_logger,
+                                    log_level: Logger::FATAL)
+    original_stdout = $stdout
+    $stdout = File.open(File::NULL, 'w')
+    metrics = sim.evaluate_allocation_multiobjective(rss, nil, nil, nil, nil, replicas_mapping)
+    $stdout.close
+    $stdout = original_stdout
+
+    mean_ms = metrics[:mean_ttr] * 1000.0
+    {
+      title: scenario.title,
+      solution_id: scenario.solution_id,
+      old_expected_ms: scenario.old_expected_ms,
+      observed_avg_ms: scenario.observed_avg_ms,
+      observed_p90_ms: scenario.observed_p90_ms,
+      observed_p95_ms: scenario.observed_p95_ms,
+      simulated_mean_ms: mean_ms,
+      overall_spreading: metrics[:overall_spreading],
+      delta_ms: mean_ms - scenario.observed_avg_ms,
+      delta_pct: scenario.observed_avg_ms.zero? ? nil : ((mean_ms - scenario.observed_avg_ms) / scenario.observed_avg_ms) * 100.0
+    }
+  end
+
+  def write_csv(comparisons)
+    path = 'response_time_scenarios_comparison.csv'
+    File.open(path, 'w') do |f|
+      f.puts 'solution_id,old_expected_ms,testbed_avg_ms,testbed_p90_ms,testbed_p95_ms,simulated_mean_ms,delta_ms,delta_pct,overall_spreading,title'
+      comparisons.each do |row|
+        f.puts [
+          row[:solution_id], row[:old_expected_ms], row[:observed_avg_ms], row[:observed_p90_ms],
+          row[:observed_p95_ms], row[:simulated_mean_ms], row[:delta_ms], row[:delta_pct],
+          row[:overall_spreading], csv_escape(row[:title])
+        ].join(',')
+      end
+    end
+    path
+  end
+
+  def write_report(comparisons)
+    timestamp = Time.now.utc.iso8601
+    path = 'response_time_scenarios_comparison.md'
+    File.open(path, 'w') do |f|
+      f.puts '# Response Time Scenario Comparison'
+      f.puts
+      f.puts "Generated at: `#{timestamp}`"
+      f.puts
+      f.puts "Simulator config: `#{@config_path}`"
+      f.puts
+      f.puts "Allocation file: `#{@allocation_path}`"
+      f.puts
+      f.puts 'The simulator values below were recomputed with the current multicluster workflow model and the calibrated `rps_correction_factor` present in the configuration file.'
+      f.puts
+      f.puts '![Scenario Comparison](response_time_scenarios_comparison.png)'
+      f.puts
+      f.puts '| Scenario | Solution | Old Expected (ms) | Testbed Avg (ms) | Testbed P90 (ms) | Testbed P95 (ms) | Simulated Mean (ms) | Delta (ms) | Delta (%) | Spreading |'
+      f.puts '| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |'
+      comparisons.each do |row|
+        f.puts "| #{row[:title]} | #{row[:solution_id]} | #{fmt(row[:old_expected_ms])} | #{fmt(row[:observed_avg_ms])} | #{fmt(row[:observed_p90_ms])} | #{fmt(row[:observed_p95_ms])} | #{fmt(row[:simulated_mean_ms])} | #{fmt(row[:delta_ms])} | #{fmt(row[:delta_pct])} | #{fmt(row[:overall_spreading])} |"
+      end
+      f.puts
+      f.puts '## Notes'
+      f.puts
+      f.puts '- `Old Expected` is the value written in the original markdown file.'
+      f.puts '- `Simulated Mean` is the current simulator end-to-end mean TTR for the same allocation.'
+      f.puts '- `Delta` is `simulated_mean - testbed_avg`.'
+    end
+    puts "Wrote #{path}"
+  end
+
+  def fmt(value)
+    return '-' if value.nil?
+
+    value.round(2)
+  end
+
+  def numeric_ms(value)
+    value.to_s.sub(/\s*ms\z/i, '').to_f
+  end
+
+  def csv_escape(value)
+    %("#{value.to_s.gsub('"', '""')}")
+  end
+end
+
+ScenarioComparisonGenerator.new(markdown_path: markdown_path,
+                                allocation_path: allocation_path,
+                                config_path: config_path).run

@@ -3,6 +3,58 @@
 require 'erv'
 
 module KUBETWIN
+  class LatencyManagerFederation
+    MIN_LATENCY = 1E-3
+
+    def initialize(latency_models, seed: nil)
+      @latency_models = latency_models
+      @intra_dc_latency = ERV::RandomVariable.new(distribution: :gaussian,
+                                                  args: { mean: 5E-3,
+                                                           sd: 1E-3, seed: seed || 12_345 })
+      @noise = ERV::RandomVariable.new(distribution: :gaussian, args: { mean: 0.0, sd: 10E-3, seed: seed || 12_345 })
+    end
+
+    def sample_latency_between(loc1, loc2)
+      lat = nil
+      @latency_models.each do |model|
+        if (model[:src] == loc1 && model[:dst] == loc2) ||
+           (model[:src] == loc2 && model[:dst] == loc1)
+          # value is a constant value in seconds. Add jitter and clamp the final latency.
+          lat = clamp_latency(model[:value] + @noise.next)
+          # puts "latency between #{loc1} and #{loc2} is #{lat} seconds"
+          return lat
+        elsif loc1 == loc2
+          # return intra-dc latency. Let's approximate it from 1 to 5 ms and convert to seconds
+          while (lat = @intra_dc_latency.next) < MIN_LATENCY; end
+          lat
+        end
+      end
+      if lat.nil?
+        # Check the latency from src 0 to dst loc1 and loc2 and then sum them
+        # This is to simulate Liqo connectivity between leaf nodes via the home DC
+        # If only a cluster is specified, we still need to return the intra-dc latency
+        if loc1 == 0 || loc2 == 0
+          while (lat = @intra_dc_latency.next) < MIN_LATENCY; end
+        else
+          src_to_loc1 = @latency_models.find { |model| model[:src] == 0 && model[:dst] == loc1 }
+          dst_to_loc2 = @latency_models.find { |model| model[:src] == 0 && model[:dst] == loc2 }
+          unless src_to_loc1 && dst_to_loc2
+            raise "Latency model not found for locations #{loc1} and #{loc2} #{@latency_models}"
+          end
+
+          lat = clamp_latency(src_to_loc1[:value] + dst_to_loc2[:value] + @noise.next)
+        end
+      end
+      lat
+    end
+
+    private
+
+    def clamp_latency(value)
+      [value, MIN_LATENCY].max
+    end
+  end
+
   class LatencyManager
     def initialize(latency_models, seed: nil)
       # create rng for reproducible seeding
@@ -26,31 +78,34 @@ module KUBETWIN
 
       # precalculate average latencies
       @average_latency_matrix = @latency_models_matrix.map do |lms|
-        lms.map{|x| x.mean }
+        lms.map { |x| x.mean }
       end
 
       # latency in the same location is implemented as a truncated gaussian
       # with mean = 20ms, sd = 5ms, and a = 2ms
-      @same_location_latency = ERV::RandomVariable.new(distribution: :gaussian, args: { mean: 20E-3, sd: 5E-3, seed: rng.rand(100_000_000) })
+      @same_location_latency = ERV::RandomVariable.new(distribution: :gaussian,
+                                                       args: {
+                                                         mean: 20E-3, sd: 5E-3, seed: rng.rand(100_000_000)
+                                                       })
     end
 
     def sample_latency_between(loc1, loc2)
       # clean this code... commented, we also define intra dc latency here
-      #if loc1 == loc2
+      # if loc1 == loc2
       #  # rejection sampling to implement (crudely) PDF truncation
       #  while (lat = @same_location_latency.next) < 2E-3; end
       #  lat
-      #else
-        l1, l2 = loc1 < loc2 ? [ loc1, loc2 ] : [ loc2, loc1 ]
+      # else
+      l1, l2 = loc1 < loc2 ? [loc1, loc2] : [loc2, loc1]
 
-        # since we use a compact representation for @latency_models_matrix, the
-        # indexes become l1 and (l2-l1-1)
-        # rejection sampling to implement (crudely) PDF truncation to positive numbers
-        # NOTE for kubetwin we consider also intra latency model so
-        # indexes become l1 and (l2-l1)
-        while (lat = @latency_models_matrix[l1][l2-l1].next) <= 0.0; end
-        lat #/ 1000.0 # conversion from milliseconds to seconds
-      #end
+      # since we use a compact representation for @latency_models_matrix, the
+      # indexes become l1 and (l2-l1-1)
+      # rejection sampling to implement (crudely) PDF truncation to positive numbers
+      # NOTE for kubetwin we consider also intra latency model so
+      # indexes become l1 and (l2-l1)
+      while (lat = @latency_models_matrix[l1][l2 - l1].next) <= 0.0; end
+      lat # / 1000.0 # conversion from milliseconds to seconds
+      # end
     end
 
     def average_latency_between(loc1, loc2)
@@ -61,12 +116,12 @@ module KUBETWIN
       if loc1 == loc2
         @same_location_latency.mean
       else
-        l1, l2 = loc1 < loc2 ? [ loc1, loc2 ] : [ loc2, loc1 ]
+        l1, l2 = loc1 < loc2 ? [loc1, loc2] : [loc2, loc1]
 
         # since we use a compact representation for @average_latency_between, the
         # indexes become l1 and (l2-l1-1)
-        mean = @average_latency_between[l1][l2-l1]
-        mean #/ 1000.0 # conversion from milliseconds to seconds
+        @average_latency_between[l1][l2 - l1]
+        # / 1000.0 # conversion from milliseconds to seconds
       end
     end
   end
