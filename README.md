@@ -30,6 +30,23 @@ To do so, run the following command:
     
     pip install -r requirements.txt
 
+### Installing torch-rb (LibTorch)
+
+KubeTwin uses the [torch-rb](https://github.com/ankane/torch-rb) gem (see `lib/kube_twin/mdn.rb`) to run the MDN service-time prediction models from Ruby. Unlike most gems, `torch-rb` needs a local copy of LibTorch (the PyTorch C++ library) to compile its native extension against, so `bundle install` will fail with `LibTorch not found` unless you set this up first:
+
+1. Download the LibTorch (C++) distribution matching the gem's PyTorch version (currently 2.13.0) and your platform/architecture from the [PyTorch "Get Started" page](https://pytorch.org/get-started/locally/) (choose Package: LibTorch, Compute Platform: CPU, and the C++/Java, cxx11 ABI build for your OS).
+2. Unzip it. This creates a `libtorch/` directory containing `include/` and `lib/`; place it wherever you like (e.g. in the project root).
+3. On Apple Silicon Macs, also install the OpenMP runtime that LibTorch links against:
+
+       brew install libomp
+
+4. Tell Bundler where to find LibTorch before installing gems, using the **absolute path** to the folder from step 2:
+
+       bundle config build.torch-rb --with-torch-dir=/absolute/path/to/libtorch
+
+   (If you instead extract `libtorch/` under `/usr/local`, `/opt/homebrew`, or `/home/linuxbrew/.linuxbrew`, `torch-rb` will find it automatically and you can skip this step.)
+5. Run `bundle install` as described above. Bundler will remember the `build.torch-rb` setting in `.bundle/config` (which is machine-specific and not committed to the repo).
+
 ## Usage
 
 To run the simulator with bundler simply digit:
