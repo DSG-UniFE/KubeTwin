@@ -46,7 +46,7 @@ To run the KubeTwin on a simple scenario bundler simply digit:
 
     bundle exec bin/kube_twin examples/use_case.conf 
 
-where example/use_case.conf is an example of a simulation environment configuration.
+where example/use_case.conf is an example of a simulation environment configuration. For a full reference on how to write the various sections of a configuration file (topology, workflows, request generation, microservice types, scaling policies, ...), see [docs/CONFIGURATION.md](docs/CONFIGURATION.md).
 
 ## Examples
 
