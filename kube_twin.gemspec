@@ -7,8 +7,8 @@ Gem::Specification.new do |spec|
   spec.version       = KUBETWIN::VERSION
   spec.authors       = ['DS@Unife']
   spec.email         = ['ds@unife.it']
-  spec.description   = 'KubeTwin, a Kubernetes Simulator'
-  spec.summary       = 'A Kubernetes Simulator written in Ruby'
+  spec.description   = 'KubeTwin, a Digital Twin for large-scale Kubernetes installations'
+  spec.summary       = 'KubeTwin is a framework for building accurate Digital Twins of large-scale Kubernetes installations, designed as a tool for spearheading research on smart orchestration in the Compute Continuum and written in the Ruby programming language.'
   spec.homepage      = 'https://https://github.com/DSG-UniFE/KubeTwin'
   spec.license       = 'MIT'
 
@@ -17,18 +17,16 @@ Gem::Specification.new do |spec|
   spec.test_files    = spec.files.grep(%r{^(test|spec|features)/})
   spec.require_paths = ['lib']
 
-  spec.add_dependency 'as-duration', '~> 0.1.1'
-  spec.add_dependency 'ice_nine', '~> 0.11.2'
-  spec.add_dependency 'mhl'
-  spec.add_dependency 'rumale-ensemble'
+  spec.add_dependency 'ice_nine', '>= 0.11.2'
+  spec.add_dependency 'mhl', '>= 0.3.0'
+  spec.add_dependency 'rumale-ensemble', '>= 2.2'
+  spec.add_dependency 'torch-rb', '>= 0.26.0'
 
-  spec.add_development_dependency 'bundler'
-  spec.add_development_dependency 'dotenv', '~> 2.7.6'
-  spec.add_development_dependency 'dry-auto_inject', '~> 0.8.0'
-  spec.add_development_dependency 'dry-validation', '~> 1.7'
-  spec.add_development_dependency 'minitest', '~> 5.14.2'
-  spec.add_development_dependency 'minitest-reporters', '~> 1.4.2'
-  spec.add_development_dependency 'minitest-spec-context', '~> 0.0.4'
-  spec.add_development_dependency 'pry'
-  spec.add_development_dependency 'rake', '~> 13.0.1'
+  spec.add_development_dependency 'dotenv', '>= 3.2'
+  spec.add_development_dependency 'dry-auto_inject', '>= 1.2.1'
+  spec.add_development_dependency 'dry-validation', '>= 1.11.1'
+  spec.add_development_dependency 'minitest', '>= 6.0.6'
+  spec.add_development_dependency 'minitest-reporters', '>= 1.8'
+  spec.add_development_dependency 'minitest-spec-context', '>= 0.0.5'
+  spec.add_development_dependency 'rake', '>= 13.4.2'
 end
