@@ -3,8 +3,9 @@
 require_relative './support/dsl_helper'
 require_relative './logger'
 
-require 'as-duration'
 require 'ice_nine'
+
+require_relative './timespan'
 
 module ERV
   module GaussianMixtureHelper
@@ -47,29 +48,6 @@ module ERV
   end
 end
 
-if defined? JRUBY_VERSION
-  # JRuby 9.2 still has a buggy support for refinements, so we need to revert
-  # to the brutal monkeypatching of the Integer class
-  class Integer
-    # def minute; self * 60; end
-    # def minutes; self * 60; end
-    # def second; self; end
-    # def seconds; self; end
-    def msec; self * 1E-3; end
-    def msecs; self * 1E-3; end
-  end
-else
-  module TimeExtensions
-    refine Integer do
-      # def minute; self * 60; end
-      # def minutes; self * 60; end
-      # def second; self; end
-      # def seconds; self; end
-      def msec; self * 1E-3; end
-      def msecs; self * 1E-3; end
-    end
-  end
-end
 
 module KUBETWIN
 
@@ -104,7 +82,6 @@ module KUBETWIN
   class Configuration
     include Configurable
     include Logging
-    using TimeExtensions unless defined? JRUBY_VERSION
 
     attr_accessor :filename
 

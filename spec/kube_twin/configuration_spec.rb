@@ -36,48 +36,49 @@ describe KUBETWIN::Configuration do
   end
 
 
-  describe 'service_component_types' do
+  describe 'microservice_types' do
 
     it 'should have 3 items' do
       with_reference_config do |conf|
-        _(conf.service_component_types.size).must_equal 3
+        _(conf.microservice_types.size).must_equal 3
       end
     end
 
     it 'should define a Web Server' do
       with_reference_config do |conf|
-        _(conf.service_component_types.keys).must_include('Web Server')
+        _(conf.microservice_types.keys).must_include('Web Server')
       end
     end
 
     it 'should define an App Server' do
       with_reference_config do |conf|
-        _(conf.service_component_types.keys).must_include('App Server')
+        _(conf.microservice_types.keys).must_include('App Server')
       end
     end
 
     it 'should define a Financial Transaction Server' do
       with_reference_config do |conf|
-        _(conf.service_component_types.keys).must_include('Financial Transaction Server')
+        _(conf.microservice_types.keys).must_include('Financial Transaction Server')
       end
     end
 
     describe 'the Web Server' do
-      it 'should work on medium or large VMs' do
+      it 'should define service times for both mec and cloud clusters' do
         with_reference_config do |conf|
-          item_conf = conf.service_component_types['Web Server']
-          _(item_conf[:allowed_vm_types]).must_include(:medium)
-          _(item_conf[:allowed_vm_types]).must_include(:large)
+          item_conf = conf.microservice_types['Web Server']
+          _(item_conf[:service_time_distribution].keys).must_include(:mec)
+          _(item_conf[:service_time_distribution].keys).must_include(:cloud)
         end
       end
     end
 
     describe 'the App Server' do
-      it 'should work on large and huge VMs' do
+      it 'should require more CPU and memory than the Web Server' do
         with_reference_config do |conf|
-          item_conf = conf.service_component_types['App Server']
-          _(item_conf[:allowed_vm_types]).must_include(:large)
-          _(item_conf[:allowed_vm_types]).must_include(:huge)
+          web_conf = conf.microservice_types['Web Server']
+          app_conf = conf.microservice_types['App Server']
+          _(app_conf[:resources_requirements_cpu]).must_be :>, web_conf[:resources_requirements_cpu]
+          _(app_conf[:resources_requirements_memory]).must_be :>, web_conf[:resources_requirements_memory]
         end
       end
     end
@@ -85,10 +86,10 @@ describe KUBETWIN::Configuration do
   end
 
 
-  describe 'data_centers' do
+  describe 'clusters' do
     it 'should have 5 items' do
       with_reference_config do |conf|
-        _(conf.data_centers.size).must_equal 5
+        _(conf.clusters.size).must_equal 5
       end
     end
   end

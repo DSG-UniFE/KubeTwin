@@ -1,45 +1,71 @@
 # frozen_string_literal: true
 
 require 'kube_twin/configuration'
+require 'kube_twin/timespan'
 
 START_TIME      = Time.utc(1978, 'Aug', 12, 14, 30, 0).to_f
-DURATION        = 1.minute.to_f
-WARMUP_DURATION = 10.seconds.to_f
+DURATION        = KUBETWIN::Timespan.minute(1).to_f
+WARMUP_DURATION = KUBETWIN::Timespan.seconds(10).to_f
 SIMULATION_CHARACTERIZATION = <<END
   # start time, duration, and warmup time for simulations
   start_time Time.utc(1978, 'Aug', 12, 14, 30, 0)
-  duration 1.minute
-  warmup_duration 10.seconds
+  duration KUBETWIN::Timespan.minute(1)
+  warmup_duration KUBETWIN::Timespan.seconds(10)
 END
 
 
-# characterization of data centers
-DATA_CENTERS_CHARACTERIZATION = <<END
-data_centers \
+# characterization of clusters
+# (renamed from the old data_centers model: KUBETWIN::Cluster now requires
+# type/tier/node_number/node_resources_cpu/node_resources_memory -- see any
+# examples/*.conf's `clusters` block for the current shape. Kept the same
+# location_ids (0..4) that LATENCY_MODELS_CHARACTERIZATION and
+# CUSTOMER_CHARACTERIZATION below already reference.)
+CLUSTERS_CHARACTERIZATION = <<END
+clusters \
   1 => {
     location_id: 0,
-    name: "Data center 1",
-    type: :public,
+    name: "Cluster 1",
+    type: :mec,
+    tier: 'local',
+    node_number: 25,
+    node_resources_cpu: 100,
+    node_resources_memory: 100,
   },
   2 => {
     location_id: 1,
-    name: "Data center 2",
-    type: :public,
+    name: "Cluster 2",
+    type: :mec,
+    tier: 'local',
+    node_number: 25,
+    node_resources_cpu: 100,
+    node_resources_memory: 100,
   },
   3 => {
     location_id: 2,
-    name: "Data center 3",
-    type: :public,
+    name: "Cluster 3",
+    type: :mec,
+    tier: 'local',
+    node_number: 25,
+    node_resources_cpu: 100,
+    node_resources_memory: 100,
   },
   4 => {
     location_id: 3,
-    name: "Data center 4",
-    type: :public,
+    name: "Cluster 4",
+    type: :mec,
+    tier: 'local',
+    node_number: 25,
+    node_resources_cpu: 100,
+    node_resources_memory: 100,
   },
   5 => {
     location_id: 4,
-    name: "Data center 5",
-    type: :public,
+    name: "Cluster 5",
+    type: :cloud,
+    tier: 'central',
+    node_number: 200,
+    node_resources_cpu: 500,
+    node_resources_memory: 500,
   }
 END
 
@@ -340,47 +366,48 @@ customers \
 END
 
 
-# characterization of component types
-SERVICE_COMPONENT_TYPES_CHARACTERIZATION = <<END
-service_component_types \
+# characterization of microservice types
+# (renamed from the old service_component_types/allowed_vm_types model:
+# KubeTwin characterizes each microservice by its per-cluster-type service
+# time and its fixed CPU/memory resource requirements, not by a list of
+# allowed VM sizes -- see any examples/*.conf for the current shape)
+MICROSERVICE_TYPES_CHARACTERIZATION = <<END
+microservice_types \
   'Web Server' => {
-    allowed_vm_types: [ :medium, :large ],
     service_time_distribution: {
-      medium: { distribution: :gaussian,
-                args: { mean: 0.009, # 1 request processed every 9ms
-                        sd:   0.001 } },
-      large:  { distribution: :gaussian,
-                args: { mean: 0.007, # 1 request processed every 7ms
-                        sd:   0.001 } },
+      mec:   { distribution: :gaussian,
+               args: { mean: 0.009, # 1 request processed every 9ms
+                       sd:   0.001 } },
+      cloud: { distribution: :gaussian,
+               args: { mean: 0.007, # 1 request processed every 7ms
+                       sd:   0.001 } },
     },
-    estimated_workload: 50,
+    resources_requirements_cpu:    50,
+    resources_requirements_memory: 50,
   },
   'App Server' => {
-    allowed_vm_types: [ :medium, :large, :huge ],
     service_time_distribution: {
-      medium: { distribution: :gaussian,
-                args: { mean: 0.015, # 1 request processed every 15ms
-                        sd:   0.005 } },
-      large:  { distribution: :gaussian,
-                args: { mean: 0.012, # 1 request processed every 12ms
-                        sd:   0.003 } },
-      huge:   { distribution: :gaussian,
-                args: { mean: 0.009, # 1 request processed every 9ms
-                        sd:   0.002 } },
+      mec:   { distribution: :gaussian,
+               args: { mean: 0.015, # 1 request processed every 15ms
+                       sd:   0.005 } },
+      cloud: { distribution: :gaussian,
+               args: { mean: 0.012, # 1 request processed every 12ms
+                       sd:   0.003 } },
     },
-    estimated_workload: 70,
+    resources_requirements_cpu:    70,
+    resources_requirements_memory: 70,
   },
   'Financial Transaction Server' => {
-    allowed_vm_types: [ :large, :huge ],
     service_time_distribution: {
-      large:  { distribution: :gaussian,
-                args: { mean: 0.015, # 1 request processed every 15ms
-                        sd:   0.004 } },
-      huge:   { distribution: :gaussian,
-                args: { mean: 0.008, # 1 request processed every 8ms
-                        sd:   0.003 } },
+      mec:   { distribution: :gaussian,
+               args: { mean: 0.015, # 1 request processed every 15ms
+                       sd:   0.004 } },
+      cloud: { distribution: :gaussian,
+               args: { mean: 0.008, # 1 request processed every 8ms
+                       sd:   0.003 } },
     },
-    estimated_workload: 80,
+    resources_requirements_cpu:    80,
+    resources_requirements_memory: 80,
   }
 END
 
@@ -445,13 +472,17 @@ kpi_customization \
 END
 
 
+# (renamed from the old vm_hourly_cost model: KUBETWIN::Evaluator now reads
+# conf.evaluation[:cluster_hourly_cost], keyed by cluster id with
+# fixed_cpu_hourly_cost/fixed_memory_hourly_cost -- see evaluation.rb)
 EVALUATION_CHARACTERIZATION = <<END
 evaluation \
-  vm_hourly_cost: [
-    { data_center: 1, vm_type: :medium, cost: 0.160 },
-    { data_center: 1, vm_type: :large,  cost: 0.320 },
-    { data_center: 2, vm_type: :medium, cost: 0.184 },
-    { data_center: 2, vm_type: :large,  cost: 0.368 }
+  cluster_hourly_cost: [
+    { cluster: 1, fixed_cpu_hourly_cost: 0.160, fixed_memory_hourly_cost: 0.080 },
+    { cluster: 2, fixed_cpu_hourly_cost: 0.184, fixed_memory_hourly_cost: 0.092 },
+    { cluster: 3, fixed_cpu_hourly_cost: 0.160, fixed_memory_hourly_cost: 0.080 },
+    { cluster: 4, fixed_cpu_hourly_cost: 0.184, fixed_memory_hourly_cost: 0.092 },
+    { cluster: 5, fixed_cpu_hourly_cost: 0.320, fixed_memory_hourly_cost: 0.160 },
   ],
   # 500$ penalties if MTTR takes more than 50 msecs
   penalties: lambda {|kpis,dc_kpis| { slo_violation_penalties: 500.0 } if kpis[:mttr] > 0.050 }
@@ -461,10 +492,10 @@ END
 # (useful for spec'ing configuration.rb)
 REFERENCE_CONFIGURATION =
   SIMULATION_CHARACTERIZATION +
-  DATA_CENTERS_CHARACTERIZATION +
+  CLUSTERS_CHARACTERIZATION +
   LATENCY_MODELS_CHARACTERIZATION +
   CUSTOMER_CHARACTERIZATION +
-  SERVICE_COMPONENT_TYPES_CHARACTERIZATION +
+  MICROSERVICE_TYPES_CHARACTERIZATION +
   WORKFLOW_TYPES_CHARACTERIZATION +
   CONSTRAINT_CHARACTERIZATION +
   REQUEST_GENERATION_CHARACTERIZATION +
@@ -473,13 +504,13 @@ REFERENCE_CONFIGURATION =
 
 
 evaluator = Object.new
-evaluator.extend SISFC::Configurable
+evaluator.extend KUBETWIN::Configurable
 evaluator.instance_eval(REFERENCE_CONFIGURATION)
 
 # these are preprocessed portions of the reference configuration
 # (useful for spec'ing everything else)
-DATA_CENTERS            = evaluator.data_centers
-SERVICE_COMPONENT_TYPES = evaluator.service_component_types
+CLUSTERS                = evaluator.clusters
+MICROSERVICE_TYPES = evaluator.microservice_types
 WORKFLOW_TYPES          = evaluator.workflow_types
 EVALUATION              = evaluator.evaluation
 LATENCY_MODELS          = evaluator.latency_models
@@ -493,7 +524,7 @@ def with_reference_config(opts={})
     tf.close
 
     # create a configuration object from the reference configuration file
-    conf = SISFC::Configuration.load_from_file(tf.path, validate: false)
+    conf = KUBETWIN::Configuration.load_from_file(tf.path, validate: false)
 
     # apply any change from the opts parameter and validate the modified configuration
     opts.each do |k,v|

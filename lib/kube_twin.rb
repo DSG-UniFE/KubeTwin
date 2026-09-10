@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require_relative './kube_twin/timespan'
 require_relative './kube_twin/configuration'
 require_relative './kube_twin/allocation_replay'
 require_relative './kube_twin/ksimulation'

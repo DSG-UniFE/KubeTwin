@@ -9,7 +9,7 @@ describe KUBETWIN::Request do
 
   it 'should create a valid request' do
     KUBETWIN::Request.new(rid:                    rand(100),
-                       generation_time:        (Time.now - 1.hour).to_f,
+                       generation_time:        (Time.now - KUBETWIN::Timespan.hours(1)).to_f,
                        initial_data_center_id: rand(10),
                        arrival_time:           Time.now.to_f,
                        workflow_type_id:       rand(4),

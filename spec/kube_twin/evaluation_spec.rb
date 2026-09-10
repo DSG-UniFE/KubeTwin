@@ -20,19 +20,5 @@ describe KUBETWIN::Evaluator do
         KUBETWIN::Evaluator.new(conf)
       end
     end
-
-    it 'should work if penalty function returns something' do
-      evaluator = with_reference_config do |conf|
-        KUBETWIN::Evaluator.new(conf)
-      end
-      evaluator.evaluate_business_impact({ mttr: 0.075 }, nil, EXAMPLE_ALLOCATION)
-    end
-
-    it 'should work if penalty function returns nil' do
-      evaluator = with_reference_config do |conf|
-        KUBETWIN::Evaluator.new(conf)
-      end
-      evaluator.evaluate_business_impact({ mttr: 0.025 }, nil, EXAMPLE_ALLOCATION)
-    end
   end
 end

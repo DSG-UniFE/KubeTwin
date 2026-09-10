@@ -2,6 +2,8 @@
 
 require 'minitest_helper'
 
+require 'kube_twin/data_center'
+
 require_relative './reference_configuration'
 
 
