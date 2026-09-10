@@ -1,6 +1,5 @@
 # frozen_string_literal: true
 
-#require_relative './pod'
 
 module KUBETWIN
   # just a simple class to model of an horizontal_pod_autoscaler

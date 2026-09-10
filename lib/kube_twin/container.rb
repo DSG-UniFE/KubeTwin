@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require_relative './logger'
-require_relative './event'
 
 module KUBETWIN
   class RequestInfo < Struct.new(:request, :service_time, :arrival_time)

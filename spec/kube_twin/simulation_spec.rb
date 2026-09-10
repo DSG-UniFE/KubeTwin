@@ -2,8 +2,6 @@
 
 require 'minitest_helper'
 
-require_relative '../../lib/kube_twin/ksimulation'
-
 require_relative './reference_configuration'
 
 describe KUBETWIN::KSimulation do

@@ -3,8 +3,6 @@
 require 'mhl'
 require 'rumale/ensemble/random_forest_regressor'
 require 'numo/narray'
-require_relative './configuration'
-require_relative './ksimulation'
 require 'logger'
 
 module KUBETWIN

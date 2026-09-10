@@ -1,11 +1,9 @@
 # frozen_string_literal: true
 
 require_relative './support/dsl_helper'
-require_relative './logger'
 
 require 'ice_nine'
 
-require_relative './timespan'
 
 module ERV
   module GaussianMixtureHelper

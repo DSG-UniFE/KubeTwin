@@ -7,6 +7,12 @@ rescue LoadError
   require 'kube_twin'
 end
 
+# LatencyManagerFederation is a second class defined alongside LatencyManager
+# in lib/kube_twin/latency_manager.rb; Zeitwerk's autoloader only knows to
+# load that file when KUBETWIN::LatencyManager itself is referenced, which
+# nothing else in this script does, so it needs an explicit nudge here.
+require 'kube_twin/latency_manager'
+
 require 'json'
 
 def do_abort(message)

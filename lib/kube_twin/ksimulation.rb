@@ -1,21 +1,6 @@
 # frozen_string_literal: true
 
-require_relative './cluster'
-require_relative './replica_set'
-require_relative './horizontal_pod_autoscaler'
-require_relative './service'
-require_relative './event'
-require_relative './generator'
-require_relative './request_generator'
-require_relative './priority_queue'
-require_relative './statistics'
-require_relative './component_statistics'
-require_relative './pod'
 require_relative './latency_manager'
-require_relative './kube_dns'
-require_relative './kube_scheduler'
-require_relative './node'
-require_relative './mdn'
 
 require 'json'
 require 'logger'

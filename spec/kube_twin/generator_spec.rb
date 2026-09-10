@@ -3,7 +3,6 @@
 require 'minitest_helper'
 
 require 'tempfile'
-require 'kube_twin/generator'
 
 require_relative './reference_configuration'
 

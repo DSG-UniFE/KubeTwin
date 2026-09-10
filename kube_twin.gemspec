@@ -18,6 +18,7 @@ Gem::Specification.new do |spec|
   spec.require_paths = ['lib']
 
   spec.add_dependency 'ice_nine', '>= 0.11.2'
+  spec.add_dependency 'zeitwerk', '>= 2.6'
   spec.add_dependency 'mhl', '>= 0.3.0'
   spec.add_dependency 'rumale-ensemble', '>= 2.2'
   spec.add_dependency 'torch-rb', '>= 0.26.0'

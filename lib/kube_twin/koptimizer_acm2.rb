@@ -1,8 +1,6 @@
 #!/usr/bin/env ruby
 
 require 'mhl'
-require_relative './configuration'
-require_relative './ksimulation'
 require 'logger'
 
 module KUBETWIN

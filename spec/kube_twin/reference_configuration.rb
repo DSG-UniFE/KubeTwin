@@ -1,8 +1,5 @@
 # frozen_string_literal: true
 
-require 'kube_twin/configuration'
-require 'kube_twin/timespan'
-
 START_TIME      = Time.utc(1978, 'Aug', 12, 14, 30, 0).to_f
 DURATION        = KUBETWIN::Timespan.minute(1).to_f
 WARMUP_DURATION = KUBETWIN::Timespan.seconds(10).to_f
@@ -502,6 +499,12 @@ REFERENCE_CONFIGURATION =
   KPI_CUSTOMIZATION_CHARACTERIZATION +
   EVALUATION_CHARACTERIZATION
 
+
+# KUBETWIN::Configurable is a second constant defined inside
+# lib/kube_twin/configuration.rb, alongside KUBETWIN::Configuration --
+# Zeitwerk's autoload stub only covers the latter (the one matching the
+# filename), so this reference needs its own explicit require.
+require 'kube_twin/configuration'
 
 evaluator = Object.new
 evaluator.extend KUBETWIN::Configurable

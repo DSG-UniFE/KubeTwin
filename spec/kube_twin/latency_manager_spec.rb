@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 require 'minitest_helper'
-require 'kube_twin/latency_manager'
 
 require_relative './reference_configuration'
 
