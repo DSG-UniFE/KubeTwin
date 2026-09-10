@@ -12,6 +12,12 @@ Gem::Specification.new do |spec|
   spec.homepage      = 'https://https://github.com/DSG-UniFE/KubeTwin'
   spec.license       = 'MIT'
 
+  # Floor is 3.0.2 (the oldest Ruby this was actually verified against --
+  # see the File.exist?/IO#pid fixes in git history); ceiling is left open
+  # since nothing here is known to break on newer Rubies yet. Bump the
+  # floor only after actually testing on the version being dropped.
+  spec.required_ruby_version = '>= 3.0.2'
+
   spec.files         = `git ls-files`.split($/).reject { |x| x == '.gitignore' }
   spec.executables   = spec.files.grep(%r{^bin/}) { |f| File.basename(f) }
   spec.test_files    = spec.files.grep(%r{^(test|spec|features)/})

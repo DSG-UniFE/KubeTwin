@@ -32,7 +32,7 @@ if File.expand_path(__FILE__) == File.expand_path($0)
       do_abort("Missing simulator configuration files!")
     end
     # make sure simulator config file exists
-    unless File.exists? ARGV[0]
+    unless File.exist? ARGV[0]
       do_abort("Invalid simulator configuration file!")
     end
 end
