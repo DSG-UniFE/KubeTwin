@@ -39,28 +39,19 @@ module KUBETWIN
       @current_time
     end
 
+    # The three methods below now just delegate to WorkflowSequence (see
+    # workflow_sequence.rb) -- pure, no simulation state, unit-tested
+    # directly there rather than only through a full simulation run.
     def get_workflow_components(workflow)
-      components = []
-      workflow[:component_sequence].each do |cs|
-        if cs[:type] == 'parallel'
-          cs[:branches].each do |branch|
-            branch_sequence = branch[:component_sequence] || [{ name: branch[:name] }]
-            components.concat(get_workflow_components(component_sequence: branch_sequence))
-          end
-        else
-          components << cs[:name]
-          components.concat(get_workflow_components(component_sequence: cs[:calls])) if cs[:calls]
-        end
-      end
-      components
+      WorkflowSequence.get_workflow_components(workflow)
     end
 
     def request_component_sequence(req, workflow)
-      req.component_sequence || workflow[:component_sequence]
+      WorkflowSequence.request_component_sequence(req, workflow)
     end
 
     def request_step_key(req, component_sequence)
-      [component_sequence.object_id, req.worked_step]
+      WorkflowSequence.request_step_key(req, component_sequence)
     end
 
     def trace_request(req, message)
