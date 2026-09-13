@@ -60,25 +60,24 @@ module KUBETWIN
       puts format('[TRACE t=%.6f rid=%s dc=%s] %s', @current_time || 0.0, req.rid, req.data_center_id, message)
     end
 
+    # The actual routing decision (is component_name routable, and if so
+    # to which pod/cluster, at what cost) now lives in RequestForwarder
+    # (pure given kube_dns/cluster_repository, unit-tested in
+    # spec/kube_twin/request_forwarder_spec.rb) -- everything below stays
+    # here because it mutates simulation state RequestForwarder has no
+    # business touching: the request itself, the forwarded counter, the
+    # trace log, and the event queue.
     def schedule_request_forward(req, component_name, source_cluster, base_time, latency_manager,
                                  waiting_container: nil)
-      service = @kube_dns.lookup(component_name)
-      return false if service.nil?
+      route = @request_forwarder.route(component_name, source_cluster, latency_manager, base_time)
+      return false if route.nil?
 
-      pod = service.get_pod(component_name)
-      return false if pod.nil?
-
-      forwarding_time = base_time
-      cluster_id = pod.node.cluster_id
-      cluster = @cluster_repository[cluster_id]
-      transmission_time = latency_manager.sample_latency_between(source_cluster.location_id, cluster.location_id)
-      req.update_transfer_time(transmission_time)
-      forwarding_time += transmission_time
-      req.data_center_id = cluster.cluster_id
-      trace_request(req, "forward #{source_cluster.name}->#{cluster.name} to #{component_name}, latency=#{format('%.6f', transmission_time)}, event_time=#{format('%.6f', forwarding_time)}")
-      pod.container.to_free(waiting_container) if waiting_container && !waiting_container.wait_for.empty?
+      req.update_transfer_time(route.transmission_time)
+      req.data_center_id = route.cluster.cluster_id
+      trace_request(req, "forward #{source_cluster.name}->#{route.cluster.name} to #{component_name}, latency=#{format('%.6f', route.transmission_time)}, event_time=#{format('%.6f', route.forwarding_time)}")
+      route.pod.container.to_free(waiting_container) if waiting_container && !waiting_container.wait_for.empty?
       @forwarded += 1
-      new_event(Event::ET_REQUEST_FORWARDING, req, forwarding_time, pod)
+      new_event(Event::ET_REQUEST_FORWARDING, req, route.forwarding_time, route.pod)
       true
     end
 
@@ -455,6 +454,7 @@ module KUBETWIN
       # Initialize Kubernetes internal objects/services
 
       @kube_dns = KubeDns.new
+      @request_forwarder = RequestForwarder.new(kube_dns: @kube_dns, cluster_repository: @cluster_repository)
 
       # debug variables
       @generated = 0
