@@ -100,6 +100,23 @@ describe KUBETWIN::WorkflowSequence do
     end
   end
 
+  describe '.next_component_name' do
+    it "returns the sequence entry at req.next_step's name" do
+      req = build_request
+      sequence = [{ name: 'productpage' }, { name: 'reviews' }, { name: 'ratings' }]
+      _(KUBETWIN::WorkflowSequence.next_component_name(req, sequence)).must_equal 'productpage'
+
+      req.step_completed(0.0) # next_step: 0 -> 1
+      _(KUBETWIN::WorkflowSequence.next_component_name(req, sequence)).must_equal 'reviews'
+    end
+
+    it 'reads from the front of a freshly cloned branch/nested-call sequence' do
+      branch_sequence = [{ name: 'details' }, { name: 'ratings' }]
+      branch_req = build_request(component_sequence: branch_sequence)
+      _(KUBETWIN::WorkflowSequence.next_component_name(branch_req, branch_req.component_sequence)).must_equal 'details'
+    end
+  end
+
   describe '.request_step_key' do
     it 'changes once worked_step advances, for the same component_sequence' do
       req = build_request

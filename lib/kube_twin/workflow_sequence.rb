@@ -56,5 +56,15 @@ module KUBETWIN
     def self.request_step_key(req, component_sequence)
       [component_sequence.object_id, req.worked_step]
     end
+
+    # The name of the component req is about to work on next within
+    # component_sequence -- the same one-line lookup used to appear
+    # independently at three call sites (dispatch_nested_call, the
+    # ET_REQUEST_FORWARDING handler, and parallel-branch initiation in
+    # ET_WORKFLOW_STEP_COMPLETED), always right after building or cloning
+    # a request whose next_step is about to be dispatched.
+    def self.next_component_name(req, component_sequence)
+      component_sequence[req.next_step][:name]
+    end
   end
 end

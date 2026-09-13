@@ -87,7 +87,7 @@ module KUBETWIN
 
       child_req = parent_req.clone_for_nested_call(call)
       child_sequence = child_req.component_sequence
-      component_name = child_sequence[child_req.next_step][:name]
+      component_name = WorkflowSequence.next_component_name(child_req, child_sequence)
       source_cluster = @cluster_repository[parent_container.instance_variable_get(:@node).cluster_id]
       parent_req.data_center_id = source_cluster.cluster_id
 
@@ -809,7 +809,7 @@ module KUBETWIN
           # Check if this is a parallel branch request
           workflow = workflow_type_repository[req.workflow_type_id]
           component_sequence = request_component_sequence(req, workflow)
-          component_name = component_sequence[req.next_step][:name]
+          component_name = WorkflowSequence.next_component_name(req, component_sequence)
 
           # increase count of received requests in hpa_component_stats
           hpa_component_stats[component_name].request_received
@@ -900,7 +900,7 @@ module KUBETWIN
                 branch_req = req.clone_for_parallel_branch(branch)
 
                 # Each branch starts with the branch component
-                branch_component_name = branch_req.component_sequence[branch_req.next_step][:name]
+                branch_component_name = WorkflowSequence.next_component_name(branch_req, branch_req.component_sequence)
                 raise "Cannot dispatch parallel branch #{branch_component_name}" unless schedule_request_forward(branch_req,
                                                                                                                  branch_component_name,
                                                                                                                  current_cluster,
