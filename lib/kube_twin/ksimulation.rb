@@ -94,17 +94,21 @@ module KUBETWIN
       schedule_request_forward(child_req, component_name, source_cluster, current_time, latency_manager)
     end
 
+    # The cluster/latency resolution now lives in NestedCallReturn (pure
+    # given cluster_repository, unit-tested in
+    # spec/kube_twin/nested_call_return_spec.rb) -- this keeps its exact
+    # original signature and return shape (including the [0.0, nil]
+    # fallback, and returning parent_cluster even though the one call site
+    # in the event loop only destructures the latency) so nothing at that
+    # call site needs to change.
     def nested_return_latency(parent_req, child_req, latency_manager)
-      parent_container = parent_req.nested_waiting_container
-      return [0.0, nil] if parent_container.nil?
+      resolution = @nested_call_return.resolve(parent_req.nested_waiting_container, child_req.data_center_id, latency_manager)
+      return [0.0, nil] if resolution.nil?
 
-      parent_cluster = @cluster_repository[parent_container.instance_variable_get(:@node).cluster_id]
-      child_cluster = @cluster_repository[child_req.data_center_id]
-      latency = latency_manager.sample_latency_between(child_cluster.location_id, parent_cluster.location_id)
-      parent_req.update_transfer_time(latency)
-      parent_req.data_center_id = parent_cluster.cluster_id
-      trace_request(parent_req, "return #{child_cluster.name}->#{parent_cluster.name} from #{child_req.branch_name}, latency=#{format('%.6f', latency)}")
-      [latency, parent_cluster]
+      parent_req.update_transfer_time(resolution.latency)
+      parent_req.data_center_id = resolution.parent_cluster.cluster_id
+      trace_request(parent_req, "return #{resolution.child_cluster.name}->#{resolution.parent_cluster.name} from #{child_req.branch_name}, latency=#{format('%.6f', resolution.latency)}")
+      [resolution.latency, resolution.parent_cluster]
     end
 
     def release_container_after_wait(container, time)
@@ -455,6 +459,7 @@ module KUBETWIN
 
       @kube_dns = KubeDns.new
       @request_forwarder = RequestForwarder.new(kube_dns: @kube_dns, cluster_repository: @cluster_repository)
+      @nested_call_return = NestedCallReturn.new(cluster_repository: @cluster_repository)
 
       # debug variables
       @generated = 0
