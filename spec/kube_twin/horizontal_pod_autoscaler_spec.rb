@@ -2,12 +2,15 @@
 
 require 'minitest_helper'
 
-# HorizontalPodAutoscaler#decide_scaling holds the scale-up/scale-down
-# decision that used to live inline inside KSimulation#evaluate_allocation's
-# ET_HPA_CONTROL branch (see ksimulation.rb's comment at that call site for
-# how the two pieces now fit together). Unlike most of KSimulation, this is
-# genuinely pure -- no KubeScheduler, no Pod, no Service -- so it's tested
-# directly here rather than through a full simulation run.
+# HorizontalPodAutoscaler holds the three pieces of ET_HPA_CONTROL logic
+# that used to live inline inside KSimulation#evaluate_allocation, pulled
+# out one at a time (see ksimulation.rb's comments at each call site for
+# how they fit back together): #desired_metric (the target side of the
+# metric), #average_processing_metric (the observed side), and
+# #decide_scaling (the scale-up/scale-down decision itself, given both).
+# All three are genuinely pure -- no KubeScheduler, no Pod, no Service, no
+# Container -- so they're tested directly here rather than only through a
+# full simulation run.
 describe KUBETWIN::HorizontalPodAutoscaler do
   def build_hpa(min_replicas: 2, max_replicas: 10)
     KUBETWIN::HorizontalPodAutoscaler.new('svc', min_replicas, max_replicas, 0.7, 30)
@@ -84,6 +87,56 @@ describe KUBETWIN::HorizontalPodAutoscaler do
       decision = hpa.decide_scaling(5, 1.05, 1.0, tolerance_range: 0.99..1.01)
 
       _(decision[:action]).must_equal :scale_up
+    end
+  end
+
+  describe '#desired_metric' do
+    it 'is target_processing_percentage times the average of sample_count samples from the RV' do
+      hpa = KUBETWIN::HorizontalPodAutoscaler.new('svc', 2, 10, 0.5, 30)
+      # a fake RV that alternates 1.0 / 3.0 -- average is always 2.0
+      # regardless of how many samples are drawn, as long as it's even
+      values = [1.0, 3.0].cycle
+      service_time_rv = Object.new
+      service_time_rv.define_singleton_method(:sample) { values.next }
+
+      result = hpa.desired_metric(service_time_rv, sample_count: 10)
+      _(result).must_equal 1.0 # 0.5 * 2.0
+    end
+
+    it 'defaults sample_count to 101 (matches the original 0.upto(100))' do
+      hpa = KUBETWIN::HorizontalPodAutoscaler.new('svc', 2, 10, 1.0, 30)
+      calls = 0
+      service_time_rv = Object.new
+      service_time_rv.define_singleton_method(:sample) { calls += 1; 1.0 }
+
+      hpa.desired_metric(service_time_rv)
+      _(calls).must_equal 101
+    end
+  end
+
+  describe '#average_processing_metric' do
+    it 'averages per-request processing time across pods, using total pod count as the denominator' do
+      hpa = build_hpa
+      # pod A: 10 total / 5 served = 2.0 per request; pod B: 9 total / 3 served = 3.0
+      pod_metrics = [[5, 10.0], [3, 9.0]]
+
+      result = hpa.average_processing_metric(pod_metrics)
+      _(result).must_equal 2.5 # (2.0 + 3.0) / 2 pods
+    end
+
+    it 'counts a zero-served pod in the denominator but contributes 0 to the sum (not excluded, not division by zero)' do
+      hpa = build_hpa
+      # pod A: 10 total / 5 served = 2.0 per request; pod B: never served anything
+      pod_metrics = [[5, 10.0], [0, 0.0]]
+
+      result = hpa.average_processing_metric(pod_metrics)
+      _(result).must_equal 1.0 # (2.0 + 0) / 2 pods, not 2.0 / 1 pod
+    end
+
+    it 'returns NaN for an empty pod_metrics array, matching the original 0 / 0.0 -- callers must guard pods == 0 themselves' do
+      hpa = build_hpa
+      result = hpa.average_processing_metric([])
+      _(result.nan?).must_equal true
     end
   end
 end

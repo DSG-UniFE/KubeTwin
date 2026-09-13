@@ -1029,32 +1029,28 @@ module KUBETWIN
           # right now it is terrible (okay for MVP)
           service_time_rv = s.pods[s.selector].sample.container.service_time
 
-          # here need this hack to avoid taking value from tail
-          # rejection sampling to implement (crudely) PDF truncation
-          sva = 0.upto(100).collect { service_time_rv.sample }
-          service_time = sva.sum / sva.length.to_f
-          # while (service_time = service_time_rv.next) < 2E-3; end
-          # puts service_time
+          # The desired/current metric math itself now lives in
+          # HorizontalPodAutoscaler#desired_metric / #average_processing_metric
+          # (pure, unit-tested in spec/kube_twin/horizontal_pod_autoscaler_spec.rb)
+          # -- KSimulation's job is just to pull the live RV and the
+          # per-pod (served_request, total_queue_processing_time) snapshot
+          # out of the real Pod/Container objects, and to reset each
+          # container's metrics as it does (a mutation, so it stays here).
+          desired_metric = hpa.desired_metric(service_time_rv)
 
-          desired_metric = hpa.target_processing_percentage * service_time
-
-          current_metric = 0
-          pods = 0
           d_replicas = 0
 
-          s.pods[hpa.name].each do |pod|
-            pods += 1
-            next if pod.container.served_request.zero?
-
-            current_metric += pod.container.total_queue_processing_time / pod.container.served_request
-            # puts "total queue time: #{pod.container.total_queue_time}"
-            # puts "served request: #{pod.container.served_request}"
-            # reset container metric
-            # calculate them each time period
-            pod.container.reset_metrics
-            # puts "#{pod.container.current_processing_metric}"
+          pod_metrics = s.pods[hpa.name].map do |pod|
+            served_request = pod.container.served_request
+            total_queue_processing_time = pod.container.total_queue_processing_time
+            # reset container metric (calculated fresh each control period)
+            # -- only when there's something to reset, same as the
+            # original inline loop's `next if served_request.zero?` guard
+            pod.container.reset_metrics unless served_request.zero?
+            [served_request, total_queue_processing_time]
           end
-          current_metric /= pods.to_f
+          pods = pod_metrics.length
+          current_metric = hpa.average_processing_metric(pod_metrics)
 
           puts '**** Horizontal Pod Autoscaling ****'
           puts "#{hpa.name} pods: #{pods} average processing_time: #{current_metric} desired_metric: #{desired_metric}"

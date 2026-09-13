@@ -74,5 +74,53 @@ module KUBETWIN
         end
       end
     end
+
+    # The *desired* (target) side of the HPA metric -- extracted out of
+    # the same ET_HPA_CONTROL branch as #decide_scaling, one level
+    # earlier. service_time_rv only needs to respond to #sample (any
+    # ERV::RandomVariable, or a fake in tests); this method never touches
+    # Pod or Container itself -- KSimulation still does the (impure, one
+    # random pod's) `s.pods[s.selector].sample.container.service_time`
+    # lookup and hands the resulting RV in here.
+    #
+    # sample_count: 101 matches the original inline code's `0.upto(100)`
+    # (that's 101 samples, not 100) -- a crude rejection-sampling-free
+    # truncation of the RV's PDF by averaging, preserved verbatim rather
+    # than "fixed" to a rounder number.
+    def desired_metric(service_time_rv, sample_count: 101)
+      samples = Array.new(sample_count) { service_time_rv.sample }
+      average_service_time = samples.sum / samples.length.to_f
+      target_processing_percentage * average_service_time
+    end
+
+    # The *observed/current* side of the HPA metric -- the other half of
+    # the same branch. pod_metrics is a plain array of
+    # [served_request, total_queue_processing_time] pairs, one per pod
+    # currently backing this HPA's scale target (including pods that
+    # haven't served anything yet) -- not Pod/Container objects -- so
+    # this has no dependency on KSimulation, Pod, or Container either.
+    # Resetting each container's metrics (Container#reset_metrics) is a
+    # mutation and stays in KSimulation, which reads served_request/
+    # total_queue_processing_time before resetting and passes the
+    # snapshot in here (see the ET_HPA_CONTROL branch).
+    #
+    # Preserves two quirks from the original inline loop exactly:
+    #   1. A pod with served_request == 0 contributes 0 to the running
+    #      sum (avoiding a division by zero) but is still counted in the
+    #      denominator -- so a scale target with many freshly-created,
+    #      not-yet-serving pods reports a LOWER current_metric than the
+    #      busy pods' own average would suggest, not an error and not
+    #      excluded from the count.
+    #   2. An empty pod_metrics array divides 0 by 0.0, i.e. returns NaN,
+    #      same as the original code -- the caller has always checked
+    #      pods == 0 and skipped the rest of the control cycle (so a NaN
+    #      current_metric is computed but never actually used); that
+    #      guard is the caller's responsibility, not this method's.
+    def average_processing_metric(pod_metrics)
+      sum = pod_metrics.sum do |served_request, total_queue_processing_time|
+        served_request.zero? ? 0.0 : total_queue_processing_time / served_request
+      end
+      sum / pod_metrics.length.to_f
+    end
   end
 end
