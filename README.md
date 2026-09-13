@@ -27,7 +27,7 @@ To do so, run the following command:
 
 KubeTwin uses the [torch-rb](https://github.com/ankane/torch-rb) gem (see `lib/kube_twin/mdn.rb`) to run the MDN service-time prediction models from Ruby. Unlike most gems, `torch-rb` needs a local copy of LibTorch (the PyTorch C++ library) to compile its native extension against, so `bundle install` will fail with `LibTorch not found` unless you set this up first:
 
-1. Download the LibTorch (C++) distribution matching the gem's PyTorch version (currently 2.13.0) and your platform/architecture from the [PyTorch "Get Started" page](https://pytorch.org/get-started/locally/) (choose Package: LibTorch, Compute Platform: CPU, and the C++/Java, cxx11 ABI build for your OS).
+1. Download the LibTorch (C++) distribution matching the gem's PyTorch version -- currently 2.14.x, per [torch-rb's own compatibility table](https://github.com/ankane/torch-rb#libtorch-compatibility) for the 0.26.x series this project pins (this used to say 2.13.0; that was stale) -- and your platform/architecture from the [PyTorch "Get Started" page](https://pytorch.org/get-started/locally/) (choose Package: LibTorch, Compute Platform: CPU, C++/Java). Recent LibTorch releases no longer offer a separate "pre-cxx11 ABI" build to choose against, so there's just the one Linux/CPU option now.
 2. Unzip it. This creates a `libtorch/` directory containing `include/` and `lib/`; place it wherever you like (e.g. in the project root).
 3. On Apple Silicon Macs, also install the OpenMP runtime that LibTorch links against:
 

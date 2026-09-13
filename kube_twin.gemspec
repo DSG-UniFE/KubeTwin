@@ -12,11 +12,17 @@ Gem::Specification.new do |spec|
   spec.homepage      = 'https://https://github.com/DSG-UniFE/KubeTwin'
   spec.license       = 'MIT'
 
-  # Floor is 3.0.2 (the oldest Ruby this was actually verified against --
-  # see the File.exist?/IO#pid fixes in git history); ceiling is left open
-  # since nothing here is known to break on newer Rubies yet. Bump the
-  # floor only after actually testing on the version being dropped.
-  spec.required_ruby_version = '>= 3.0.2'
+  # Floor is 3.2, not the 3.0.2 this used to say: Gemfile.lock pins
+  # zeitwerk (2.8.3), and that gem's own gemspec requires Ruby >= 3.2 --
+  # so `bundle install` already fails below 3.2 regardless of anything in
+  # this codebase. The old 3.0.2 floor was only ever ruby -c
+  # syntax-checked (see git history / the File.exist?/IO#pid fixes), never
+  # actually verified end-to-end with a real `bundle install` + test run,
+  # which is how this went unnoticed until CI needed a real matrix to test
+  # against (see .github/workflows/ci.yml). Ceiling is left open since
+  # nothing here is known to break on newer Rubies yet. Bump the floor
+  # only after actually testing on the version being dropped.
+  spec.required_ruby_version = '>= 3.2'
 
   spec.files         = `git ls-files`.split($/).reject { |x| x == '.gitignore' }
   spec.executables   = spec.files.grep(%r{^bin/}) { |f| File.basename(f) }

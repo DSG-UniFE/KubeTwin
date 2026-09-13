@@ -1,0 +1,83 @@
+name: CI
+
+# Push to master and every pull request -- not every push to every branch.
+# This repo currently carries ~20 long-lived experiment branches (see the
+# roadmap's branch-sprawl section); running the full LibTorch download +
+# native build on every push to all of them would burn a lot of CI
+# minutes on branches nobody's actively watching. PRs into master are
+# where this actually needs to gate anything.
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  test:
+    name: "Test (Ruby ${{ matrix.ruby-version }})"
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        ruby-version:
+          # The real floor: kube_twin.gemspec's required_ruby_version
+          # (see the comment there -- Gemfile.lock's zeitwerk 2.8.3 itself
+          # requires Ruby >= 3.2, so nothing below this can even
+          # `bundle install`).
+          - "3.2"
+          # Whatever this repo is actually developed against day to day
+          # (reads lib/../.ruby-version, currently 4.0.6) -- catches
+          # anything that only breaks on the floor, or only breaks on the
+          # newest Ruby actually in use, rather than picking one and
+          # hoping it represents both.
+          - ".ruby-version"
+    steps:
+      - uses: actions/checkout@v4
+
+      # torch-rb is required unconditionally at the top of
+      # lib/kube_twin/ksimulation.rb (KSimulation is what nearly every
+      # spec exercises), so every test run needs it loadable, not just
+      # MDN-specific tests. Unlike most gems, torch-rb needs a local
+      # LibTorch (the PyTorch C++ library) build to compile its native
+      # extension against -- see README.md's "Installing torch-rb
+      # (LibTorch)" section for the same steps done here.
+      #
+      # Version note: torch-rb 0.26.0 (what Gemfile.lock actually pins)
+      # needs LibTorch 2.14.x per torch-rb's own compatibility table --
+      # this is newer than the 2.13.0 the README currently documents,
+      # which is a stale doc (flagged on the roadmap), not a choice made
+      # here. The download URL below was confirmed to actually resolve
+      # (200 + a multi-hundred-MB zip, not a 404) when this workflow was
+      # written; if torch-rb's pinned version changes, this needs
+      # updating to match torch-rb's compatibility table, and the new URL
+      # re-verified the same way -- PyTorch has changed this filename
+      # scheme before (older LibTorch releases used a separate
+      # "libtorch-cxx11-abi-shared-with-deps-*" filename; 2.14.0 does not).
+      - name: Cache LibTorch
+        id: libtorch-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/libtorch
+          key: libtorch-2.14.0-cpu-linux-x86_64
+
+      - name: Download LibTorch (CPU, Linux x86_64)
+        if: steps.libtorch-cache.outputs.cache-hit != 'true'
+        run: |
+          curl -fsSL -o /tmp/libtorch.zip \
+            "https://download.pytorch.org/libtorch/cpu/libtorch-shared-with-deps-2.14.0%2Bcpu.zip"
+          unzip -q /tmp/libtorch.zip -d "$HOME"
+          rm /tmp/libtorch.zip
+
+      # Equivalent to the README's `bundle config build.torch-rb
+      # --with-torch-dir=...` step, but as a job-level env var instead of
+      # a committed/persisted bundle config -- there's no reason for this
+      # runner-specific path to live anywhere but this job.
+      - name: Point Bundler at LibTorch
+        run: echo "BUNDLE_BUILD__TORCH_RB=--with-torch-dir=$HOME/libtorch" >> "$GITHUB_ENV"
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby-version }}
+          bundler-cache: true
+
+      - name: Run tests
+        run: bundle exec rake test
