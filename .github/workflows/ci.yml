@@ -71,13 +71,38 @@ jobs:
       # --with-torch-dir=...` step, but as a job-level env var instead of
       # a committed/persisted bundle config -- there's no reason for this
       # runner-specific path to live anywhere but this job.
+      #
+      # The env var name matters more than it looks: Bundler's own key_for
+      # translation (Bundler::Settings.key_for) replaces "." with "__" and
+      # "-" with "___" -- NOT the same substitution -- before upcasing and
+      # prepending BUNDLE_. "build.torch-rb" has one dot and one dash, so
+      # it becomes BUNDLE_BUILD__TORCH___RB (double underscore for the
+      # dot, TRIPLE for the dash), not the single underscore an earlier
+      # version of this workflow used (BUNDLE_BUILD__TORCH_RB). That wrong
+      # name meant Bundler never saw --with-torch-dir at all, torch-rb's
+      # extconf.rb fell through to its auto-detect paths (/usr/local,
+      # /opt/homebrew, /home/linuxbrew/.linuxbrew -- none of which exist
+      # on an ubuntu-latest runner), and the native extension build failed
+      # exactly as if LibTorch had never been downloaded in the first
+      # place -- which is what actually happened, even though the
+      # download step above ran successfully.
       - name: Point Bundler at LibTorch
-        run: echo "BUNDLE_BUILD__TORCH_RB=--with-torch-dir=$HOME/libtorch" >> "$GITHUB_ENV"
+        run: echo "BUNDLE_BUILD__TORCH___RB=--with-torch-dir=$HOME/libtorch" >> "$GITHUB_ENV"
 
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version: ${{ matrix.ruby-version }}
           bundler-cache: true
+
+      # If `bundle install` fails on a native extension again, the log
+      # above only shows Ruby's own installer backtrace, not the actual
+      # compiler/linker error -- that's in gem_make.out, several
+      # frustrating round-trips away from being visible otherwise. Print
+      # it directly whenever this job goes red.
+      - name: Show native extension build logs on failure
+        if: failure()
+        run: |
+          find vendor/bundle -name "gem_make.out" -exec echo "--- {} ---" \; -exec cat {} \;
 
       - name: Run tests
         run: bundle exec rake test
