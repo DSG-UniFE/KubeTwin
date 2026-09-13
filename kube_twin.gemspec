@@ -12,17 +12,20 @@ Gem::Specification.new do |spec|
   spec.homepage      = 'https://https://github.com/DSG-UniFE/KubeTwin'
   spec.license       = 'MIT'
 
-  # Floor is 3.2, not the 3.0.2 this used to say: Gemfile.lock pins
-  # zeitwerk (2.8.3), and that gem's own gemspec requires Ruby >= 3.2 --
-  # so `bundle install` already fails below 3.2 regardless of anything in
-  # this codebase. The old 3.0.2 floor was only ever ruby -c
-  # syntax-checked (see git history / the File.exist?/IO#pid fixes), never
-  # actually verified end-to-end with a real `bundle install` + test run,
-  # which is how this went unnoticed until CI needed a real matrix to test
-  # against (see .github/workflows/ci.yml). Ceiling is left open since
+  # Floor is 3.3, not the 3.0.2 this used to say. First correction pass
+  # (before CI actually ran) only checked zeitwerk's floor (>= 3.2) and
+  # missed that torch-rb 0.26.0, dry-configurable 1.4.0, and
+  # dry-auto_inject 1.2.1 all independently require >= 3.3 -- the real
+  # floor is the max across the whole resolved dependency graph, not just
+  # the one gem that happened to get checked first. Confirmed by actually
+  # running `bundle lock` in CI on 3.2 and watching it fail to resolve
+  # (see .github/workflows/ci.yml and its run history) -- the same mistake
+  # the old 3.0.2 claim made (ruby -c syntax-checked, never bundle
+  # installed) almost repeated itself here. Ceiling is left open since
   # nothing here is known to break on newer Rubies yet. Bump the floor
-  # only after actually testing on the version being dropped.
-  spec.required_ruby_version = '>= 3.2'
+  # only after actually testing on the version being dropped -- with a
+  # real `bundle install`, not just a syntax check.
+  spec.required_ruby_version = '>= 3.3'
 
   spec.files         = `git ls-files`.split($/).reject { |x| x == '.gitignore' }
   spec.executables   = spec.files.grep(%r{^bin/}) { |f| File.basename(f) }

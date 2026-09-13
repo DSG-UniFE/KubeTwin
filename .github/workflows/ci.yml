@@ -19,17 +19,17 @@ jobs:
       fail-fast: false
       matrix:
         ruby-version:
-          # The real floor: kube_twin.gemspec's required_ruby_version
-          # (see the comment there -- Gemfile.lock's zeitwerk 2.8.3 itself
-          # requires Ruby >= 3.2, so nothing below this can even
-          # `bundle install`).
-          - "3.2"
-          # Whatever this repo is actually developed against day to day
-          # (reads lib/../.ruby-version, currently 4.0.6) -- catches
-          # anything that only breaks on the floor, or only breaks on the
-          # newest Ruby actually in use, rather than picking one and
-          # hoping it represents both.
-          - ".ruby-version"
+          # The real floor: kube_twin.gemspec's required_ruby_version.
+          # First attempt at this pinned 3.2 (zeitwerk's own floor) and
+          # missed that torch-rb, dry-configurable, and dry-auto_inject
+          # all independently need >= 3.3 -- caught only once this
+          # actually ran and `bundle lock` failed to resolve on 3.2. See
+          # the comment on required_ruby_version in kube_twin.gemspec.
+          - "3.3"
+          # Always the current latest stable MRI release -- ruby/setup-ruby's
+          # own documented magic value for this, no version number to
+          # keep in sync by hand.
+          - "ruby"
     steps:
       - uses: actions/checkout@v4
 
