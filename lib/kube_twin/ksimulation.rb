@@ -1063,64 +1063,54 @@ module KUBETWIN
             # new_event(Event::ET_END_OF_SIMULATION, nil, now, nil)
             next
           end
-          # see here
-          # https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/
-          # if close to 1 do not scale -- use a tolerance range
-          scaling_ratio = current_metric / desired_metric
-          # tolerance range # should be configurable
-          tolerance_range = 0.90..1.10
 
-          unless tolerance_range === scaling_ratio
-            # then here implement the check to scale up or down the associated pods
-            d_replicas = (pods * scaling_ratio).ceil
-            @logger.debug "pods: #{pods} scaling_ratio: #{scaling_ratio} d_replicas #{d_replicas} to_scale #{d_replicas - pods}"
-            # @logger.debug "desired_replicas: #{d_replicas} current_replicas #{pods}"
-            # get the replica set
+          # The scale-up/scale-down decision itself now lives in
+          # HorizontalPodAutoscaler#decide_scaling (pure, unit-tested in
+          # spec/kube_twin/horizontal_pod_autoscaler_spec.rb) -- everything
+          # below stays here because it needs KubeScheduler, Pod, and
+          # Service, which the decision doesn't.
+          decision = hpa.decide_scaling(pods, current_metric, desired_metric)
+          @logger.debug "pods: #{pods} decision: #{decision}"
+
+          case decision[:action]
+          when :scale_up
             rs = @replica_sets[hname]
-            to_scale = d_replicas <= hpa.max_replicas ? (d_replicas - pods) : (hpa.max_replicas - pods)
+            # NOTE: target_replicas is the *unclamped* desired replica
+            # count, even when to_scale (the number of pods actually
+            # created below) was clamped at hpa.max_replicas -- preserved
+            # verbatim from the original inline behavior, not changed here.
+            rs.set_replicas(decision[:target_replicas])
 
-            if d_replicas > pods
+            # then create the replicas
+            decision[:to_scale].times do
+              selector = rs.selector
+              sct = @microservice_types[selector]
+              reqs_c = sct[:resources_requirements_cpu]
+              reqs_m = sct[:resources_requirements_memory]
 
-              # get the replica set
-              rs = @replica_sets[hname]
-              to_scale = d_replicas <= hpa.max_replicas ? (d_replicas - pods) : (hpa.max_replicas - pods)
+              node_affinity = sct[:node_affinity]
+              node = @kube_scheduler.get_node(reqs_c, reqs_m, node_affinity)
 
-              rs.set_replicas(d_replicas)
+              break if node.nil? # check here --- what happens if no nodes are available
 
-              # then create the replicas
-              to_scale.times do
-                selector = rs.selector
-                sct = @microservice_types[selector]
-                reqs_c = sct[:resources_requirements_cpu]
-                reqs_m = sct[:resources_requirements_memory]
-
-                node_affinity = sct[:node_affinity]
-                node = @kube_scheduler.get_node(reqs_c, reqs_m, node_affinity)
-
-                break if node.nil? # check here --- what happens if no nodes are available
-
-                pod = Pod.new(pod_id, "#{selector}_#{pod_id}", node, selector, sct)
-                pod.startUpPod
-                # assign resources for the pod
-                node.assign_resources(pod, reqs_c, reqs_m)
-                s.assignPod(pod)
-                pod_id += 1
-              end
-            else
-              # we need to select some pods to terminate
-              # deal with requests currently being processed
-              # @logger.debug "min #{hpa.min_replicas}"
-              to_scale = d_replicas > hpa.min_replicas ? (pods - d_replicas).abs : 0
-              unless to_scale.zero?
-                # @logger.debug "deactivating pods"
-                ppl = s.pods[hpa.name].sample(to_scale)
-                ppl.each do |p|
-                  p.deactivate_pod
-                  s.delete_pod(s.selector, p)
-                end
-              end
+              pod = Pod.new(pod_id, "#{selector}_#{pod_id}", node, selector, sct)
+              pod.startUpPod
+              # assign resources for the pod
+              node.assign_resources(pod, reqs_c, reqs_m)
+              s.assignPod(pod)
+              pod_id += 1
             end
-
+          when :scale_down
+            # we need to select some pods to terminate
+            # deal with requests currently being processed
+            # NOTE: unlike scale_up, nothing here updates the replica_set's
+            # recorded replica count -- the original code never did on this
+            # path either.
+            ppl = s.pods[hpa.name].sample(decision[:to_scale])
+            ppl.each do |p|
+              p.deactivate_pod
+              s.delete_pod(s.selector, p)
+            end
           end
 
           # schedule next control
