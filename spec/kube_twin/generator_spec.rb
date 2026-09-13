@@ -38,8 +38,8 @@ describe KUBETWIN::RequestGeneratorR do
         r = rg.generate(Time.now.to_f)
         _(r[:rid]).must_equal 1
         _(r[:generation_time]).must_equal GENERATION_TIMES[0]
-        _(r[:workflow_type_id]).must_equal 1
-        _(r[:customer_id]).must_equal 1
+        _(r[:workflow_type_id]).must_equal WORKFLOW_TYPE_IDS[0]
+        _(r[:customer_id]).must_equal CUSTOMER_IDS[0]
       end
 
     ensure
@@ -60,8 +60,8 @@ describe KUBETWIN::RequestGeneratorR do
         r = rg.generate(Time.now.to_f)
         _(r[:rid]).must_equal 1
         _(r[:generation_time]).must_equal GENERATION_TIMES[0]
-        _(r[:workflow_type_id]).must_equal 1
-        _(r[:customer_id]).must_equal 1
+        _(r[:workflow_type_id]).must_equal WORKFLOW_TYPE_IDS[0]
+        _(r[:customer_id]).must_equal CUSTOMER_IDS[0]
       end
     ensure
       # delete temporary file

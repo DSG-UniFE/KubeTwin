@@ -623,6 +623,23 @@ module KUBETWIN
         @current_time = @start_time = req_attrs[:generation_time] - 2
         @configuration.set_start(@current_time)
         new_event(Event::ET_REQUEST_GENERATION, req_attrs, req_attrs[:generation_time], rg)
+
+        # RequestGeneratorR has no fixed "number of requests" the way the
+        # synthetic RequestGenerator below does -- it streams rows from a
+        # CSV file, an R script, or an arbitrary command, and #generate
+        # itself returns nil once the underlying source is exhausted (see
+        # the `new_event(...) if req_attrs` guard a bit further down, in
+        # the ET_REQUEST_GENERATION handler). @to_generate was left at 0
+        # for this whole branch, and the only thing that schedules a
+        # *second* request generation is `@generated < @to_generate` --
+        # always false at 0 < 0. That meant every simulation using
+        # CSV/R-script/command request generation only ever generated a
+        # single request, no matter how much data the source actually
+        # had. @to_generate has no natural meaning for a streamed source,
+        # so don't let it gate this path at all -- the source exhausting
+        # itself (req_attrs.nil?) and cooldown_treshold are the real
+        # stopping conditions already, matching what that guard assumes.
+        @to_generate = Float::INFINITY
       else
         @configuration.request_gen.each do |k, _v|
           @to_generate += @configuration.request_gen[k][:num_requests]
@@ -1457,9 +1474,8 @@ module KUBETWIN
     end
 
     def normalize_objective(value, min_obj, max_obj)
-      (value - min_obj) / (max_obj - min_obj)
-    rescue StandardError
-      1.0
+      normalized_obj = (value - min_obj) / (max_obj - min_obj)
+      normalized_obj.infinite? ? 1.0 : normalized_obj
     end
   end
 end
