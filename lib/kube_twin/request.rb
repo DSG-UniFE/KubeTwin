@@ -162,6 +162,30 @@ module KUBETWIN
       end
     end
 
+    # Records one parallel branch as completed on *this* request (the
+    # parent that started the parallel block via #start_parallel_execution)
+    # and counts it against @parallel_context[:branch_count]. Returns true
+    # once every branch has reported in (and clears @parallel_context, so
+    # the caller knows to resume this request), false while branches are
+    # still outstanding.
+    #
+    # Bundles what used to be three separate steps at the KSimulation call
+    # site (#complete_branch, decrementing parallel_context[:branch_count]
+    # directly, and instance_variable_set(:@parallel_context, nil) once it
+    # hit zero) into one message -- the event loop no longer needs to know
+    # @parallel_context's internal shape to drive it. Only valid to call
+    # while a parallel block is active on this request (parallel_context
+    # non-nil); that's exactly the condition KSimulation checks before
+    # calling this (see ET_WORKFLOW_STEP_COMPLETED).
+    def complete_parallel_branch(branch_name, result_data, completion_time)
+      complete_branch(branch_name, result_data, completion_time)
+      @parallel_context[:branch_count] -= 1
+      return false if @parallel_context[:branch_count] > 0
+
+      @parallel_context = nil
+      true
+    end
+
     def all_branches_completed?(required_branches = nil)
       if required_branches.nil?
         @active_branches.all? { |branch| branch[:status] == "completed" }

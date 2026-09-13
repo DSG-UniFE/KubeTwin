@@ -851,14 +851,18 @@ module KUBETWIN
           release_container_after_wait(container, e.time)
           # puts "current_component_name #{current_component_name}"
 
-          if req.parent_request.nil? && !chain.nil? && !current_component_name.nil? && chain[:component_sequence][0][:name] == current_component_name
+          # entering_chain?/exiting_chain? are pure (see chain_tracker.rb,
+          # unit-tested in spec/kube_twin/chain_tracker_spec.rb) -- the
+          # mutation below (req.chain_entered/finished_chain, the stats
+          # bookkeeping) stays here where the simulation state lives.
+          if ChainTracker.entering_chain?(req, chain, current_component_name)
             # we are entering the chain, set the workflow to be the chain
             # @logger.info "Request #{req.rid} #{current_component_name} entering chain #{chain}"
             req.chain_entered(@current_time)
             per_chain_and_customer_stats[req.workflow_type_id][req.customer_id].request_received
           end
 
-          if req.parent_request.nil? && !chain.nil? && !current_component_name.nil? && (chain[:component_sequence][-1][:name] == current_component_name)
+          if ChainTracker.exiting_chain?(req, chain, current_component_name)
             # @logger.info "Request #{req.rid} #{current_component_name} exiting chain #{chain}"
             req.finished_chain(@current_time)
             per_chain_and_customer_stats[req.workflow_type_id][req.customer_id].record_request(req, now, chain = true)
@@ -923,13 +927,13 @@ module KUBETWIN
               parent_req = req.parent_request
 
               if req.is_parallel_branch? && parent_req.parallel_context
-                parent_req.complete_branch(req.branch_name, req, @current_time)
-                parent_req.parallel_context[:branch_count] -= 1
-
-                if parent_req.parallel_context[:branch_count] <= 0
-                  parent_req.instance_variable_set(:@parallel_context, nil)
-                  new_event(Event::ET_WORKFLOW_STEP_COMPLETED, parent_req, e.time, container)
-                end
+                # Request#complete_parallel_branch (unit-tested in
+                # spec/kube_twin/request_spec.rb) owns the branch-count
+                # bookkeeping and reports back whether every branch is now
+                # in; scheduling the parent's resumption event is the one
+                # bit that still belongs here, since it needs @event_queue.
+                all_branches_completed = parent_req.complete_parallel_branch(req.branch_name, req, @current_time)
+                new_event(Event::ET_WORKFLOW_STEP_COMPLETED, parent_req, e.time, container) if all_branches_completed
               elsif req.is_nested_call? && parent_req.nested_calls_active?
                 return_latency, = nested_return_latency(parent_req, req, latency_manager)
                 resume_time = e.time + return_latency

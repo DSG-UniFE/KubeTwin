@@ -81,4 +81,76 @@ describe KUBETWIN::Request do
     _(req.next_step).must_equal 2
   end
 
+  # #complete_parallel_branch bundles what used to be three separate steps
+  # at its one call site (KSimulation's ET_WORKFLOW_STEP_COMPLETED handler,
+  # completing a branch dispatched via #clone_for_parallel_branch): record
+  # the branch as completed, decrement parallel_context[:branch_count],
+  # and once every branch has reported in, clear parallel_context and say
+  # so -- so the event loop no longer has to reach into parallel_context's
+  # internal shape to drive it.
+  describe '#complete_parallel_branch' do
+    def build_request
+      KUBETWIN::Request.new(rid:                    1,
+                             generation_time:        Time.now.to_f,
+                             initial_data_center_id: 0,
+                             arrival_time:           Time.now.to_f,
+                             workflow_type_id:       0,
+                             customer_id:            0)
+    end
+
+    it 'returns false while branches remain outstanding, keeping parallel_context alive' do
+      parent = build_request
+      parent.start_parallel_execution([{ name: 'reviews' }, { name: 'details' }])
+
+      result = parent.complete_parallel_branch('reviews', 'result-a', 10.0)
+
+      _(result).must_equal false
+      _(parent.parallel_context).wont_be_nil
+      _(parent.parallel_context[:branch_count]).must_equal 1
+      _(parent.branch_results['reviews']).must_equal 'result-a'
+    end
+
+    it 'returns true and clears parallel_context once every branch has completed' do
+      parent = build_request
+      parent.start_parallel_execution([{ name: 'reviews' }, { name: 'details' }])
+
+      _(parent.complete_parallel_branch('reviews', 'result-a', 10.0)).must_equal false
+      result = parent.complete_parallel_branch('details', 'result-b', 12.0)
+
+      _(result).must_equal true
+      _(parent.parallel_context).must_be_nil
+      _(parent.branch_results).must_equal({ 'reviews' => 'result-a', 'details' => 'result-b' })
+    end
+
+    it 'completes a single-branch parallel block on the first call' do
+      parent = build_request
+      parent.start_parallel_execution([{ name: 'solo' }])
+
+      result = parent.complete_parallel_branch('solo', 'only-result', 5.0)
+
+      _(result).must_equal true
+      _(parent.parallel_context).must_be_nil
+    end
+
+    it 'records completed_branches/active_branches status via the underlying complete_branch call' do
+      parent = build_request
+      parent.start_parallel_execution([{ name: 'reviews' }])
+
+      parent.complete_parallel_branch('reviews', 'r', 7.0)
+
+      branch = parent.active_branches.find { |b| b[:name] == 'reviews' }
+      _(branch[:status]).must_equal 'completed'
+      _(parent.completed_branches.map { |b| b[:name] }).must_equal ['reviews']
+    end
+
+    it 'a three-branch block only completes on the third call' do
+      parent = build_request
+      parent.start_parallel_execution([{ name: 'a' }, { name: 'b' }, { name: 'c' }])
+
+      _(parent.complete_parallel_branch('a', nil, 1.0)).must_equal false
+      _(parent.complete_parallel_branch('b', nil, 2.0)).must_equal false
+      _(parent.complete_parallel_branch('c', nil, 3.0)).must_equal true
+    end
+  end
+
 end
