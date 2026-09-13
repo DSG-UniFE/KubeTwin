@@ -69,7 +69,7 @@ module KUBETWIN
     # trace log, and the event queue.
     def schedule_request_forward(req, component_name, source_cluster, base_time, latency_manager,
                                  waiting_container: nil)
-      route = @request_forwarder.route(component_name, source_cluster, latency_manager, base_time)
+      route = @request_forwarder.route(component_name, source_cluster.location_id, latency_manager, base_time)
       return false if route.nil?
 
       req.update_transfer_time(route.transmission_time)
@@ -730,20 +730,23 @@ module KUBETWIN
           # TODO -- modeling internal service time
           # this code can be split into two when
 
-          service = @kube_dns.lookup(first_component_name)
+          # Same routing decision RequestForwarder already makes for every
+          # later hop (see schedule_request_forward's call to it) -- here
+          # it's routing from the customer's location instead of a
+          # cluster's, which is why #route takes a bare location_id rather
+          # than a Cluster (see request_forwarder.rb). Unlike those later
+          # hops, this one isn't guarded with a "can't route this" check --
+          # the original inline code had none either (an unregistered
+          # first_component_name already crashed here with a bare
+          # NoMethodError, just one call deeper, on service.get_pod);
+          # preserved rather than silently hardened.
+          initial_route = @request_forwarder.route(first_component_name, customer_location_id, latency_manager, @current_time)
+          pod = initial_route.pod
+          cluster_id = initial_route.cluster.cluster_id
 
-          # the closest_dc stuff should be implmented within a load balancer / service
-          # here we cloud implement different policies rather than random policy
-          pod = service.get_pod(first_component_name) # same as selector
-
-          # we need to get a reference to the cluster where the pod is running
-          cluster_id = pod.node.cluster_id
-          cluster = @cluster_repository[cluster_id]
-
-          arrival_time = @current_time + latency_manager.sample_latency_between(customer_location_id,
-                                                                                cluster.location_id)
-          # here we should also add the HTTP connection time (8 ms)
-          arrival_time += CONNECT_TIME
+          # here we should also add the HTTP connection time (8 ms) -- only
+          # on this very first hop, unlike later inter-component forwards
+          arrival_time = initial_route.forwarding_time + CONNECT_TIME
 
           # generate the request here
           new_req = Request.new(**req_attrs.merge!(initial_data_center_id: cluster_id,

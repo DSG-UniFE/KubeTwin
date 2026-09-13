@@ -3,7 +3,8 @@
 require 'minitest_helper'
 
 # RequestForwarder holds the routing decision extracted out of
-# KSimulation#schedule_request_forward (and, one level up, #dispatch_nested_call):
+# KSimulation#schedule_request_forward (and, one level up,
+# #dispatch_nested_call, plus the very first hop in ET_REQUEST_GENERATION):
 # given a component name, does it resolve to a live pod, and if so, on
 # which cluster and at what latency. It's constructor-injected with just
 # kube_dns and cluster_repository -- the two read-only registries the
@@ -15,13 +16,17 @@ require 'minitest_helper'
 # event) stays in KSimulation -- see the comment at its schedule_request_forward
 # call site for how the two pieces fit together.
 #
-# schedule_request_forward/dispatch_nested_call themselves still need a
-# real KSimulation (torch-rb) to exercise end-to-end, so they were instead
-# verified by hand against the actual patched source, copied verbatim into
-# a throwaway harness object exposing just the ivars/methods those two
-# methods touch -- confirming the KSimulation-side rewrite (mutation order,
-# the "parent_req.data_center_id is set even when the forward itself is
-# unroutable" quirk) still matches the original inline behavior exactly.
+# #route takes a bare source_location_id rather than a Cluster -- the
+# source side of a route can be a cluster's location_id (an inter-component
+# hop) or a customer's location_id (the very first hop, in
+# ET_REQUEST_GENERATION), and #route only ever needs the id itself.
+#
+# schedule_request_forward/dispatch_nested_call/ET_REQUEST_GENERATION
+# themselves still need a real KSimulation (torch-rb) to exercise
+# end-to-end, so they were instead verified by hand against the actual
+# patched source, copied verbatim into a throwaway harness object exposing
+# just the ivars/methods each touches -- confirming the KSimulation-side
+# rewrites still match the original inline behavior exactly.
 describe KUBETWIN::RequestForwarder do
   def build_cluster(id, location_id: 0)
     KUBETWIN::Cluster.new(id: id, fixed_hourly_cost_cpu: 1.0, fixed_hourly_cost_memory: 1.0,
@@ -62,9 +67,8 @@ describe KUBETWIN::RequestForwarder do
       # touching it -- calling it would raise NoMethodError
       kube_dns = KUBETWIN::KubeDns.new
       forwarder = KUBETWIN::RequestForwarder.new(kube_dns: kube_dns, cluster_repository: {})
-      source = build_cluster(:a)
 
-      result = forwarder.route('unregistered', source, Object.new, 10.0)
+      result = forwarder.route('unregistered', 0, Object.new, 10.0)
       _(result).must_be_nil
     end
 
@@ -72,26 +76,25 @@ describe KUBETWIN::RequestForwarder do
       kube_dns = KUBETWIN::KubeDns.new
       kube_dns.registerService(KUBETWIN::Service.new('reviews', 'reviews'))
       forwarder = KUBETWIN::RequestForwarder.new(kube_dns: kube_dns, cluster_repository: {})
-      source = build_cluster(:a)
 
-      result = forwarder.route('reviews', source, Object.new, 10.0)
+      result = forwarder.route('reviews', 0, Object.new, 10.0)
       _(result).must_be_nil
     end
 
     it 'routes to the pod/cluster the service resolves to, with forwarding_time = base_time + sampled latency' do
       kube_dns = KUBETWIN::KubeDns.new
-      cluster_a = build_cluster(:a, location_id: 0)
       cluster_b = build_cluster(:b, location_id: 1)
       node_b = build_node(cluster_b, 'b-1')
       pod = build_pod(node_b, 'reviews')
       register(kube_dns, 'reviews', pod)
 
-      cluster_repository = { cluster_a.cluster_id => cluster_a, cluster_b.cluster_id => cluster_b }
+      cluster_repository = { cluster_b.cluster_id => cluster_b }
       forwarder = KUBETWIN::RequestForwarder.new(kube_dns: kube_dns, cluster_repository: cluster_repository)
       latency_manager = Object.new
       latency_manager.define_singleton_method(:sample_latency_between) { |_src, _dst| 0.025 }
 
-      result = forwarder.route('reviews', cluster_a, latency_manager, 100.0)
+      source_location_id = 0
+      result = forwarder.route('reviews', source_location_id, latency_manager, 100.0)
 
       _(result).wont_be_nil
       _(result.pod).must_be_same_as pod
@@ -100,28 +103,26 @@ describe KUBETWIN::RequestForwarder do
       _(result.forwarding_time).must_equal 100.025
     end
 
-    it 'resolves the cluster via the pod node cluster_id, not the source cluster' do
+    it "resolves the cluster via the pod's node cluster_id, unrelated to source_location_id" do
       kube_dns = KUBETWIN::KubeDns.new
       cluster_a = build_cluster(:a, location_id: 0)
-      cluster_b = build_cluster(:b, location_id: 1)
-      node_a = build_node(cluster_a, 'a-1')
-      pod_on_a = build_pod(node_a, 'checkout')
+      pod_on_a = build_pod(build_node(cluster_a, 'a-1'), 'checkout')
       register(kube_dns, 'checkout', pod_on_a)
 
-      cluster_repository = { cluster_a.cluster_id => cluster_a, cluster_b.cluster_id => cluster_b }
+      cluster_repository = { cluster_a.cluster_id => cluster_a }
       forwarder = KUBETWIN::RequestForwarder.new(kube_dns: kube_dns, cluster_repository: cluster_repository)
       latency_manager = Object.new
       latency_manager.define_singleton_method(:sample_latency_between) { |_src, _dst| 0.0 }
 
-      # routing *from* cluster_b, but the pod actually lives on cluster_a --
-      # result.cluster must be cluster_a (where the pod is), not cluster_b
-      result = forwarder.route('checkout', cluster_b, latency_manager, 0.0)
+      # source_location_id here is an arbitrary id (e.g. a different
+      # cluster's, or a customer's) that has nothing to do with cluster_a --
+      # result.cluster must still be cluster_a, where the pod actually lives
+      result = forwarder.route('checkout', 999, latency_manager, 0.0)
       _(result.cluster).must_be_same_as cluster_a
     end
 
-    it 'passes source and destination location ids through to the latency manager' do
+    it 'passes source_location_id straight through as the sample_latency_between source (no cluster indirection)' do
       kube_dns = KUBETWIN::KubeDns.new
-      cluster_a = build_cluster(:a, location_id: 7)
       cluster_b = build_cluster(:b, location_id: 9)
       node_b = build_node(cluster_b, 'b-1')
       pod = build_pod(node_b, 'reviews')
@@ -134,11 +135,30 @@ describe KUBETWIN::RequestForwarder do
         0.5
       end
 
-      cluster_repository = { cluster_a.cluster_id => cluster_a, cluster_b.cluster_id => cluster_b }
+      cluster_repository = { cluster_b.cluster_id => cluster_b }
       forwarder = KUBETWIN::RequestForwarder.new(kube_dns: kube_dns, cluster_repository: cluster_repository)
-      forwarder.route('reviews', cluster_a, spy, 0.0)
+      forwarder.route('reviews', 7, spy, 0.0)
 
       _(seen_args).must_equal [7, 9]
+    end
+
+    it "works with a customer's location_id as the source, not just a cluster's (the ET_REQUEST_GENERATION case)" do
+      kube_dns = KUBETWIN::KubeDns.new
+      cluster_b = build_cluster(:b, location_id: 3)
+      node_b = build_node(cluster_b, 'b-1')
+      pod = build_pod(node_b, 'productpage')
+      register(kube_dns, 'productpage', pod)
+
+      cluster_repository = { cluster_b.cluster_id => cluster_b }
+      forwarder = KUBETWIN::RequestForwarder.new(kube_dns: kube_dns, cluster_repository: cluster_repository)
+      latency_manager = Object.new
+      latency_manager.define_singleton_method(:sample_latency_between) { |_src, _dst| 0.008 }
+
+      customer_location_id = 42 # no Cluster object behind this at all
+      result = forwarder.route('productpage', customer_location_id, latency_manager, 5.0)
+
+      _(result.pod).must_be_same_as pod
+      _(result.forwarding_time).must_equal 5.008
     end
   end
 end
