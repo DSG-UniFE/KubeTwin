@@ -1,0 +1,7 @@
+# Standard (https://github.com/standardrb/standard) is deliberately
+# non-configurable for style/cop choices -- that's the point of using it.
+# The only thing set here is what it shouldn't look at at all: vendored
+# gem source (installed under vendor/bundle, not part of this project's
+# own code, and large enough that linting it would just be slow noise).
+ignore:
+  - 'vendor/**/*'
