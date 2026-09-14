@@ -48,8 +48,6 @@ module KUBETWIN
       }
     end
 
-    private
-
     # After object destruction, make sure that the input file is closed or
     # the input command process is killed.
     # def setup_finalizer
@@ -67,5 +65,8 @@ module KUBETWIN
         end
       end
     end
+
+    # Make close_io private so that it is not called from outside the class
+    private_class_method :close_io
   end
 end

@@ -33,7 +33,7 @@ module LogManager
     }
 
     # Set up CLI logger if CLI logging is enabled
-    cli_logger = enable_cli ? Logger.new(STDOUT) : nil
+    cli_logger = enable_cli ? Logger.new($stdout) : nil
 
     # Set formatter for file loggers (and optional CLI logger)
     file_loggers.each_value do |logger|
@@ -71,7 +71,7 @@ module LogManager
 
     # Define the method to log to file, debug (if enabled), and CLI (if enabled)
     multi_logger.formatter = proc do |severity, datetime, progname, msg|
-      formatted_msg = "#{msg}"
+      formatted_msg = msg.to_s
       file_logger.add(Logger.const_get(severity), formatted_msg)
       debug_logger.add(Logger.const_get(severity), formatted_msg) if debug_logger # Log to debug if enabled
       cli_logger.add(Logger.const_get(severity), formatted_msg) if cli_logger # Log to CLI if enabled

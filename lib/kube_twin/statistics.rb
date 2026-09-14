@@ -98,8 +98,8 @@ module KUBETWIN
     end
 
     def to_s
-      "received: #{@received}, closed: #{@n}\n" +
-        "TTR: (mean: #{@mean}, variance: #{variance}, p50: #{p50}, p90: #{p90}, p95: #{p95}, p99: #{p99}, longer_than: #{@longer_than}) shorter_than: #{@shorter_than}\n" +
+      "received: #{@received}, closed: #{@n}\n" \
+        "TTR: (mean: #{@mean}, variance: #{variance}, p50: #{p50}, p90: #{p90}, p95: #{p95}, p99: #{p99}, longer_than: #{@longer_than}) shorter_than: #{@shorter_than}\n" \
         "QTIME: (mean: #{@q_mean}, variance: #{q_variance})"
     end
 
@@ -114,22 +114,18 @@ module KUBETWIN
       # prepare an infinite length enumerator that always returns zero
       zeros = Enumerator.new { |x| loop { x << 0 } }
 
-      Hash[
-        # wrap the values in custom_kpis_config[:longer_than] in an array
-        Array(custom_kpis_config[:longer_than]).
-          # and interval the numbers contained in that array with zeroes
-          zip(zeros) ]
+      Array(custom_kpis_config[:longer_than]).
+        # and interval the numbers contained in that array with zeroes
+        zip(zeros).to_h
     end
 
     def init_counters_for_shorter_than_stats(custom_kpis_config)
       # prepare an infinite length enumerator that always returns zero
       zeros = Enumerator.new { |x| loop { x << 0 } }
 
-      Hash[
-        # wrap the values in custom_kpis_config[:longer_than] in an array
-        Array(custom_kpis_config[:longer_than]).
-          # and interval the numbers contained in that array with zeroes
-          zip(zeros) ]
+      Array(custom_kpis_config[:longer_than]).
+        # and interval the numbers contained in that array with zeroes
+        zip(zeros).to_h
     end
   end
 end

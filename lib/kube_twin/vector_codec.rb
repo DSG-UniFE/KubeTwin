@@ -80,7 +80,7 @@ module KUBETWIN
       n_candidates.times do
         perturbed = base_vec.each_with_index.map do |val, i|
           delta = rng.rand(-2..2)
-          [[val + delta, mins[i]].max, maxs[i]].min
+          (val + delta).clamp(mins[i], maxs[i])
         end
         candidates << perturbed
       end

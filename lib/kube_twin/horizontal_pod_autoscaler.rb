@@ -13,14 +13,14 @@ module KUBETWIN
       :period_seconds
 
     # name and selector have the same value here
-    def initialize(name, minReplicas, maxReplicas,
+    def initialize(name, min_replicas, max_replicas,
       target_processing_percentage,
-      periodSeconds)
+      period_seconds)
       @name = name
-      @min_replicas = minReplicas
-      @max_replicas = maxReplicas
+      @min_replicas = min_replicas
+      @max_replicas = max_replicas
       @target_processing_percentage = target_processing_percentage
-      @period_seconds = periodSeconds
+      @period_seconds = period_seconds
     end
 
     # The Kubernetes-HPA-inspired scale-up/scale-down decision, extracted

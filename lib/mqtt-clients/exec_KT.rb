@@ -30,8 +30,8 @@ if __FILE__ == $0
   # Usage of the module in the same file
   # Setup logging
   loggers = {
-    info: Logger.new(STDOUT),
-    error: Logger.new(STDOUT)
+    info: Logger.new($stdout),
+    error: Logger.new($stdout)
   }
 
   conf_filename = "tosca_my_solver_3.conf"

@@ -76,8 +76,8 @@ if __FILE__ == $0
   # Usage of the module in the same file
   # Setup logging
   {
-    info: Logger.new(STDOUT),
-    error: Logger.new(STDOUT)
+    info: Logger.new($stdout),
+    error: Logger.new($stdout)
   }
   require_relative "log_manager"  # Include the logging module
 

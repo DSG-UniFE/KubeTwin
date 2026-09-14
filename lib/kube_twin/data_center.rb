@@ -39,7 +39,7 @@ module KUBETWIN
     end
 
     def remove_vm(vm, component_name)
-      if @vms.has_key? component_name and @vms[component_name].include? vm
+      if @vms.has_key?(component_name) && @vms[component_name].include?(vm)
         raise "Error! Inconsistent number of VMs!" unless @vm_type_count[vm.size] >= 1
         @vm_type_count[vm.size] += 1
         @vms.delete(vm)

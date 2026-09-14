@@ -4,15 +4,15 @@ require "minitest_helper"
 
 require_relative "reference_configuration"
 
-describe KUBETWIN::KSimulation do
-  # we define unfeasible allocations as allocations that do not have at least
-  # one instance for each software component
-  UNFEASIBLE_ALLOCATION = [
-    {dc_id: 1, vm_size: :medium, vm_num: rand(1..50), component_type: "Web Server"},
-    {dc_id: 3, vm_size: :medium, vm_num: rand(1..30), component_type: "App Server"}
-    # { dc_id: 5, vm_size: :large,  vm_num: 1 + rand(2),  component_type: 'Financial Transaction Server' },
-  ]
+# we define unfeasible allocations as allocations that do not have at least
+# one instance for each software component
+UNFEASIBLE_ALLOCATION = [
+  {dc_id: 1, vm_size: :medium, vm_num: rand(1..50), component_type: "Web Server"},
+  {dc_id: 3, vm_size: :medium, vm_num: rand(1..30), component_type: "App Server"}
+  # { dc_id: 5, vm_size: :large,  vm_num: 1 + rand(2),  component_type: 'Financial Transaction Server' },
+]
 
+describe KUBETWIN::KSimulation do
   # NOTE: KSimulation#evaluate_allocation's signature and semantics have
   # moved on since this test was written -- it now takes
   # (rss, css, mtt, lm, mapping, replicas_mapping), not a single array of

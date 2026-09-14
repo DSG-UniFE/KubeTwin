@@ -8,7 +8,6 @@ require "securerandom"
 require_relative "mqtt_publish"
 require_relative "exec_KT"
 require_relative "log_manager"  # Include the logging module
-require_relative "mqtt_publish"
 require_relative "signals_handler"
 
 # Constants for MQTT connection

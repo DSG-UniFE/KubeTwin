@@ -9,15 +9,15 @@ module KUBETWIN
     POD_FAILED = 0     # All containers in the Pod have terminated, and at least one container has terminated in failure
 
     # commenting podIP info for now :podIp
-    attr_reader :pod_id, :podName, :node, :label,
+    attr_reader :pod_id, :pod_name, :node, :label,
       :container, :requirements
 
     # here fix it
     # instead of nodeIP we could use a nodeID
     # pod name could not be important
-    def initialize(pod_id, podName, node, label, image_info)
+    def initialize(pod_id, pod_name, node, label, image_info)
       @pod_id = pod_id
-      @podName = podName
+      @pod_name = pod_name
       @node = node
 
       @node_affinity = image_info[:node_affinity].nil? ? nil : image_info[:node_affinity]
@@ -28,7 +28,8 @@ module KUBETWIN
       # image_info[:blocking]) #, opts[:port]) # @containers = {}
       # startup the container here -- we just need a MVP for now
       @container.startupC
-      @startTime = Time.now
+      # Mauro: I commented out @start_time because currently unused
+      # @start_time = Time.now
       @status = Pod::POD_PENDING
       @label = label
       @requirements = {cpu: image_info[:resources_requirements_cpu], memory: image_info[:resources_requirements_memory]}
@@ -63,7 +64,7 @@ module KUBETWIN
 
     # TODO refactor this method to remove unused fields
     # def describePod(_pod)
-    #  "Name: #{@podName} \nIP: #{@pod_id} \nNode IP: #{@nodeIp} \nStart Time: #{@startTime} \nStatus: #{@status} \nContainers: \n\tContainer ID: #{@container.containerId} \n\tImage ID: #{@container.imageId} \n\tPort: #{@container.port} \n\tLimits: \n\t\tcpu: #{@container.limits.cpu} \n\t\tmemory: #{@container.limits.memory} \n\tRequests: \n\t\tcpu: #{@container.guaranteed.cpu} \n\t\tmemory: #{@container.guaranteed.memory}"
+    #  "Name: #{@pod_name} \nIP: #{@pod_id} \nNode IP: #{@nodeIp} \nStart Time: #{@start_time} \nStatus: #{@status} \nContainers: \n\tContainer ID: #{@container.container_id} \n\tImage ID: #{@container.image_id} \n\tPort: #{@container.port} \n\tLimits: \n\t\tcpu: #{@container.limits.cpu} \n\t\tmemory: #{@container.limits.memory} \n\tRequests: \n\t\tcpu: #{@container.guaranteed.cpu} \n\t\tmemory: #{@container.guaranteed.memory}"
     # end
 
     # Pod running if at least one of its primary containers starts OK

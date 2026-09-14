@@ -97,7 +97,7 @@ module KUBETWIN
         node = if node_with_affinity.empty?
           nil
         else
-          node_with_affinity.sort_by { |n| -n[:available_resources_cpu] }[0][:node]
+          node_with_affinity.min_by { |n| -n[:available_resources_cpu] }[:node]
         end
       end
 
@@ -108,7 +108,7 @@ module KUBETWIN
         # node = @filtered_nodes.sort_by { |n| -n[:available_resources_cpu] }[0][:node]
         # puts "#{@filtered_nodes.sort_by { |n| n[:price] }}"
         # abort
-        node = @filtered_nodes.sort_by { |n| n[:node].pod_id_list.length }[0][:node]
+        node = @filtered_nodes.min_by { |n| n[:node].pod_id_list.length }[:node]
       end
       node
     end

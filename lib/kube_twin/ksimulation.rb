@@ -25,7 +25,7 @@ module KUBETWIN
       @results_dir += "/" unless @results_dir.nil?
       @microservice_mdn = {}
       @mapping = nil
-      @logger = opts[:logger] || Logger.new(STDOUT)
+      @logger = opts[:logger] || Logger.new($stdout)
       @logger.level = opts[:log_level] || Logger::INFO
       @trace_requests = ENV["KUBETWIN_TRACE_REQUESTS"] == "1"
     end
@@ -114,7 +114,7 @@ module KUBETWIN
     def release_container_after_wait(container, time)
       container.request_finished(self, time) if container.wait_for.empty?
       old_container = container.free_linked_container
-      old_container.request_finished(self, time) if old_container
+      old_container&.request_finished(self, time)
     end
 
     ## just an helper method to create the cluster configuration
@@ -122,37 +122,33 @@ module KUBETWIN
       if sim_conf.federation.nil?
         cid = -1
         # create clusters and relative nodes and store them in a repository
-        Hash[
-            @configuration.clusters.map do |k, v|
-              cid += 1
-              @logger.debug "Cluster: #{k} #{v}"
-              [k, Cluster.new(id: k, fixed_hourly_cost_cpu: nil,
-                fixed_hourly_cost_memory: nil, **v)]
-            end
-          ]
+        @configuration.clusters.map do |k, v|
+          cid += 1
+          @logger.debug "Cluster: #{k} #{v}"
+          [k, Cluster.new(id: k, fixed_hourly_cost_cpu: nil,
+            fixed_hourly_cost_memory: nil, **v)]
+        end.to_h
       else
         federation = JSON.parse(sim_conf.federation, symbolize_names: true)
         # puts "Federation resources: #{federation[:resources]}"
         cid = -1
-        Hash[
-          federation[:resources].map do |k, v|
-            # puts "k: #{k} v: #{v}"
-            node_number = v[:nodes].length if v[:nodes]
-            node_number ||= v[:cpu].to_i / DEFAULT_CPU_PER_NODE
-            node_cpu = v[:cpu].to_i / node_number
-            node_mem = v[:mem].to_i / node_number
-            # we assume that the resources are homogeneous
-            # Since we only have an aggregate for CPU and Memoryù
-            # we assume to divide clusters equally. Each node
-            # has 2000 milliCPU and 2 GB of Memory (2048 MB)
-            cid += 1
-            [k, Cluster.new(id: cid, fixed_hourly_cost_cpu: nil,
-              fixed_hourly_cost_memory: nil, location_id: cid,
-              node_resources_cpu: node_cpu.to_i,
-              node_resources_memory: node_mem.to_i, name: k,
-              node_number: node_number.to_i, type: :mec, tier: "local")]
-          end
-          ]
+        federation[:resources].map do |k, v|
+          # puts "k: #{k} v: #{v}"
+          node_number = v[:nodes].length if v[:nodes]
+          node_number ||= v[:cpu].to_i / DEFAULT_CPU_PER_NODE
+          node_cpu = v[:cpu].to_i / node_number
+          node_mem = v[:mem].to_i / node_number
+          # we assume that the resources are homogeneous
+          # Since we only have an aggregate for CPU and Memoryù
+          # we assume to divide clusters equally. Each node
+          # has 2000 milliCPU and 2 GB of Memory (2048 MB)
+          cid += 1
+          [k, Cluster.new(id: cid, fixed_hourly_cost_cpu: nil,
+            fixed_hourly_cost_memory: nil, location_id: cid,
+            node_resources_cpu: node_cpu.to_i,
+            node_resources_memory: node_mem.to_i, name: k,
+            node_number: node_number.to_i, type: :mec, tier: "local")]
+        end.to_h
       end
     end
 
@@ -190,15 +186,13 @@ module KUBETWIN
       if @configuration.federation.nil?
         cid = -1
         # create clusters and relative nodes and store them in a repository
-        @cluster_repository = Hash[
-          @configuration.clusters.map do |k, v|
-            cid += 1
-            price = evaluation_cost[cid] || 0.100
-            @logger.debug "Cluster: #{k} #{v}"
-            [k, Cluster.new(id: k, fixed_hourly_cost_cpu: price,
-              fixed_hourly_cost_memory: price, **v)]
-          end
-        ]
+        @cluster_repository = @configuration.clusters.map do |k, v|
+          cid += 1
+          price = evaluation_cost[cid] || 0.100
+          @logger.debug "Cluster: #{k} #{v}"
+          [k, Cluster.new(id: k, fixed_hourly_cost_cpu: price,
+            fixed_hourly_cost_memory: price, **v)]
+        end.to_h
       else
         # create clusters and relative nodes and store them in a repository
         # Use this as a reference
@@ -220,27 +214,25 @@ module KUBETWIN
         end
 
         cid = -1
-        @cluster_repository = Hash[
-          federation[:resources].map do |k, v|
-            # puts "k: #{k} v: #{v}"
-            node_number = v[:nodes].length if v[:nodes]
-            node_number ||= v[:cpu].to_i / DEFAULT_CPU_PER_NODE
-            node_cpu = v[:cpu].to_i / node_number
-            node_mem = v[:mem].to_i / node_number
-            # we assume that the resources are homogeneous
-            # Since we only have an aggregate for CPU and Memoryù
-            # we assume to divide clusters equally. Each node
-            # has 2000 milliCPU and 2 GB of Memory (2048 MB)
-            cid += 1
-            price = evaluation_cost[cid] || 0.100
-            # @logger.info "Cluster k: #{k}"
-            [k, Cluster.new(id: k, fixed_hourly_cost_cpu: price,
-              fixed_hourly_cost_memory: price, location_id: cid,
-              node_resources_cpu: node_cpu.to_i,
-              node_resources_memory: node_mem.to_i, name: k,
-              node_number: node_number.to_i, type: :mec, tier: "local")]
-          end
-          ]
+        @cluster_repository = federation[:resources].map do |k, v|
+          # puts "k: #{k} v: #{v}"
+          node_number = v[:nodes].length if v[:nodes]
+          node_number ||= v[:cpu].to_i / DEFAULT_CPU_PER_NODE
+          node_cpu = v[:cpu].to_i / node_number
+          node_mem = v[:mem].to_i / node_number
+          # we assume that the resources are homogeneous
+          # Since we only have an aggregate for CPU and Memoryù
+          # we assume to divide clusters equally. Each node
+          # has 2000 milliCPU and 2 GB of Memory (2048 MB)
+          cid += 1
+          price = evaluation_cost[cid] || 0.100
+          # @logger.info "Cluster k: #{k}"
+          [k, Cluster.new(id: k, fixed_hourly_cost_cpu: price,
+            fixed_hourly_cost_memory: price, location_id: cid,
+            node_resources_cpu: node_cpu.to_i,
+            node_resources_memory: node_mem.to_i, name: k,
+            node_number: node_number.to_i, type: :mec, tier: "local")]
+        end.to_h
       end
 
       # @logger.info "Clusters: #{@cluster_repository[@clusters_mapping[0]].cluster_id}"
@@ -261,16 +253,14 @@ module KUBETWIN
 
       # If mapping is not nil, get the integer values of mapping to get the cluster id
       # just need to the @cluster_repository to get the cluster id
-      if @mapping
-        @mapping.each_with_index do |cid, i|
-          # get the cluster id from the cluster repository with key at position cid
-          cluster = if cid == @cluster_repository.keys.length
-            :none
-          else
-            @cluster_repository.keys[cid]
-          end
-          @mapping[i] = cluster.to_sym
+      @mapping&.each_with_index do |cid, i|
+        # get the cluster id from the cluster repository with key at position cid
+        cluster = if cid == @cluster_repository.keys.length
+          :none
+        else
+          @cluster_repository.keys[cid]
         end
+        @mapping[i] = cluster.to_sym
       end
 
       # create latency manager, check if we should use the simplified latency model
@@ -323,39 +313,31 @@ module KUBETWIN
       stats = Statistics.new
 
       # statistics for servicemdnmdn
-      hpa_component_stats = Hash[
-        @microservice_types.keys.map do |m_id|
-          [
-            m_id,
-            ComponentStatistics.new
-          ]
-        end
-      ]
+      hpa_component_stats = @microservice_types.keys.map do |m_id|
+        [
+          m_id,
+          ComponentStatistics.new
+        ]
+      end.to_h
 
-      per_component_stats = Hash[
-        @microservice_types.keys.map do |m_id|
-          @logger.debug "Microservice type: #{m_id}"
-          [
-            m_id,
-            ComponentStatistics.new
-          ]
-        end
-      ]
+      per_component_stats = @microservice_types.keys.map do |m_id|
+        @logger.debug "Microservice type: #{m_id}"
+        [
+          m_id,
+          ComponentStatistics.new
+        ]
+      end.to_h
 
-      per_workflow_and_customer_stats = Hash[
-        workflow_type_repository.keys.map do |wft_id|
-          [
-            wft_id,
-            Hash[
-              customer_repository.keys.map do |c_id|
-                [c_id, Statistics.new(@configuration.custom_stats.find do |x|
-                  x[:customer_id] == c_id && x[:workflow_type_id] == wft_id
-                end || {})]
-              end
-            ]
-          ]
-        end
-      ]
+      per_workflow_and_customer_stats = workflow_type_repository.keys.map do |wft_id|
+        [
+          wft_id,
+          customer_repository.keys.map do |c_id|
+            [c_id, Statistics.new(@configuration.custom_stats.find do |x|
+              x[:customer_id] == c_id && x[:workflow_type_id] == wft_id
+            end || {})]
+          end.to_h
+        ]
+      end.to_h
 
       # Separate workflow and chain stats to do so we need to create a chain and look if microservices in that chain
       # are within a workflow and then get the wokrflow id
@@ -426,13 +408,11 @@ module KUBETWIN
 
           # @logger.info "chain_repository #{@chain_repository[wf_cid]}"
 
-          per_chain_and_customer_stats[wf_cid] = Hash[
-                customer_repository.keys.map do |c_id|
-                  [c_id, Statistics.new(@configuration.custom_stats.find do |x|
-                    x[:customer_id] == c_id && x[:workflow_type_id] == wf_cid
-                  end || {})]
-                end
-          ]
+          per_chain_and_customer_stats[wf_cid] = customer_repository.keys.map do |c_id|
+            [c_id, Statistics.new(@configuration.custom_stats.find do |x|
+              x[:customer_id] == c_id && x[:workflow_type_id] == wf_cid
+            end || {})]
+          end.to_h
 
           customer_repository.each do |c_id, _|
             @logger.debug "Customer: #{c_id}"
@@ -501,15 +481,13 @@ module KUBETWIN
       # @logger.debug @replica_sets
 
       @horizontal_pod_autoscaler_repo = {}
-      unless @configuration.horizontal_pod_autoscalers.nil?
-        @configuration.horizontal_pod_autoscalers.each do |name, conf|
-          # implement the horizontal_pod_autoscaler
-          @horizontal_pod_autoscaler_repo[name] =
-            HorizontalPodAutoscaler.new(conf[:name],
-              conf[:minReplicas], conf[:maxReplicas],
-              conf[:targetProcessingPercentage],
-              conf[:periodSeconds])
-        end
+      @configuration.horizontal_pod_autoscalers&.each do |name, conf|
+        # implement the horizontal_pod_autoscaler
+        @horizontal_pod_autoscaler_repo[name] =
+          HorizontalPodAutoscaler.new(conf[:name],
+            conf[:minReplicas], conf[:maxReplicas],
+            conf[:targetProcessingPercentage],
+            conf[:periodSeconds])
       end
 
       # @logger.debug @horizontal_pod_autoscaler_repo
@@ -689,7 +667,7 @@ module KUBETWIN
         current_event += 1
         # sanity check on simulation time flow
         if @current_time > e.time
-          raise "Error: simulation time inconsistency for event #{current_event} " +
+          raise "Error: simulation time inconsistency for event #{current_event} " \
             "e.type=#{e.type} @current_time=#{@current_time}, e.time=#{e.time}"
         end
 
@@ -820,7 +798,7 @@ module KUBETWIN
           trace_request(req, "arrived at #{component_name}")
 
           # here we should use the delegator
-          # puts "#{now},#{pod.container.containerId},#{pod.container.request_queue.length}\n"
+          # puts "#{now},#{pod.container.container_id},#{pod.container.request_queue.length}\n"
           pod.container.new_request(self, req, time)
 
         when Event::ET_WORKFLOW_STEP_COMPLETED
@@ -1142,14 +1120,12 @@ module KUBETWIN
 
           # reset also comoponent statistics
 
-          hpa_component_stats = Hash[
-            @microservice_types.keys.map do |m_id|
-              [
-                m_id,
-                ComponentStatistics.new
-              ]
-            end
-          ]
+          hpa_component_stats = @microservice_types.keys.map do |m_id|
+            [
+              m_id,
+              ComponentStatistics.new
+            ]
+          end.to_h
 
           next_event_time = @current_time + @stats_print_interval
 
@@ -1202,13 +1178,13 @@ module KUBETWIN
 
       # TODO: -- IMPLEMENT COST EVALUATION HERE
       # costs = @evaluator.evaluate_fixed_costs_cpu(vm_allocation)
-      puts "====== Evaluating new allocation ======\n" +
+      puts "====== Evaluating new allocation ======\n" \
         "stats: #{stats}\n" +
         # "per_workflow_and_customer_stats: #{per_workflow_and_customer_stats}\n" +
-        "component_stats: #{per_component_stats}\n" +
-        "allocation_map: #{allocation_map}\n" +
-        "node_utilization: #{node_utilization}\n" +
-        "costs: #{costs.round(2)} per day\n" +
+        "component_stats: #{per_component_stats}\n" \
+        "allocation_map: #{allocation_map}\n" \
+        "node_utilization: #{node_utilization}\n" \
+        "costs: #{costs.round(2)} per day\n" \
         "=======================================\n"
 
       # gather information of how many pods are running for each label in each node per cluster
@@ -1317,13 +1293,11 @@ module KUBETWIN
         # @logger.debug 'Proceed anyway'
         # next
         # end
-        not_closed_penalty = 0
-        not_closed_penalty + v.longer_than.inject(0.0) do |sum, (_key, value)|
+        not_closed_penalty = v.longer_than.inject(0.0) do |sum, (_key, value)|
           # puts "Component: #{k} Longer than #{key} ms: #{value} closed: #{v.closed}"
-          next if v.closed.nil? || v.closed.nil?
-
-          sum + (value / v.closed.to_f) if v.closed.to_f > 0
+          penalty_value = (!v.closed.nil? && v.closed.to_f > 0) ? (value / v.closed.to_f) : 0
           # sum + (value / v.closed.to_f) * @configuration.custom_stats.find { |x| x[:name] == key }[:weight]
+          sum + penalty_value
         end
         weighted_sum += normalize_objective(not_closed_penalty, 0, mean_ttr)
       end

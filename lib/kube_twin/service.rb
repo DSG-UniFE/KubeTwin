@@ -7,7 +7,7 @@ module KUBETWIN
     # consider it for future work
     attr_accessor :load_balancing
 
-    attr_reader :serviceName,
+    attr_reader :service_name,
       :selector,
       :pods
 
@@ -15,8 +15,8 @@ module KUBETWIN
 
     SEED = 45_678
 
-    def initialize(serviceName, selector, load_balancing = :random)
-      @serviceName = serviceName
+    def initialize(service_name, selector, load_balancing = :random)
+      @service_name = service_name
       @selector = selector
       @pods = {}
       # round robin pod selector
@@ -38,7 +38,7 @@ module KUBETWIN
     def get_pod(label)
       if @load_balancing == :random
         pod = get_random_pod(label)
-      elsif pod = get_pod_rr(label)
+      elsif (pod = get_pod_rr(label))
         # this is for round robin
       end
       pod

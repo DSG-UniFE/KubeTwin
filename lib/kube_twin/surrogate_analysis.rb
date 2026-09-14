@@ -240,11 +240,10 @@ module KUBETWIN
       puts "── Regression Quality Metrics ──"
       puts ""
       puts format("  %-25s %s", "Training R²:", format_val(metrics[:training_r2]))
-      puts format("  %-25s %s", "CV R² (5-fold):",
-        "#{format_val(metrics[:cv_r2_mean])} +/- #{format_val(metrics[:cv_r2_std])}")
+      puts "  CV R² (5-fold):           #{format_val(metrics[:cv_r2_mean])} +/- #{format_val(metrics[:cv_r2_std])}"
       puts format("  %-25s %s", "RMSE:", format_val(metrics[:rmse]))
       puts format("  %-25s %s", "MAE:", format_val(metrics[:mae]))
-      puts format("  %-25s %s", "MAPE:", "#{format_val(metrics[:mape])}%")
+      puts "  MAPE:                     #{format_val(metrics[:mape])}%"
       puts ""
     end
 
@@ -256,12 +255,10 @@ module KUBETWIN
 
       # Header
       if show_std
-        puts format("  %-4s  %-30s  %-14s  %-12s  %-18s  %s",
-          "Rank", "Feature", "Category", "Microservice", "Importance", "Std")
+        puts "  Rank  Feature                         Category        Microservice  Importance          Std"
         puts "  " + "-" * 100
       else
-        puts format("  %-4s  %-30s  %-14s  %-12s  %s",
-          "Rank", "Feature", "Category", "Microservice", "Importance")
+        puts "  Rank  Feature                         Category        Microservice  Importance"
         puts "  " + "-" * 80
       end
 
@@ -286,7 +283,7 @@ module KUBETWIN
 
       # By category
       puts "  By category (replica_count vs cluster_assignment):"
-      puts format("    %-20s  %-18s  %s", "Category", "MDI (sum)", "Permutation (sum)")
+      puts "    Category              MDI (sum)           Permutation (sum)"
       puts "    " + "-" * 60
 
       %w[replica_count cluster_assignment].each do |cat|
@@ -298,8 +295,7 @@ module KUBETWIN
 
       # By microservice
       puts "  By microservice:"
-      puts format("    %-20s  %-18s  %-18s  %-18s  %s",
-        "Microservice", "MDI (total)", "MDI (replicas)", "MDI (clusters)", "Perm (total)")
+      puts "    Microservice          MDI (total)         MDI (replicas)      MDI (clusters)      Perm (total)"
       puts "    " + "-" * 95
 
       @ms_names.each do |ms|

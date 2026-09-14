@@ -6,7 +6,7 @@ module KUBETWIN
   module Logging
     class << self
       def logger
-        @logger ||= ::Logger.new(STDERR).tap { |l| l.level = ::Logger::INFO }
+        @logger ||= ::Logger.new($stderr).tap { |l| l.level = ::Logger::INFO }
       end
     end
 

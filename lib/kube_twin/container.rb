@@ -18,8 +18,8 @@ module KUBETWIN
     CONTAINER_TERMINATED = 2      # began execution and then either ran to completion or failed for some reason
 
     # no need for :port now
-    attr_reader :containerId,
-      :imageId,
+    attr_reader :container_id,
+      :image_id,
       :endCode,
       :name,
       :state,
@@ -36,13 +36,13 @@ module KUBETWIN
     Guaranteed = Struct.new(:cpu, :memory)
     Limits = Struct.new(:cpu, :memory)
 
-    def initialize(containerId, imageId, st_distribution, opts = {})
-      @containerId = containerId
-      @imageId = imageId
+    def initialize(container_id, image_id, st_distribution, opts = {})
+      @container_id = container_id
+      @image_id = image_id
       @state = Container::CONTAINER_WAITING
       @limits = Limits.new(500, 500)
       @guaranteed = Guaranteed.new(500, 500)
-      @startedTime = Time.now
+      @started_time = Time.now
       @state = CONTAINER_WAITING
       @name = opts[:label]
 
@@ -230,7 +230,7 @@ module KUBETWIN
       end
       # puts "Start: #{time}"
       ri = @request_queue.shift
-      # puts "#{containerId} #{@request_queue.length} sr: #{served_request} #{time - ri.arrival_time}" if @request_queue.length > 2
+      # puts "#{container_id} #{@request_queue.length} sr: #{served_request} #{time - ri.arrival_time}" if @request_queue.length > 2
 
       req = ri.request
       # update the request's working information
@@ -249,10 +249,10 @@ module KUBETWIN
       sim.new_event(Event::ET_WORKFLOW_STEP_COMPLETED, req, time + ri.service_time, self)
     end
 
-    def request_resources(moreCpu)
+    def request_resources(more_cpu)
       raise "Impossible assign resources, container is still running" if @state == CONTAINER_RUNNING
 
-      @guaranteed.cpu += moreCpu
+      @guaranteed.cpu += more_cpu
       raise "CPU limits error, too much resources in request" if @guaranteed.cpu > @limits.cpu
 
       @state = CONTAINER_WAITING
