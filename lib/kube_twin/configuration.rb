@@ -3,6 +3,16 @@
 require_relative './support/dsl_helper'
 
 require 'ice_nine'
+# Example .conf files are instance_eval'd as raw Ruby against a
+# Configuration object (see .load_from_file below) and every one of
+# them uses DateTime/Date (typically for start_time). Neither is
+# referenced anywhere else in lib/kube_twin -- this used to work only
+# because something else in the dependency chain happened to require
+# 'date' transitively, which is no longer guaranteed on newer Rubies
+# (default gems must be required explicitly). Required explicitly here,
+# at the point the dependency is actually consumed, rather than relying
+# on it arriving as a side effect of some other gem's own requires.
+require 'date'
 
 
 module ERV
