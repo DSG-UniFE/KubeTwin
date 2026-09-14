@@ -1,6 +1,5 @@
 # frozen_string_literal: true
 
-
 module KUBETWIN
   class Service
     # removing :targetPort for now
@@ -9,8 +8,8 @@ module KUBETWIN
     attr_accessor :load_balancing
 
     attr_reader :serviceName,
-                :selector,
-                :pods
+      :selector,
+      :pods
 
     # , :targetPort
 
@@ -31,7 +30,7 @@ module KUBETWIN
     def assignPod(pod)
       pod_label = pod.label
       @pods[pod_label] ||= []
-      raise 'Error! Pod is already present!' if @pods[pod_label].include? pod
+      raise "Error! Pod is already present!" if @pods[pod_label].include? pod
 
       @pods[pod.label] << pod if @selector == pod.label
     end
@@ -61,7 +60,7 @@ module KUBETWIN
 
       index = @rri
       # update rri
-      @rri = @pods.length > 0 ? (@rri + 1) % @pods[label].length : 0
+      @rri = (@pods.length > 0) ? (@rri + 1) % @pods[label].length : 0
       @pods[label][index]
     end
 

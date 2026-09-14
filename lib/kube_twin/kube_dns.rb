@@ -1,6 +1,5 @@
 # frozen_string_literal: true
 
-
 # this class is just a skeleton
 # of kube-dns
 # when a service is created is registred in the DNS
@@ -18,14 +17,14 @@ module KUBETWIN
     def registerService(service)
       # do we need null check here
       if @services.include? service.selector
-        raise 'Error! Service is already present!'
-        end
+        raise "Error! Service is already present!"
+      end
 
       @services[service.selector] = service
     end
 
     def deregisterService(service)
-      raise 'Error! Service is not registred!' unless @services.include? service.selector
+      raise "Error! Service is not registred!" unless @services.include? service.selector
 
       @services.delete(service.selector)
     end

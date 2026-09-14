@@ -1,14 +1,14 @@
 # frozen_string_literal: true
 
-require 'rumale/ensemble/random_forest_regressor'
-require 'rumale/model_selection/k_fold'
-require 'rumale/model_selection/cross_validation'
-require 'rumale/evaluation_measure/r2_score'
-require 'rumale/evaluation_measure/mean_squared_error'
-require 'rumale/evaluation_measure/mean_absolute_error'
-require 'numo/narray'
-require 'csv'
-require 'logger'
+require "rumale/ensemble/random_forest_regressor"
+require "rumale/model_selection/k_fold"
+require "rumale/model_selection/cross_validation"
+require "rumale/evaluation_measure/r2_score"
+require "rumale/evaluation_measure/mean_squared_error"
+require "rumale/evaluation_measure/mean_absolute_error"
+require "numo/narray"
+require "csv"
+require "logger"
 
 module KUBETWIN
   # Offline analysis of a trained surrogate model.
@@ -34,18 +34,18 @@ module KUBETWIN
       @logger = logger || Logger.new($stdout, level: Logger::INFO)
 
       # Unpack bundle
-      @model          = @bundle[:model]
-      @x_samples      = @bundle[:x_samples]
-      @y_samples      = @bundle[:y_samples]
+      @model = @bundle[:model]
+      @x_samples = @bundle[:x_samples]
+      @y_samples = @bundle[:y_samples]
       @feature_labels = @bundle[:feature_labels]
-      @ms_names       = @bundle[:ms_names]
-      @cluster_names  = @bundle[:cluster_names]
-      @n_ms           = @bundle[:n_ms]
-      @n_clusters     = @bundle[:n_clusters]
-      @max_replicas   = @bundle[:max_replicas]
-      @n_dims         = @bundle[:n_dims]
-      @training_r2    = @bundle[:training_r2]
-      @timestamp      = @bundle[:timestamp]
+      @ms_names = @bundle[:ms_names]
+      @cluster_names = @bundle[:cluster_names]
+      @n_ms = @bundle[:n_ms]
+      @n_clusters = @bundle[:n_clusters]
+      @max_replicas = @bundle[:max_replicas]
+      @n_dims = @bundle[:n_dims]
+      @training_r2 = @bundle[:training_r2]
+      @timestamp = @bundle[:timestamp]
 
       # Convert to Numo arrays for computation
       @x_numo = Numo::DFloat.cast(@x_samples)
@@ -56,35 +56,35 @@ module KUBETWIN
 
       # Build feature-to-group mappings
       @feature_category = build_feature_categories
-      @feature_ms       = build_feature_microservices
+      @feature_ms = build_feature_microservices
     end
 
     # Run the full analysis pipeline: metrics, MDI, permutation importance.
     # Prints to stdout and saves CSV files.
     def run
-      puts '=' * 72
-      puts '  SURROGATE MODEL ANALYSIS'
-      puts '=' * 72
+      puts "=" * 72
+      puts "  SURROGATE MODEL ANALYSIS"
+      puts "=" * 72
       puts "  Bundle timestamp : #{@timestamp}"
       puts "  Training samples : #{@x_samples.length}"
       puts "  Features (dims)  : #{@n_dims}"
-      puts "  Microservices    : #{@ms_names.join(', ')}"
-      puts "  Clusters         : #{@cluster_names.join(', ')}"
-      puts '=' * 72
+      puts "  Microservices    : #{@ms_names.join(", ")}"
+      puts "  Clusters         : #{@cluster_names.join(", ")}"
+      puts "=" * 72
 
       metrics = compute_metrics
       print_metrics(metrics)
 
       mdi = compute_mdi_importance
-      print_importance_table('MDI (Mean Decrease in Impurity)', mdi)
+      print_importance_table("MDI (Mean Decrease in Impurity)", mdi)
 
       perm = compute_permutation_importance
-      print_importance_table('Permutation Importance', perm, show_std: true)
+      print_importance_table("Permutation Importance", perm, show_std: true)
 
       print_aggregated_importance(mdi, perm)
 
       # Save CSVs
-      ts = @timestamp || Time.now.strftime('%Y%m%d%H%M%S')
+      ts = @timestamp || Time.now.strftime("%Y%m%d%H%M%S")
       save_feature_csv(mdi, perm, "surrogate_analysis_#{ts}.csv")
       save_summary_csv(mdi, perm, "surrogate_analysis_summary_#{ts}.csv")
       save_metrics_csv(metrics, "surrogate_analysis_metrics_#{ts}.csv")
@@ -102,7 +102,7 @@ module KUBETWIN
 
       # RMSE
       residuals = @y_numo - @y_pred
-      metrics[:rmse] = Math.sqrt((residuals ** 2).mean)
+      metrics[:rmse] = Math.sqrt((residuals**2).mean)
 
       # MAE
       metrics[:mae] = residuals.abs.mean
@@ -110,7 +110,8 @@ module KUBETWIN
       # MAPE (skip samples where y == 0 to avoid division by zero)
       nonzero_mask = @y_numo.ne(0)
       if nonzero_mask.count_true > 0
-        abs_pct_errors = (residuals.abs / @y_numo.abs)
+        residuals.abs
+        @y_numo.abs
         # Only consider non-zero targets
         sum_pct = 0.0
         count = 0
@@ -120,7 +121,7 @@ module KUBETWIN
           sum_pct += (residuals[i].abs / y.abs)
           count += 1
         end
-        metrics[:mape] = count > 0 ? (sum_pct / count) * 100.0 : Float::NAN
+        metrics[:mape] = (count > 0) ? (sum_pct / count) * 100.0 : Float::NAN
       else
         metrics[:mape] = Float::NAN
       end
@@ -136,7 +137,7 @@ module KUBETWIN
     def compute_mdi_importance
       importances = @model.feature_importances.to_a
       @feature_labels.each_with_index.map do |label, i|
-        { index: i, label: label, importance: importances[i] }
+        {index: i, label: label, importance: importances[i]}
       end.sort_by { |f| -f[:importance] }
     end
 
@@ -189,8 +190,8 @@ module KUBETWIN
       kf.split(@x_numo, @y_numo).each_with_index do |(train_idx, test_idx), fold|
         x_train = @x_numo[train_idx, true]
         y_train = @y_numo[train_idx]
-        x_test  = @x_numo[test_idx, true]
-        y_test  = @y_numo[test_idx]
+        x_test = @x_numo[test_idx, true]
+        y_test = @y_numo[test_idx]
 
         fold_model = Rumale::Ensemble::RandomForestRegressor.new(
           n_estimators: 100,
@@ -208,7 +209,7 @@ module KUBETWIN
       end
 
       mean = r2_scores.sum / r2_scores.length
-      std  = std_dev(r2_scores)
+      std = std_dev(r2_scores)
       [mean, std]
     end
 
@@ -216,7 +217,7 @@ module KUBETWIN
 
     def build_feature_categories
       @feature_labels.map do |label|
-        label.start_with?('replicas_') ? 'replica_count' : 'cluster_assignment'
+        label.start_with?("replicas_") ? "replica_count" : "cluster_assignment"
       end
     end
 
@@ -224,10 +225,10 @@ module KUBETWIN
       @feature_labels.map do |label|
         # Extract MS name: "replicas_productpage" -> "productpage"
         #                   "cluster_productpage_r0" -> "productpage"
-        if label.start_with?('replicas_')
-          label.sub('replicas_', '')
+        if label.start_with?("replicas_")
+          label.sub("replicas_", "")
         else
-          label.sub('cluster_', '').sub(/_r\d+$/, '')
+          label.sub("cluster_", "").sub(/_r\d+$/, "")
         end
       end
     end
@@ -235,99 +236,99 @@ module KUBETWIN
     # ─── Printing ───
 
     def print_metrics(metrics)
-      puts ''
-      puts '── Regression Quality Metrics ──'
-      puts ''
-      puts format('  %-25s %s', 'Training R²:', format_val(metrics[:training_r2]))
-      puts format('  %-25s %s', "CV R² (5-fold):",
-                  "#{format_val(metrics[:cv_r2_mean])} +/- #{format_val(metrics[:cv_r2_std])}")
-      puts format('  %-25s %s', 'RMSE:', format_val(metrics[:rmse]))
-      puts format('  %-25s %s', 'MAE:', format_val(metrics[:mae]))
-      puts format('  %-25s %s', 'MAPE:', "#{format_val(metrics[:mape])}%")
-      puts ''
+      puts ""
+      puts "── Regression Quality Metrics ──"
+      puts ""
+      puts format("  %-25s %s", "Training R²:", format_val(metrics[:training_r2]))
+      puts format("  %-25s %s", "CV R² (5-fold):",
+        "#{format_val(metrics[:cv_r2_mean])} +/- #{format_val(metrics[:cv_r2_std])}")
+      puts format("  %-25s %s", "RMSE:", format_val(metrics[:rmse]))
+      puts format("  %-25s %s", "MAE:", format_val(metrics[:mae]))
+      puts format("  %-25s %s", "MAPE:", "#{format_val(metrics[:mape])}%")
+      puts ""
     end
 
     def print_importance_table(title, ranked_features, show_std: false, top_n: nil)
       puts "── #{title} ──"
-      puts ''
+      puts ""
 
       features = top_n ? ranked_features.first(top_n) : ranked_features
 
       # Header
       if show_std
-        puts format('  %-4s  %-30s  %-14s  %-12s  %-18s  %s',
-                    'Rank', 'Feature', 'Category', 'Microservice', 'Importance', 'Std')
-        puts '  ' + '-' * 100
+        puts format("  %-4s  %-30s  %-14s  %-12s  %-18s  %s",
+          "Rank", "Feature", "Category", "Microservice", "Importance", "Std")
+        puts "  " + "-" * 100
       else
-        puts format('  %-4s  %-30s  %-14s  %-12s  %s',
-                    'Rank', 'Feature', 'Category', 'Microservice', 'Importance')
-        puts '  ' + '-' * 80
+        puts format("  %-4s  %-30s  %-14s  %-12s  %s",
+          "Rank", "Feature", "Category", "Microservice", "Importance")
+        puts "  " + "-" * 80
       end
 
       features.each_with_index do |f, rank|
         cat = @feature_category[f[:index]]
-        ms  = @feature_ms[f[:index]]
+        ms = @feature_ms[f[:index]]
         if show_std
-          puts format('  %-4d  %-30s  %-14s  %-12s  %-18s  %s',
-                      rank + 1, f[:label], cat, ms,
-                      format_val(f[:importance]), format_val(f[:std] || 0.0))
+          puts format("  %-4d  %-30s  %-14s  %-12s  %-18s  %s",
+            rank + 1, f[:label], cat, ms,
+            format_val(f[:importance]), format_val(f[:std] || 0.0))
         else
-          puts format('  %-4d  %-30s  %-14s  %-12s  %s',
-                      rank + 1, f[:label], cat, ms, format_val(f[:importance]))
+          puts format("  %-4d  %-30s  %-14s  %-12s  %s",
+            rank + 1, f[:label], cat, ms, format_val(f[:importance]))
         end
       end
-      puts ''
+      puts ""
     end
 
     def print_aggregated_importance(mdi, perm)
-      puts '── Aggregated Importance ──'
-      puts ''
+      puts "── Aggregated Importance ──"
+      puts ""
 
       # By category
-      puts '  By category (replica_count vs cluster_assignment):'
-      puts format('    %-20s  %-18s  %s', 'Category', 'MDI (sum)', 'Permutation (sum)')
-      puts '    ' + '-' * 60
+      puts "  By category (replica_count vs cluster_assignment):"
+      puts format("    %-20s  %-18s  %s", "Category", "MDI (sum)", "Permutation (sum)")
+      puts "    " + "-" * 60
 
       %w[replica_count cluster_assignment].each do |cat|
-        mdi_sum  = sum_importance_for(mdi, :category, cat)
+        mdi_sum = sum_importance_for(mdi, :category, cat)
         perm_sum = sum_importance_for(perm, :category, cat)
-        puts format('    %-20s  %-18s  %s', cat, format_val(mdi_sum), format_val(perm_sum))
+        puts format("    %-20s  %-18s  %s", cat, format_val(mdi_sum), format_val(perm_sum))
       end
-      puts ''
+      puts ""
 
       # By microservice
-      puts '  By microservice:'
-      puts format('    %-20s  %-18s  %-18s  %-18s  %s',
-                  'Microservice', 'MDI (total)', 'MDI (replicas)', 'MDI (clusters)', 'Perm (total)')
-      puts '    ' + '-' * 95
+      puts "  By microservice:"
+      puts format("    %-20s  %-18s  %-18s  %-18s  %s",
+        "Microservice", "MDI (total)", "MDI (replicas)", "MDI (clusters)", "Perm (total)")
+      puts "    " + "-" * 95
 
       @ms_names.each do |ms|
-        mdi_total    = sum_importance_for(mdi, :ms, ms)
-        mdi_rep      = sum_importance_for(mdi, :ms_cat, [ms, 'replica_count'])
-        mdi_clust    = sum_importance_for(mdi, :ms_cat, [ms, 'cluster_assignment'])
-        perm_total   = sum_importance_for(perm, :ms, ms)
-        puts format('    %-20s  %-18s  %-18s  %-18s  %s',
-                    ms, format_val(mdi_total), format_val(mdi_rep),
-                    format_val(mdi_clust), format_val(perm_total))
+        mdi_total = sum_importance_for(mdi, :ms, ms)
+        mdi_rep = sum_importance_for(mdi, :ms_cat, [ms, "replica_count"])
+        mdi_clust = sum_importance_for(mdi, :ms_cat, [ms, "cluster_assignment"])
+        perm_total = sum_importance_for(perm, :ms, ms)
+        puts format("    %-20s  %-18s  %-18s  %-18s  %s",
+          ms, format_val(mdi_total), format_val(mdi_rep),
+          format_val(mdi_clust), format_val(perm_total))
       end
-      puts ''
+      puts ""
     end
 
     # ─── CSV output ───
 
     def save_feature_csv(mdi, perm, path)
       # Build lookup hashes by feature index
-      mdi_by_idx  = mdi.each_with_index.map  { |f, rank| [f[:index], { importance: f[:importance], rank: rank + 1 }] }.to_h
-      perm_by_idx = perm.each_with_index.map { |f, rank| [f[:index], { importance: f[:importance], std: f[:std], rank: rank + 1 }] }.to_h
+      mdi_by_idx = mdi.each_with_index.map { |f, rank| [f[:index], {importance: f[:importance], rank: rank + 1}] }.to_h
+      perm_by_idx = perm.each_with_index.map { |f, rank| [f[:index], {importance: f[:importance], std: f[:std], rank: rank + 1}] }.to_h
 
-      CSV.open(path, 'w') do |csv|
+      CSV.open(path, "w") do |csv|
         csv << %w[feature_index feature_name microservice category
-                  mdi_importance mdi_rank perm_importance_mean perm_importance_std perm_rank]
+          mdi_importance mdi_rank perm_importance_mean perm_importance_std perm_rank]
 
         @feature_labels.each_with_index do |label, i|
           csv << [
             i, label, @feature_ms[i], @feature_category[i],
-            mdi_by_idx[i][:importance],  mdi_by_idx[i][:rank],
+            mdi_by_idx[i][:importance], mdi_by_idx[i][:rank],
             perm_by_idx[i][:importance], perm_by_idx[i][:std], perm_by_idx[i][:rank]
           ]
         end
@@ -337,29 +338,29 @@ module KUBETWIN
     end
 
     def save_summary_csv(mdi, perm, path)
-      CSV.open(path, 'w') do |csv|
+      CSV.open(path, "w") do |csv|
         csv << %w[group_type group_name mdi_importance perm_importance]
 
         # By category
         %w[replica_count cluster_assignment].each do |cat|
-          csv << ['category', cat,
-                  sum_importance_for(mdi, :category, cat),
-                  sum_importance_for(perm, :category, cat)]
+          csv << ["category", cat,
+            sum_importance_for(mdi, :category, cat),
+            sum_importance_for(perm, :category, cat)]
         end
 
         # By microservice
         @ms_names.each do |ms|
-          csv << ['microservice', ms,
-                  sum_importance_for(mdi, :ms, ms),
-                  sum_importance_for(perm, :ms, ms)]
+          csv << ["microservice", ms,
+            sum_importance_for(mdi, :ms, ms),
+            sum_importance_for(perm, :ms, ms)]
         end
 
         # By microservice x category
         @ms_names.each do |ms|
           %w[replica_count cluster_assignment].each do |cat|
-            csv << ['microservice_category', "#{ms}_#{cat}",
-                    sum_importance_for(mdi, :ms_cat, [ms, cat]),
-                    sum_importance_for(perm, :ms_cat, [ms, cat])]
+            csv << ["microservice_category", "#{ms}_#{cat}",
+              sum_importance_for(mdi, :ms_cat, [ms, cat]),
+              sum_importance_for(perm, :ms_cat, [ms, cat])]
           end
         end
       end
@@ -368,18 +369,18 @@ module KUBETWIN
     end
 
     def save_metrics_csv(metrics, path)
-      CSV.open(path, 'w') do |csv|
+      CSV.open(path, "w") do |csv|
         csv << %w[metric value]
-        csv << ['training_r2', metrics[:training_r2]]
-        csv << ['cv_r2_mean', metrics[:cv_r2_mean]]
-        csv << ['cv_r2_std', metrics[:cv_r2_std]]
-        csv << ['rmse', metrics[:rmse]]
-        csv << ['mae', metrics[:mae]]
-        csv << ['mape', metrics[:mape]]
-        csv << ['n_samples', @x_samples.length]
-        csv << ['n_dims', @n_dims]
-        csv << ['n_microservices', @n_ms]
-        csv << ['n_clusters', @n_clusters]
+        csv << ["training_r2", metrics[:training_r2]]
+        csv << ["cv_r2_mean", metrics[:cv_r2_mean]]
+        csv << ["cv_r2_std", metrics[:cv_r2_std]]
+        csv << ["rmse", metrics[:rmse]]
+        csv << ["mae", metrics[:mae]]
+        csv << ["mape", metrics[:mape]]
+        csv << ["n_samples", @x_samples.length]
+        csv << ["n_dims", @n_dims]
+        csv << ["n_microservices", @n_ms]
+        csv << ["n_clusters", @n_clusters]
       end
 
       puts "  Metrics CSV saved to: #{path}"
@@ -388,21 +389,21 @@ module KUBETWIN
     # ─── Helpers ───
 
     def r2_score(y_true, y_pred)
-      ss_res = ((y_true - y_pred) ** 2).sum
-      ss_tot = ((y_true - y_true.mean) ** 2).sum
-      ss_tot > 0 ? 1.0 - ss_res / ss_tot : 0.0
+      ss_res = ((y_true - y_pred)**2).sum
+      ss_tot = ((y_true - y_true.mean)**2).sum
+      (ss_tot > 0) ? 1.0 - ss_res / ss_tot : 0.0
     end
 
     def std_dev(arr)
       return 0.0 if arr.length <= 1
 
       mean = arr.sum / arr.length.to_f
-      variance = arr.sum { |v| (v - mean) ** 2 } / (arr.length - 1).to_f
+      variance = arr.sum { |v| (v - mean)**2 } / (arr.length - 1).to_f
       Math.sqrt(variance)
     end
 
     def format_val(v)
-      v.is_a?(Float) ? format('%.6f', v) : v.to_s
+      v.is_a?(Float) ? format("%.6f", v) : v.to_s
     end
 
     # Sum importances for a group of features, given a grouping criterion.

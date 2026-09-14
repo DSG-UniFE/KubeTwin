@@ -1,16 +1,16 @@
 #!/usr/bin/env ruby
 
-require 'mhl'
-require 'logger'
+require "mhl"
+require "logger"
 
 module KUBETWIN
   class KOptimizerACM
     def do_abort(message)
-      abort <<-EOS.gsub(/^\s+\|/, '')
+      abort <<-EOS.gsub(/^\s+\|/, "")
             |#{message}
             |
             |Usage:
-            |    #{File.basename(__FILE__)} simulator_config_file#{' '}
+            |    #{File.basename(__FILE__)} simulator_config_file#{" "}
             |
       EOS
     end
@@ -19,17 +19,17 @@ module KUBETWIN
       # make sure both required arguments were given
       case ARGV.size
       when 0
-        do_abort('Missing simulator configuration files!')
+        do_abort("Missing simulator configuration files!")
       end
 
       # make sure simulator config file exists
-      do_abort('Invalid simulator configuration file!') unless File.exist? ARGV[0]
+      do_abort("Invalid simulator configuration file!") unless File.exist? ARGV[0]
     end
 
     def initialize(configuration_file)
       # here run the optimizer on the oracle
       # load simulation configuration
-      time = Time.now.strftime('%Y%m%d%H%M%S')
+      time = Time.now.strftime("%Y%m%d%H%M%S")
       ga_log = "KT_optimizer_log_#{time}.log"
       @logger = Logger.new($stdout)
       @logger.level = Logger::DEBUG
@@ -45,16 +45,16 @@ module KUBETWIN
       @cluster_repository = KUBETWIN::KSimulation.create_cluster_configuration(@sim_conf)
       @n_clusters = @cluster_repository.length
       # Read environment variables RPS, set default to 10 if not set
-      rps = ENV['RPS'] ? ENV['RPS'].to_i : 10
+      rps = ENV["RPS"] ? ENV["RPS"].to_i : 10
       @logger.info "Setting RPS to #{rps}"
       # Read number of requests per workflow
-      n_requests = ENV['N_REQUESTS'] ? ENV['N_REQUESTS'].to_i : 1000
+      n_requests = ENV["N_REQUESTS"] ? ENV["N_REQUESTS"].to_i : 1000
       @logger.info "Setting number of requests per workflow to #{n_requests}"
       @sim_conf.request_gen.each do |k, v|
         v[:request_distribution][:args][:rate] = rps
         v[:num_requests] = n_requests
       end
-      n_replicas = ENV['N_REPLICAS'] ? ENV['N_REPLICAS'].to_i : 5
+      n_replicas = ENV["N_REPLICAS"] ? ENV["N_REPLICAS"].to_i : 5
       @logger.info "Setting number of replicas per microservice to #{n_replicas}"
       @sim_conf.replica_sets.each do |k, v|
         v[:replicas] = n_replicas
@@ -87,7 +87,7 @@ module KUBETWIN
         # 0 means cluster 0, 1 means cluster 1, etc., n_clusters means random
         mapping = component_allocation
         sim = KUBETWIN::KSimulation.new(configuration: @sim_conf,
-                                        evaluator: KUBETWIN::Evaluator.new(@sim_conf))
+          evaluator: KUBETWIN::Evaluator.new(@sim_conf))
         @ga_logger.debug component_allocation
         res = sim.evaluate_allocation(nil, nil, nil, nil, mapping)
         res
@@ -107,10 +107,10 @@ module KUBETWIN
       solver = MHL::QuantumPSOSolver.new(solver_conf)
 
       # run the solver
-      best = solver.solve(to_optimize, { concurrent: false })
+      best = solver.solve(to_optimize, {concurrent: false})
 
       puts best
-      puts 'Best configuration'
+      puts "Best configuration"
 
       to_optimize.call(best[:position])
     end

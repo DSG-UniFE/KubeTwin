@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require_relative './support/dsl_helper'
+require_relative "support/dsl_helper"
 
-require 'ice_nine'
+require "ice_nine"
 # Example .conf files are instance_eval'd as raw Ruby against a
 # Configuration object (see .load_from_file below) and every one of
 # them uses DateTime/Date (typically for start_time). Neither is
@@ -12,36 +12,35 @@ require 'ice_nine'
 # (default gems must be required explicitly). Required explicitly here,
 # at the point the dependency is actually consumed, rather than relying
 # on it arriving as a side effect of some other gem's own requires.
-require 'date'
-
+require "date"
 
 module ERV
   module GaussianMixtureHelper
     def self.RawParametersToMixtureArgs(*args)
       raise ArgumentError, "Arguments must be a multiple of 3!" if (args.count % 3) != 0
-      args.each_slice(3).map do |(a,b,c)|
-        { distribution: :gaussian, weight: a * c, args: { mean: b, sd: c } }
+      args.each_slice(3).map do |(a, b, c)|
+        {distribution: :gaussian, weight: a * c, args: {mean: b, sd: c}}
       end
     end
 
     def self.RawParametersToMixtureArgsFixedWeights(*args)
       raise ArgumentError, "Arguments must be a multiple of 3!" if (args.count % 3) != 0
-      args.each_slice(3).map do |(a,b,c)|
-        { distribution: :gaussian, weight: a, args: { mean: b, sd: c } }
+      args.each_slice(3).map do |(a, b, c)|
+        {distribution: :gaussian, weight: a, args: {mean: b, sd: c}}
       end
     end
 
     def self.RawParametersToMixtureArgsSeed(*args, seed)
       raise ArgumentError, "Arguments must be a multiple of 3!" if (args.count % 3) != 0
-      args.each_slice(3).map do |(a,b,c)|
-        { distribution: :gaussian, weight: a * c, args: { mean: b, sd: c, seed: seed } }
+      args.each_slice(3).map do |(a, b, c)|
+        {distribution: :gaussian, weight: a * c, args: {mean: b, sd: c, seed: seed}}
       end
     end
 
     def self.RawParametersToMixtureArgsFixedWeightsSeed(*args, seed)
       raise ArgumentError, "Arguments must be a multiple of 3!" if (args.count % 3) != 0
-      args.each_slice(3).map do |(a,b,c)|
-        { distribution: :gaussian, weight: a, args: { mean: b, sd: c, seed: seed } }
+      args.each_slice(3).map do |(a, b, c)|
+        {distribution: :gaussian, weight: a, args: {mean: b, sd: c, seed: seed}}
       end
     end
   end
@@ -49,42 +48,40 @@ module ERV
   module GammaMixtureHelper
     def self.RawParametersToMixtureArgsSeed(*args, seed)
       raise ArgumentError, "Arguments must be a multiple of 3!" if (args.count % 3) != 0
-      args.each_slice(3).map do |(a,b,c)|
-        { distribution: :gamma, weight: a, args: { scale: c, shape: b, seed: seed } }
+      args.each_slice(3).map do |(a, b, c)|
+        {distribution: :gamma, weight: a, args: {scale: c, shape: b, seed: seed}}
       end
     end
   end
 end
 
-
 module KUBETWIN
-
   module Configurable
     dsl_accessor :constraints,
-                 :customers,
-                 :custom_stats,
-                 :stats_print_interval,
-                 :data_centers,
-                 :federation,
-                 :clusters,
-                 :node,
-                 :replica_sets,
-                 :horizontal_pod_autoscalers,
-                 :services,
-                 :duration,
-                 :evaluation,
-                 :kpi_customization,
-                 :latency_models,
-                 :request_generation,
-                 :request_gen,
-                 :microservice_types,
-                 :seeds,
-                 :start_time,
-                 :warmup_duration,
-                 :cooldown_duration,
-                 :workflow_types,
-                 :seed,
-                 :policies
+      :customers,
+      :custom_stats,
+      :stats_print_interval,
+      :data_centers,
+      :federation,
+      :clusters,
+      :node,
+      :replica_sets,
+      :horizontal_pod_autoscalers,
+      :services,
+      :duration,
+      :evaluation,
+      :kpi_customization,
+      :latency_models,
+      :request_generation,
+      :request_gen,
+      :microservice_types,
+      :seeds,
+      :start_time,
+      :warmup_duration,
+      :cooldown_duration,
+      :workflow_types,
+      :seed,
+      :policies
   end
 
   class Configuration
@@ -103,9 +100,9 @@ module KUBETWIN
 
     def validate
       # convert datetimes and integers into floats
-      @start_time        = @start_time.to_f
-      @duration          = @duration.to_f
-      @warmup_duration   = @warmup_duration.to_f
+      @start_time = @start_time.to_f
+      @duration = @duration.to_f
+      @warmup_duration = @warmup_duration.to_f
       @cooldown_duration = @cooldown_duration.to_f
       @cooldown_duration = 10 if @cooldown_duration.nil?
 
@@ -117,7 +114,7 @@ module KUBETWIN
         @request_generation = @request_gen
       else
         @request_generation.each do |k, v|
-          @request_generation[k] = v.gsub('<pwd>', File.expand_path(File.dirname(@filename)))
+          @request_generation[k] = v.gsub("<pwd>", File.expand_path(File.dirname(@filename)))
         end
       end
 
@@ -136,10 +133,10 @@ module KUBETWIN
       IceNine.deep_freeze(@evaluation)
       IceNine.deep_freeze(@kpi_customization)
       IceNine.deep_freeze(@latency_models)
-      #IceNine.deep_freeze(@request_generation)
+      # IceNine.deep_freeze(@request_generation)
       IceNine.deep_freeze(@seeds)
-      #IceNine.deep_freeze(@microservice_types)
-      #IceNine.deep_freeze(@start_time)
+      # IceNine.deep_freeze(@microservice_types)
+      # IceNine.deep_freeze(@start_time)
       IceNine.deep_freeze(@warmup_duration)
       IceNine.deep_freeze(@workflow_types)
     end
@@ -151,7 +148,7 @@ module KUBETWIN
       # create configuration object
       conf = Configuration.new(filename)
       # take the file content and pass it to instance_eval
-      conf.instance_eval(File.new(filename, 'r').read)
+      conf.instance_eval(File.new(filename, "r").read)
       # validate and finalize configuration
       conf.validate if validate
       # return new object

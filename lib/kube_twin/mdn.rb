@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require 'torch-rb'
-require 'json'
+require "torch-rb"
+require "json"
 
 module KUBETWIN
   class MDN
@@ -24,27 +24,27 @@ module KUBETWIN
     def load_weights
       data = JSON.parse(File.read(@weights_path))
 
-      @weights = data['weights']
-      @scaler = data['scaler']
+      @weights = data["weights"]
+      @scaler = data["scaler"]
 
       # Initialize layer weights
-      @w1 = Torch.tensor(@weights['hidden.0.weight'], dtype: :float)
-      @b1 = Torch.tensor(@weights['hidden.0.bias'], dtype: :float)
+      @w1 = Torch.tensor(@weights["hidden.0.weight"], dtype: :float)
+      @b1 = Torch.tensor(@weights["hidden.0.bias"], dtype: :float)
 
-      @w2 = Torch.tensor(@weights['hidden.3.weight'], dtype: :float)
-      @b2 = Torch.tensor(@weights['hidden.3.bias'], dtype: :float)
+      @w2 = Torch.tensor(@weights["hidden.3.weight"], dtype: :float)
+      @b2 = Torch.tensor(@weights["hidden.3.bias"], dtype: :float)
 
-      @w3 = Torch.tensor(@weights['hidden.6.weight'], dtype: :float)
-      @b3 = Torch.tensor(@weights['hidden.6.bias'], dtype: :float)
+      @w3 = Torch.tensor(@weights["hidden.6.weight"], dtype: :float)
+      @b3 = Torch.tensor(@weights["hidden.6.bias"], dtype: :float)
 
-      @pi_w = Torch.tensor(@weights['pi_head.weight'], dtype: :float)
-      @pi_b = Torch.tensor(@weights['pi_head.bias'], dtype: :float)
+      @pi_w = Torch.tensor(@weights["pi_head.weight"], dtype: :float)
+      @pi_b = Torch.tensor(@weights["pi_head.bias"], dtype: :float)
 
-      @mu_w = Torch.tensor(@weights['mu_head.weight'], dtype: :float)
-      @mu_b = Torch.tensor(@weights['mu_head.bias'], dtype: :float)
+      @mu_w = Torch.tensor(@weights["mu_head.weight"], dtype: :float)
+      @mu_b = Torch.tensor(@weights["mu_head.bias"], dtype: :float)
 
-      @sigma_w = Torch.tensor(@weights['sigma_head.weight'], dtype: :float)
-      @sigma_b = Torch.tensor(@weights['sigma_head.bias'], dtype: :float)
+      @sigma_w = Torch.tensor(@weights["sigma_head.weight"], dtype: :float)
+      @sigma_b = Torch.tensor(@weights["sigma_head.bias"], dtype: :float)
     end
 
     # Pure version of the min-max normalization below, taking the scaler
@@ -53,8 +53,8 @@ module KUBETWIN
     # Torch weights fixture -- see the class-level comment on
     # .log_normal_mixture_to_linear for why that's expensive to fixture).
     def self.normalize_rps(rps, scaler)
-      rmin = scaler['rps_min']
-      rmax = scaler['rps_max']
+      rmin = scaler["rps_min"]
+      rmax = scaler["rps_max"]
       return 0.0 if (rmax - rmin) < 1e-8
 
       (rps - rmin) / (rmax - rmin)
@@ -95,8 +95,8 @@ module KUBETWIN
       sigma = elu(Torch.mm(h3, @sigma_w.transpose(0, 1)) + @sigma_b)
 
       # Denormalize to log-microsecond space
-      log_pt_std = @scaler['log_pt_std']
-      log_pt_mean = @scaler['log_pt_mean']
+      log_pt_std = @scaler["log_pt_std"]
+      log_pt_mean = @scaler["log_pt_mean"]
 
       mu_log = mu * log_pt_std + log_pt_mean
       sigma_log = (sigma * log_pt_std).abs
@@ -134,8 +134,8 @@ module KUBETWIN
       mu = Torch.mm(h3, @mu_w.transpose(0, 1)) + @mu_b
       sigma = elu(Torch.mm(h3, @sigma_w.transpose(0, 1)) + @sigma_b)
 
-      log_pt_std = @scaler['log_pt_std']
-      log_pt_mean = @scaler['log_pt_mean']
+      log_pt_std = @scaler["log_pt_std"]
+      log_pt_mean = @scaler["log_pt_mean"]
 
       mu_log = mu * log_pt_std + log_pt_mean
       sigma_log = (sigma * log_pt_std).abs
@@ -172,14 +172,14 @@ module KUBETWIN
       mu = (Torch.mm(h3, @mu_w.transpose(0, 1)) + @mu_b).squeeze(0)
       sigma = elu(Torch.mm(h3, @sigma_w.transpose(0, 1)) + @sigma_b).squeeze(0)
 
-      log_pt_std = @scaler['log_pt_std']
-      log_pt_mean = @scaler['log_pt_mean']
+      log_pt_std = @scaler["log_pt_std"]
+      log_pt_mean = @scaler["log_pt_mean"]
 
       mu_log = (mu * log_pt_std + log_pt_mean).to_a
       sigma_log = (sigma * log_pt_std.abs).to_a
       pi_out = pi.to_a
 
-      { pi: pi_out, mu_log: mu_log, sigma_log: sigma_log }
+      {pi: pi_out, mu_log: mu_log, sigma_log: sigma_log}
     end
 
     # Returns mixture parameters with mu_log already converted to log-seconds
@@ -234,11 +234,11 @@ module KUBETWIN
 end
 
 if __FILE__ == $0
-  puts 'Testing MDN...'
+  puts "Testing MDN..."
 
   model = KUBETWIN::MDN.new(
-    weights_path: 'examples/mdn_models/productpage_weights.json',
-    scaler_path: 'examples/mdn_models/productpage_scaler.pkl'
+    weights_path: "examples/mdn_models/productpage_weights.json",
+    scaler_path: "examples/mdn_models/productpage_scaler.pkl"
   )
 
   [10, 30, 50, 70, 90].each do |rps|

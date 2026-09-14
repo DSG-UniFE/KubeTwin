@@ -1,17 +1,16 @@
 # frozen_string_literal: true
 
-
 module KUBETWIN
   class Statistics
     attr_reader :mean, :n, :received, :longer_than, :shorter_than
-    alias closed n
+    alias_method :closed, :n
 
     # see http://en.wikipedia.org/wiki/Algorithms_for_calculating_variance#Online_algorithm
     # and https://www.johndcook.com/blog/standard_deviation/
     def initialize(opts = {})
-      @n    = 0 # number of requests
+      @n = 0 # number of requests
       @mean = 0.0
-      @m_2  = 0.0
+      @m_2 = 0.0
       @q_mean = 0.0
       @q_m_2 = 0.0
       @longer_than = init_counters_for_longer_than_stats(opts)
@@ -28,14 +27,14 @@ module KUBETWIN
     def record_request(req, time, chain = false)
       # get new sample
       x = if chain
-            req.ttr_chain(time)
-          else
-            req.ttr(time)
-          end
+        req.ttr_chain(time)
+      else
+        req.ttr(time)
+      end
       raise "TTR #{x} for request #{req.rid} invalid!" unless x > 0.0
 
       # string operations are slow << is the fastest
-      steps = req.steps_ttr.join(',')
+      steps = req.steps_ttr.join(",")
       # @csv << req.rid << ',' << x << ',' << steps << '\n'
       @csv << "#{req.rid},#{x},#{steps}\n"
       @samples << x
@@ -54,7 +53,7 @@ module KUBETWIN
       @n += 1
       delta = x - @mean
       @mean += delta / @n
-      @m_2  += delta * (x - @mean)
+      @m_2 += delta * (x - @mean)
       # update qtime values
       delta_q = qx - @q_mean
       @q_mean += delta_q / @n
@@ -105,7 +104,7 @@ module KUBETWIN
     end
 
     def to_csv
-      header = 'rid,ttr'
+      header = "rid,ttr"
       "#{header}\n#{@csv.join}"
     end
 
@@ -118,8 +117,8 @@ module KUBETWIN
       Hash[
         # wrap the values in custom_kpis_config[:longer_than] in an array
         Array(custom_kpis_config[:longer_than]).
-        # and interval the numbers contained in that array with zeroes
-        zip(zeros) ]
+          # and interval the numbers contained in that array with zeroes
+          zip(zeros) ]
     end
 
     def init_counters_for_shorter_than_stats(custom_kpis_config)
@@ -129,8 +128,8 @@ module KUBETWIN
       Hash[
         # wrap the values in custom_kpis_config[:longer_than] in an array
         Array(custom_kpis_config[:longer_than]).
-        # and interval the numbers contained in that array with zeroes
-        zip(zeros) ]
+          # and interval the numbers contained in that array with zeroes
+          zip(zeros) ]
     end
   end
 end

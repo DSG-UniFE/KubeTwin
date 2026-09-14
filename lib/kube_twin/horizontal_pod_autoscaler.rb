@@ -1,6 +1,5 @@
 # frozen_string_literal: true
 
-
 module KUBETWIN
   # just a simple class to model of an horizontal_pod_autoscaler
   # name corresponds to selector / label
@@ -8,15 +7,15 @@ module KUBETWIN
 
   class HorizontalPodAutoscaler
     attr_reader :name,
-                :min_replicas,
-                :max_replicas,
-                :target_processing_percentage,
-                :period_seconds
+      :min_replicas,
+      :max_replicas,
+      :target_processing_percentage,
+      :period_seconds
 
     # name and selector have the same value here
     def initialize(name, minReplicas, maxReplicas,
-                  target_processing_percentage,
-                   periodSeconds)
+      target_processing_percentage,
+      periodSeconds)
       @name = name
       @min_replicas = minReplicas
       @max_replicas = maxReplicas
@@ -58,19 +57,19 @@ module KUBETWIN
     def decide_scaling(current_replicas, current_metric, desired_metric, tolerance_range: 0.90..1.10)
       scaling_ratio = current_metric / desired_metric
 
-      return { action: :none, to_scale: 0, target_replicas: current_replicas } if tolerance_range === scaling_ratio
+      return {action: :none, to_scale: 0, target_replicas: current_replicas} if tolerance_range === scaling_ratio
 
       desired_replicas = (current_replicas * scaling_ratio).ceil
 
       if desired_replicas > current_replicas
-        to_scale = desired_replicas <= max_replicas ? (desired_replicas - current_replicas) : (max_replicas - current_replicas)
-        { action: :scale_up, to_scale: to_scale, target_replicas: desired_replicas }
+        to_scale = (desired_replicas <= max_replicas) ? (desired_replicas - current_replicas) : (max_replicas - current_replicas)
+        {action: :scale_up, to_scale: to_scale, target_replicas: desired_replicas}
       else
-        to_scale = desired_replicas > min_replicas ? (current_replicas - desired_replicas).abs : 0
+        to_scale = (desired_replicas > min_replicas) ? (current_replicas - desired_replicas).abs : 0
         if to_scale.zero?
-          { action: :none, to_scale: 0, target_replicas: current_replicas }
+          {action: :none, to_scale: 0, target_replicas: current_replicas}
         else
-          { action: :scale_down, to_scale: to_scale, target_replicas: current_replicas - to_scale }
+          {action: :scale_down, to_scale: to_scale, target_replicas: current_replicas - to_scale}
         end
       end
     end

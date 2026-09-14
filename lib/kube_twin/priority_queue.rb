@@ -25,11 +25,11 @@ module KUBETWIN
       self
     end
 
-    alias push <<
-    alias unshift <<
+    alias_method :push, :<<
+    alias_method :unshift, :<<
 
     def insert(*args)
-      item = args.length == 1 ? args[0] : args[1]
+      item = (args.length == 1) ? args[0] : args[1]
       entry = Entry.new(item.time, @next_sequence_id, item)
       @next_sequence_id += 1
 

@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require 'json'
+require "json"
 
 module KUBETWIN
   class AllocationReplay
@@ -21,18 +21,18 @@ module KUBETWIN
     def extract_allocation(data, solution_id)
       if data.is_a?(Array)
         solution = if solution_id.nil?
-                     data.first
-                   else
-                     data.find { |entry| entry['solution_id'].to_i == solution_id.to_i }
-                   end
+          data.first
+        else
+          data.find { |entry| entry["solution_id"].to_i == solution_id.to_i }
+        end
         raise ArgumentError, "Solution #{solution_id} not found" if solution.nil?
 
-        allocation = solution['microservice_allocation']
+        allocation = solution["microservice_allocation"]
       else
-        allocation = data['microservice_allocation'] || data
+        allocation = data["microservice_allocation"] || data
       end
 
-      raise ArgumentError, 'Allocation file does not contain microservice_allocation' unless allocation.is_a?(Hash)
+      raise ArgumentError, "Allocation file does not contain microservice_allocation" unless allocation.is_a?(Hash)
 
       allocation
     end

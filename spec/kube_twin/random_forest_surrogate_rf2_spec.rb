@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require 'minitest_helper'
+require "minitest_helper"
 
 # RandomForestSurrogateRF2 wraps Rumale's RandomForestRegressor into a
 # two-phase (full-model -> feature-selection -> reduced-model) surrogate.
@@ -10,8 +10,8 @@ require 'minitest_helper'
 # enough (no fixture files needed, unlike MDN's Torch weights) to test for
 # real rather than only through mocks.
 describe KUBETWIN::RandomForestSurrogateRF2 do
-  describe '#select_top_features (private)' do
-    it 'selects features in decreasing importance order until reaching the threshold fraction of total importance' do
+  describe "#select_top_features (private)" do
+    it "selects features in decreasing importance order until reaching the threshold fraction of total importance" do
       surrogate = KUBETWIN::RandomForestSurrogateRF2.allocate
       importances = [0.5, 0.3, 0.15, 0.05] # sums to 1.0
 
@@ -21,7 +21,7 @@ describe KUBETWIN::RandomForestSurrogateRF2 do
       _(selected).must_equal [0, 1]
     end
 
-    it 'returns every index when total importance is zero (nothing to rank by)' do
+    it "returns every index when total importance is zero (nothing to rank by)" do
       surrogate = KUBETWIN::RandomForestSurrogateRF2.allocate
 
       selected = surrogate.send(:select_top_features, [0.0, 0.0, 0.0], threshold: 0.8)
@@ -29,7 +29,7 @@ describe KUBETWIN::RandomForestSurrogateRF2 do
       _(selected).must_equal [0, 1, 2]
     end
 
-    it 'selects every feature when the threshold requires 100% of importance' do
+    it "selects every feature when the threshold requires 100% of importance" do
       surrogate = KUBETWIN::RandomForestSurrogateRF2.allocate
       importances = [0.4, 0.35, 0.25]
 
@@ -38,7 +38,7 @@ describe KUBETWIN::RandomForestSurrogateRF2 do
       _(selected).must_equal [0, 1, 2]
     end
 
-    it 'ranks by importance regardless of index order, keeping the sort stable among ties' do
+    it "ranks by importance regardless of index order, keeping the sort stable among ties" do
       surrogate = KUBETWIN::RandomForestSurrogateRF2.allocate
       importances = [0.1, 0.4, 0.4, 0.1]
 
@@ -50,8 +50,8 @@ describe KUBETWIN::RandomForestSurrogateRF2 do
     end
   end
 
-  describe '#fit and #predict' do
-    it 'trains full and reduced random forests that predict close to a known-linear target' do
+  describe "#fit and #predict" do
+    it "trains full and reduced random forests that predict close to a known-linear target" do
       surrogate = KUBETWIN::RandomForestSurrogateRF2.new(
         feature_labels: %w[f0 f1 f2],
         ms_names: %w[svcA],
@@ -79,7 +79,7 @@ describe KUBETWIN::RandomForestSurrogateRF2 do
       _(prediction).must_be_close_to y_samples.first, 4.0
     end
 
-    it 'raises if predict is called before fit' do
+    it "raises if predict is called before fit" do
       surrogate = KUBETWIN::RandomForestSurrogateRF2.new(
         feature_labels: %w[f0], ms_names: %w[svcA], cluster_names: %w[c0],
         n_ms: 1, n_clusters: 1, max_replicas: 3, logger: Logger.new(File::NULL)

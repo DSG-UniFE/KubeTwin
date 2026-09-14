@@ -1,18 +1,18 @@
 #!/usr/bin/env ruby
 
-require 'mhl'
-require 'logger'
+require "mhl"
+require "logger"
 
 module KUBETWIN
   class KOptimizerACM2
     MAX_REPLICAS = 10
 
     def do_abort(message)
-      abort <<-EOS.gsub(/^\s+\|/, '')
+      abort <<-EOS.gsub(/^\s+\|/, "")
             |#{message}
             |
             |Usage:
-            |    #{File.basename(__FILE__)} simulator_config_file#{' '}
+            |    #{File.basename(__FILE__)} simulator_config_file#{" "}
             |
       EOS
     end
@@ -21,17 +21,17 @@ module KUBETWIN
       # make sure both required arguments were given
       case ARGV.size
       when 0
-        do_abort('Missing simulator configuration files!')
+        do_abort("Missing simulator configuration files!")
       end
 
       # make sure simulator config file exists
-      do_abort('Invalid simulator configuration file!') unless File.exist? ARGV[0]
+      do_abort("Invalid simulator configuration file!") unless File.exist? ARGV[0]
     end
 
     def initialize(configuration_file)
       # here run the optimizer on the oracle
       # load simulation configuration
-      time = Time.now.strftime('%Y%m%d%H%M%S')
+      time = Time.now.strftime("%Y%m%d%H%M%S")
       ga_log = "KT_optimizer_log_#{time}.log"
       @logger = Logger.new($stdout)
       @logger.level = Logger::DEBUG
@@ -48,7 +48,7 @@ module KUBETWIN
       @n_clusters = @cluster_repository.length
       @max_replicas = MAX_REPLICAS
       # Read environment variables RPS, set default to 10 if not set
-      rps = ENV['RPS'] ? ENV['RPS'].to_i : 10
+      rps = ENV["RPS"] ? ENV["RPS"].to_i : 10
       @logger.info "Setting RPS to #{rps}"
 
       @start_time = @sim_conf.start_time
@@ -79,7 +79,7 @@ module KUBETWIN
         replicas_mapping = decode_cluster_mapping(component_allocation)
 
         sim = KUBETWIN::KSimulation.new(configuration: @sim_conf,
-                                        evaluator: KUBETWIN::Evaluator.new(@sim_conf))
+          evaluator: KUBETWIN::Evaluator.new(@sim_conf))
         @ga_logger.debug component_allocation
         res = sim.evaluate_allocation(new_rss, nil, nil, nil, nil, replicas_mapping)
         res
@@ -101,10 +101,10 @@ module KUBETWIN
       solver = MHL::QuantumPSOSolver.new(solver_conf)
 
       # run the solver
-      best = solver.solve(to_optimize, { concurrent: false })
+      best = solver.solve(to_optimize, {concurrent: false})
 
       puts best
-      puts 'Best configuration'
+      puts "Best configuration"
 
       to_optimize.call(best[:position])
     end

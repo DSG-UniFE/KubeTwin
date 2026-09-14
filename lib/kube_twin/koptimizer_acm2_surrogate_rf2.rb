@@ -1,7 +1,7 @@
 #!/usr/bin/env ruby
 
-require 'mhl'
-require 'logger'
+require "mhl"
+require "logger"
 
 module KUBETWIN
   # Two-phase RandomForest surrogate optimizer with feature selection.
@@ -24,7 +24,7 @@ module KUBETWIN
     MAX_REPLICAS = 10
 
     def initialize(configuration_file)
-      time = Time.now.strftime('%Y%m%d%H%M%S')
+      time = Time.now.strftime("%Y%m%d%H%M%S")
       ga_log = "KT_surrogate_rf2_optimizer_log_#{time}.log"
       @logger = Logger.new($stdout)
       @logger.level = Logger::DEBUG
@@ -60,7 +60,7 @@ module KUBETWIN
       # Human-readable label for each dimension of the search vector
       @feature_labels = build_feature_labels
 
-      rps = ENV['RPS'] ? ENV['RPS'].to_i : 10
+      rps = ENV["RPS"] ? ENV["RPS"].to_i : 10
       @logger.info "Setting RPS to #{rps}"
       @start_time = @sim_conf.start_time
     end
@@ -87,7 +87,7 @@ module KUBETWIN
       replicas_mapping = decode_cluster_mapping(int_vector)
 
       sim = KUBETWIN::KSimulation.new(configuration: @sim_conf,
-                                      evaluator: KUBETWIN::Evaluator.new(@sim_conf))
+        evaluator: KUBETWIN::Evaluator.new(@sim_conf))
       sim.evaluate_allocation(new_rss, nil, nil, nil, nil, replicas_mapping)
     end
 
@@ -142,7 +142,7 @@ module KUBETWIN
       }
 
       solver = MHL::QuantumPSOSolver.new(solver_conf)
-      best = solver.solve(surrogate_fn, { concurrent: false })
+      best = solver.solve(surrogate_fn, {concurrent: false})
 
       @logger.info "Surrogate PSO: best predicted fitness = #{best[:height].round(4)}"
       @ga_logger.info "Surrogate PSO best: fitness=#{best[:height].round(4)} " \
@@ -160,7 +160,7 @@ module KUBETWIN
       candidates.first(top_k).each_with_index do |vec, i|
         int_vec = vec.map(&:to_i)
         fitness = evaluate_real(int_vec)
-        results << { position: int_vec, fitness: fitness }
+        results << {position: int_vec, fitness: fitness}
         @logger.info "  Candidate #{i + 1}/#{top_k}: real fitness = #{fitness.round(4)}"
         @ga_logger.info "Validation #{i + 1}: fitness=#{fitness.round(4)} vector=#{int_vec.inspect}"
       end
@@ -182,7 +182,7 @@ module KUBETWIN
     #
     # Total real simulator calls: n_initial_samples + top_k + 1
     def optimize(n_initial_samples: 200, importance_threshold: 0.80,
-                 surrogate_iterations: 50, surrogate_swarm_size: 100, top_k: 5)
+      surrogate_iterations: 50, surrogate_swarm_size: 100, top_k: 5)
       total_start = Time.now
 
       # Phase 1: Sample + full RF for feature selection
@@ -217,8 +217,8 @@ module KUBETWIN
 
       # Phase 3: PSO on reduced surrogate
       pso_result = run_pso_on_surrogate(surrogate,
-                                        num_iterations: surrogate_iterations,
-                                        swarm_size: surrogate_swarm_size)
+        num_iterations: surrogate_iterations,
+        swarm_size: surrogate_swarm_size)
 
       best_vec = pso_result[:position].map(&:to_i)
       candidates = [best_vec]
@@ -228,7 +228,7 @@ module KUBETWIN
       best = validate_candidates(candidates, top_k)
 
       # Phase 5: Final simulation so final_allocation.{json,txt} are saved
-      @logger.info 'Running final simulation with best parameters...'
+      @logger.info "Running final simulation with best parameters..."
       evaluate_real(best[:position])
 
       elapsed = (Time.now - total_start).round(1)

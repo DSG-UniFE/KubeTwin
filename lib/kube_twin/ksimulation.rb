@@ -1,14 +1,14 @@
 # frozen_string_literal: true
 
-require_relative './latency_manager'
+require_relative "latency_manager"
 
-require 'json'
-require 'logger'
-require 'torch-rb'
+require "json"
+require "logger"
+require "torch-rb"
 
 module KUBETWIN
   class KSimulation
-    UNFEASIBLE_ALLOCATION_EVALUATION = { unfeasible_configuration: -Float::INFINITY }.freeze
+    UNFEASIBLE_ALLOCATION_EVALUATION = {unfeasible_configuration: -Float::INFINITY}.freeze
     attr_reader :start_time, :cluster_repository
 
     DEFAULT_NUM_REQS = 5000
@@ -18,16 +18,16 @@ module KUBETWIN
 
     def initialize(opts = {})
       @configuration = opts[:configuration]
-      @evaluator     = opts[:evaluator]
-      @results_dir   = opts[:results_dir]
-      @num_reqs      = opts[:num_reqs]
+      @evaluator = opts[:evaluator]
+      @results_dir = opts[:results_dir]
+      @num_reqs = opts[:num_reqs]
       @num_reqs = DEFAULT_NUM_REQS if @num_reqs.nil?
-      @results_dir += '/' unless @results_dir.nil?
+      @results_dir += "/" unless @results_dir.nil?
       @microservice_mdn = {}
       @mapping = nil
       @logger = opts[:logger] || Logger.new(STDOUT)
       @logger.level = opts[:log_level] || Logger::INFO
-      @trace_requests = ENV['KUBETWIN_TRACE_REQUESTS'] == '1'
+      @trace_requests = ENV["KUBETWIN_TRACE_REQUESTS"] == "1"
     end
 
     def new_event(type, data, time, destination)
@@ -57,7 +57,7 @@ module KUBETWIN
     def trace_request(req, message)
       return unless @trace_requests
 
-      puts format('[TRACE t=%.6f rid=%s dc=%s] %s', @current_time || 0.0, req.rid, req.data_center_id, message)
+      puts format("[TRACE t=%.6f rid=%s dc=%s] %s", @current_time || 0.0, req.rid, req.data_center_id, message)
     end
 
     # The actual routing decision (is component_name routable, and if so
@@ -68,13 +68,13 @@ module KUBETWIN
     # business touching: the request itself, the forwarded counter, the
     # trace log, and the event queue.
     def schedule_request_forward(req, component_name, source_cluster, base_time, latency_manager,
-                                 waiting_container: nil)
+      waiting_container: nil)
       route = @request_forwarder.route(component_name, source_cluster.location_id, latency_manager, base_time)
       return false if route.nil?
 
       req.update_transfer_time(route.transmission_time)
       req.data_center_id = route.cluster.cluster_id
-      trace_request(req, "forward #{source_cluster.name}->#{route.cluster.name} to #{component_name}, latency=#{format('%.6f', route.transmission_time)}, event_time=#{format('%.6f', route.forwarding_time)}")
+      trace_request(req, "forward #{source_cluster.name}->#{route.cluster.name} to #{component_name}, latency=#{format("%.6f", route.transmission_time)}, event_time=#{format("%.6f", route.forwarding_time)}")
       route.pod.container.to_free(waiting_container) if waiting_container && !waiting_container.wait_for.empty?
       @forwarded += 1
       new_event(Event::ET_REQUEST_FORWARDING, req, route.forwarding_time, route.pod)
@@ -107,7 +107,7 @@ module KUBETWIN
 
       parent_req.update_transfer_time(resolution.latency)
       parent_req.data_center_id = resolution.parent_cluster.cluster_id
-      trace_request(parent_req, "return #{resolution.child_cluster.name}->#{resolution.parent_cluster.name} from #{child_req.branch_name}, latency=#{format('%.6f', resolution.latency)}")
+      trace_request(parent_req, "return #{resolution.child_cluster.name}->#{resolution.parent_cluster.name} from #{child_req.branch_name}, latency=#{format("%.6f", resolution.latency)}")
       [resolution.latency, resolution.parent_cluster]
     end
 
@@ -127,7 +127,7 @@ module KUBETWIN
               cid += 1
               @logger.debug "Cluster: #{k} #{v}"
               [k, Cluster.new(id: k, fixed_hourly_cost_cpu: nil,
-                              fixed_hourly_cost_memory: nil, **v)]
+                fixed_hourly_cost_memory: nil, **v)]
             end
           ]
       else
@@ -147,10 +147,10 @@ module KUBETWIN
             # has 2000 milliCPU and 2 GB of Memory (2048 MB)
             cid += 1
             [k, Cluster.new(id: cid, fixed_hourly_cost_cpu: nil,
-                            fixed_hourly_cost_memory: nil, location_id: cid,
-                            node_resources_cpu: node_cpu.to_i,
-                            node_resources_memory: node_mem.to_i, name: k,
-                            node_number: node_number.to_i, type: :mec, tier: 'local')]
+              fixed_hourly_cost_memory: nil, location_id: cid,
+              node_resources_cpu: node_cpu.to_i,
+              node_resources_memory: node_mem.to_i, name: k,
+              node_number: node_number.to_i, type: :mec, tier: "local")]
           end
           ]
       end
@@ -196,7 +196,7 @@ module KUBETWIN
             price = evaluation_cost[cid] || 0.100
             @logger.debug "Cluster: #{k} #{v}"
             [k, Cluster.new(id: k, fixed_hourly_cost_cpu: price,
-                            fixed_hourly_cost_memory: price, **v)]
+              fixed_hourly_cost_memory: price, **v)]
           end
         ]
       else
@@ -235,10 +235,10 @@ module KUBETWIN
             price = evaluation_cost[cid] || 0.100
             # @logger.info "Cluster k: #{k}"
             [k, Cluster.new(id: k, fixed_hourly_cost_cpu: price,
-                            fixed_hourly_cost_memory: price, location_id: cid,
-                            node_resources_cpu: node_cpu.to_i,
-                            node_resources_memory: node_mem.to_i, name: k,
-                            node_number: node_number.to_i, type: :mec, tier: 'local')]
+              fixed_hourly_cost_memory: price, location_id: cid,
+              node_resources_cpu: node_cpu.to_i,
+              node_resources_memory: node_mem.to_i, name: k,
+              node_number: node_number.to_i, type: :mec, tier: "local")]
           end
           ]
       end
@@ -265,10 +265,10 @@ module KUBETWIN
         @mapping.each_with_index do |cid, i|
           # get the cluster id from the cluster repository with key at position cid
           cluster = if cid == @cluster_repository.keys.length
-                      :none
-                    else
-                      @cluster_repository.keys[cid]
-                    end
+            :none
+          else
+            @cluster_repository.keys[cid]
+          end
           @mapping[i] = cluster.to_sym
         end
       end
@@ -278,10 +278,10 @@ module KUBETWIN
       if @configuration.federation.nil?
         latency_models = lm.nil? ? @configuration.latency_models : lm
         latency_manager = if latency_seed
-                            LatencyManager.new(latency_models, seed: latency_seed)
-                          else
-                            LatencyManager.new(latency_models)
-                          end
+          LatencyManager.new(latency_models, seed: latency_seed)
+        else
+          LatencyManager.new(latency_models)
+        end
       else
         # use the federation latencies
         #  "latencies": [["src": "rome", "dst": "milan", "value": 6]]
@@ -295,7 +295,7 @@ module KUBETWIN
           dst = @cluster_repository[lm[:dst].to_sym]
           raise "Cannot find cluster #{lm[:src]} or #{lm[:dst]}" if src.nil? || dst.nil?
 
-          { src: src.location_id, dst: dst.location_id, value: lm[:value].to_f / 2 }
+          {src: src.location_id, dst: dst.location_id, value: lm[:value].to_f / 2}
         end
         latency_manager = LatencyManagerFederation.new(latency_models, seed: latency_seed)
       end
@@ -310,7 +310,7 @@ module KUBETWIN
           weights_path: v[:mdn_file],
           scaler_path: v[:mdn_file]
         )
-        @microservice_mdn[k] = { model: model, st: {} }
+        @microservice_mdn[k] = {model: model, st: {}}
       end
 
       # @logger.debug "init mdns #{@microservice_mdn}"
@@ -415,14 +415,14 @@ module KUBETWIN
             end
           end
 
-          raise 'Chain not found in available workflows' if wf_cid.nil?
+          raise "Chain not found in available workflows" if wf_cid.nil?
 
           cs = []
           chain.each do |name|
-            cs << { name: name }
+            cs << {name: name}
           end
 
-          @chain_repository[wf_cid] = { component_sequence: cs }
+          @chain_repository[wf_cid] = {component_sequence: cs}
 
           # @logger.info "chain_repository #{@chain_repository[wf_cid]}"
 
@@ -471,17 +471,17 @@ module KUBETWIN
 
       # init from simulation or optimizator
       crs = if rss.nil?
-              @configuration.replica_sets
-            else
-              rss
-            end
+        @configuration.replica_sets
+      else
+        rss
+      end
 
       # first create the replica_set
       crs.each do |name, conf|
         # nil is service here
         # do we need a reference to service in ReplicaSet?
         @replica_sets[name] = ReplicaSet.new(name, conf[:selector],
-                                             conf[:replicas], nil)
+          conf[:replicas], nil)
       end
 
       replicas_by_microservice = Hash.new(0)
@@ -489,14 +489,14 @@ module KUBETWIN
         replicas_by_microservice[rs.selector] += rs.replicas.to_i
       end
 
-      puts ''
-      puts ''
-      puts '====== Replica snapshot at simulation start ======'
+      puts ""
+      puts ""
+      puts "====== Replica snapshot at simulation start ======"
       replicas_by_microservice.sort.each do |selector, replicas|
         puts "microservice: #{selector}, replicas: #{replicas}"
       end
       puts "total_replicas: #{replicas_by_microservice.values.inject(0) { |sum, value| sum + value }}"
-      puts '=================================================='
+      puts "=================================================="
 
       # @logger.debug @replica_sets
 
@@ -506,9 +506,9 @@ module KUBETWIN
           # implement the horizontal_pod_autoscaler
           @horizontal_pod_autoscaler_repo[name] =
             HorizontalPodAutoscaler.new(conf[:name],
-                                        conf[:minReplicas], conf[:maxReplicas],
-                                        conf[:targetProcessingPercentage],
-                                        conf[:periodSeconds])
+              conf[:minReplicas], conf[:maxReplicas],
+              conf[:targetProcessingPercentage],
+              conf[:periodSeconds])
         end
       end
 
@@ -665,14 +665,14 @@ module KUBETWIN
       # get stats print
       unless @stats_print_interval.nil?
         new_event(Event::ET_STATS_PRINT, nil, warmup_threshold + @stats_print_interval,
-                  nil)
+          nil)
       end
 
       requests_being_worked_on = 0
       current_event = 0
 
       # benchmark file
-      Time.now.strftime('%Y%m%d%H%M%S')
+      Time.now.strftime("%Y%m%d%H%M%S")
       # @sim_bench = File.open("csv_bench_#{time}.csv", 'w')
       # @allocation_bench = File.open("allocation_bench_#{time}.csv", 'w')
       # @request_profile = File.open("request_profile_#{time}.csv", 'w')
@@ -690,7 +690,7 @@ module KUBETWIN
         # sanity check on simulation time flow
         if @current_time > e.time
           raise "Error: simulation time inconsistency for event #{current_event} " +
-                "e.type=#{e.type} @current_time=#{@current_time}, e.time=#{e.time}"
+            "e.type=#{e.type} @current_time=#{@current_time}, e.time=#{e.time}"
         end
 
         @current_time = e.time
@@ -713,7 +713,7 @@ module KUBETWIN
           # find closest data center
           customer_location_id =
             customer_repository
-            .dig(req_attrs[:customer_id], :location_id)
+              .dig(req_attrs[:customer_id], :location_id)
 
           # find first component name for requested workflow
           workflow = workflow_type_repository[req_attrs[:workflow_type_id]]
@@ -750,7 +750,7 @@ module KUBETWIN
 
           # generate the request here
           new_req = Request.new(**req_attrs.merge!(initial_data_center_id: cluster_id,
-                                                   arrival_time: arrival_time))
+            arrival_time: arrival_time))
 
           # schedule arrival of current request
           new_event(Event::ET_REQUEST_ARRIVAL, [new_req, pod], arrival_time, nil)
@@ -805,7 +805,7 @@ module KUBETWIN
           # get request
           # do we need to handle this event? we could have
           # done everything in the previous one
-          req  = e.data
+          req = e.data
           time = e.time
           pod = e.destination
 
@@ -838,20 +838,20 @@ module KUBETWIN
 
           # Get current component name safely - handle parallel components
           current_component_step = component_sequence[req.worked_step]
-          current_component_name = if current_component_step[:type] == 'parallel'
-                                     # For parallel components, we don't track them in stats since they're containers
-                                     nil
-                                   else
-                                     current_component_step[:name]
-                                   end
+          current_component_name = if current_component_step[:type] == "parallel"
+            # For parallel components, we don't track them in stats since they're containers
+            nil
+          else
+            current_component_step[:name]
+          end
           trace_request(req, "completed local step #{current_component_name || current_component_step[:type]}")
 
           if current_component_step[:calls] && !req.calls_completed?(request_step_key(req, component_sequence))
             req.start_nested_calls(current_component_step[:calls], container, request_step_key(req, component_sequence))
             next_call = req.next_nested_call
-            trace_request(req, "opening nested calls from #{current_component_name}: #{current_component_step[:calls].map { |c| c[:name] }.join(' -> ')}")
+            trace_request(req, "opening nested calls from #{current_component_name}: #{current_component_step[:calls].map { |c| c[:name] }.join(" -> ")}")
             raise "Cannot dispatch nested call for #{req.rid}" unless dispatch_nested_call(req, next_call, e.time,
-                                                                                           latency_manager)
+              latency_manager)
 
             next
           end
@@ -893,7 +893,7 @@ module KUBETWIN
             next_step_config = component_sequence[req.next_step]
 
             # Handle parallel execution
-            if next_step_config[:type] == 'parallel'
+            if next_step_config[:type] == "parallel"
               # Start parallel execution for all branches
               branches = next_step_config[:branches]
               req.start_parallel_execution(branches)
@@ -905,10 +905,10 @@ module KUBETWIN
                 # Each branch starts with the branch component
                 branch_component_name = WorkflowSequence.next_component_name(branch_req, branch_req.component_sequence)
                 raise "Cannot dispatch parallel branch #{branch_component_name}" unless schedule_request_forward(branch_req,
-                                                                                                                 branch_component_name,
-                                                                                                                 current_cluster,
-                                                                                                                 e.time,
-                                                                                                                 latency_manager)
+                  branch_component_name,
+                  current_cluster,
+                  e.time,
+                  latency_manager)
               end
 
               # Move to next step after parallel block (use step_completed)
@@ -924,11 +924,11 @@ module KUBETWIN
             # http chained microservices
             # if the current microservice is the one which the old was waiting, free the old container
             raise "Cannot dispatch next component #{next_component_name}" unless schedule_request_forward(req,
-                                                                                                          next_component_name,
-                                                                                                          current_cluster,
-                                                                                                          e.time,
-                                                                                                          latency_manager,
-                                                                                                          waiting_container: container)
+              next_component_name,
+              current_cluster,
+              e.time,
+              latency_manager,
+              waiting_container: container)
 
           else # workflow or branch sequence is finished
             if req.parent_request
@@ -950,9 +950,9 @@ module KUBETWIN
                   next_call = parent_req.next_nested_call
                   trace_request(parent_req, "resuming after nested call #{req.branch_name}, next nested call #{next_call[:name]}")
                   raise "Cannot dispatch nested call for #{parent_req.rid}" unless dispatch_nested_call(parent_req,
-                                                                                                        next_call,
-                                                                                                        resume_time,
-                                                                                                        latency_manager)
+                    next_call,
+                    resume_time,
+                    latency_manager)
                 else
                   waiting_container = parent_req.finish_nested_calls
                   trace_request(parent_req, "all nested calls completed for #{current_component_name || req.branch_name}, resuming parent")
@@ -987,7 +987,7 @@ module KUBETWIN
 
           # request is closed
           req.finished_processing(e.time)
-          trace_request(req, "request closed; total_ttr=#{format('%.6f', req.ttr(@current_time))}")
+          trace_request(req, "request closed; total_ttr=#{format("%.6f", req.ttr(@current_time))}")
           # puts "#{req.arrival_time} #{now}"
           if now >= @configuration.end_time
             raise "Processing request after the simulation time current:#{now} end:#{@configuration.end_time}"
@@ -1023,7 +1023,7 @@ module KUBETWIN
 
           s = @services[hpa.name]
 
-          raise 'Impossible to retrieve s' if s.nil?
+          raise "Impossible to retrieve s" if s.nil?
 
           # improve this initialization
           # right now it is terrible (okay for MVP)
@@ -1038,8 +1038,6 @@ module KUBETWIN
           # container's metrics as it does (a mutation, so it stays here).
           desired_metric = hpa.desired_metric(service_time_rv)
 
-          d_replicas = 0
-
           pod_metrics = s.pods[hpa.name].map do |pod|
             served_request = pod.container.served_request
             total_queue_processing_time = pod.container.total_queue_processing_time
@@ -1052,12 +1050,12 @@ module KUBETWIN
           pods = pod_metrics.length
           current_metric = hpa.average_processing_metric(pod_metrics)
 
-          puts '**** Horizontal Pod Autoscaling ****'
+          puts "**** Horizontal Pod Autoscaling ****"
           puts "#{hpa.name} pods: #{pods} average processing_time: #{current_metric} desired_metric: #{desired_metric}"
-          puts '************************************'
+          puts "************************************"
 
           if pods == 0
-            puts 'Ending the simulation!'
+            puts "Ending the simulation!"
             # break
             # new_event(Event::ET_END_OF_SIMULATION, nil, now, nil)
             next
@@ -1126,7 +1124,7 @@ module KUBETWIN
         when Event::ET_STATS_PRINT
 
           # calculate the number of pods
-          pods_n = ''
+          pods_n = ""
           @services.each do |k, s|
             pods_number = s.pods[s.selector].length
             pods_n += "#{k}: #{pods_number} "
@@ -1157,7 +1155,7 @@ module KUBETWIN
 
           if (next_event_time < cooldown_treshold) && !@stats_print_interval.nil? && !@stats_print_interval.nil?
             new_event(Event::ET_STATS_PRINT, nil, @current_time + @stats_print_interval,
-                      nil)
+              nil)
           end
 
         when Event::ET_ALLOCATE_NODE
@@ -1183,7 +1181,7 @@ module KUBETWIN
       # Keep track of how many nodes per cluster we are using
       node_utilization = {}
       costs = 0
-      @logger.debug 'Simulation over'
+      @logger.debug "Simulation over"
       @cluster_repository.each do |_, c|
         pods = 0
         node = 0
@@ -1194,7 +1192,7 @@ module KUBETWIN
           end
           # puts "node_id: #{n.node_id}: pods: #{n.pod_id_list.length}"
         end
-        allocation_map[c.name] = { tier: c.tier, pods: pods }
+        allocation_map[c.name] = {tier: c.tier, pods: pods}
         node_utilization[c.name] = node
         # Assume 24 hrs of operation
         c.fixed_hourly_cost_cpu = 0.100 unless c.fixed_hourly_cost_cpu
@@ -1205,13 +1203,13 @@ module KUBETWIN
       # TODO: -- IMPLEMENT COST EVALUATION HERE
       # costs = @evaluator.evaluate_fixed_costs_cpu(vm_allocation)
       puts "====== Evaluating new allocation ======\n" +
-           "stats: #{stats}\n" +
-           # "per_workflow_and_customer_stats: #{per_workflow_and_customer_stats}\n" +
-           "component_stats: #{per_component_stats}\n" +
-           "allocation_map: #{allocation_map}\n" +
-           "node_utilization: #{node_utilization}\n" +
-           "costs: #{costs.round(2)} per day\n" +
-           "=======================================\n"
+        "stats: #{stats}\n" +
+        # "per_workflow_and_customer_stats: #{per_workflow_and_customer_stats}\n" +
+        "component_stats: #{per_component_stats}\n" +
+        "allocation_map: #{allocation_map}\n" +
+        "node_utilization: #{node_utilization}\n" +
+        "costs: #{costs.round(2)} per day\n" +
+        "=======================================\n"
 
       # gather information of how many pods are running for each label in each node per cluster
       bmap = {}
@@ -1226,7 +1224,7 @@ module KUBETWIN
           if bmap.key?(k)
             bmap[k][c.name] = pods_number
           else
-            bmap[k] = { c.name => pods_number }
+            bmap[k] = {c.name => pods_number}
           end
         end
 
@@ -1273,10 +1271,10 @@ module KUBETWIN
       end
 
       replica_spreading = if replica_spreads.empty?
-                            0.0
-                          else
-                            (replica_spreads.sum / replica_spreads.length.to_f).round(2)
-                          end
+        0.0
+      else
+        (replica_spreads.sum / replica_spreads.length.to_f).round(2)
+      end
       @logger.info "Replica spread normalized Gini (avg across microservices): #{replica_spreading}"
 
       global_cluster_distribution = Array.new(@cluster_repository.length, 0)
@@ -1287,27 +1285,25 @@ module KUBETWIN
       end
 
       global_cluster_spreading = if global_cluster_distribution.empty?
-                                   0.0
-                                 else
-                                   normalized_gini(global_cluster_distribution).round(2)
-                                 end
+        0.0
+      else
+        normalized_gini(global_cluster_distribution).round(2)
+      end
       @logger.info "Global cluster spreading normalized Gini: #{global_cluster_spreading} distribution: #{global_cluster_distribution}"
 
-      puts '============================================================================='
+      puts "============================================================================="
       # Produce txt and JSON file with the bmap information
-      File.open('final_allocation.txt', 'w') do |f|
+      File.open("final_allocation.txt", "w") do |f|
         f.puts bmap
       end
 
-      File.open('final_allocation.json', 'w') do |f|
-        f.write(JSON.pretty_generate(bmap))
-      end
+      File.write("final_allocation.json", JSON.pretty_generate(bmap))
 
       mean_ttr = stats.mean
       # weighted_sum = mean_ttr + normalize_objective(replication_penalties, 0,
       #                                              mean_ttr) + normalize_objective(saturation_penalties, 0, mean_ttr)
       weighted_sum = mean_ttr + # normalize_objective(resource_gini, 0, mean_ttr) +
-                     normalize_objective(replica_spreading, 0, mean_ttr) # +
+        normalize_objective(replica_spreading, 0, mean_ttr) # +
       # normalize_objective(saturation_penalties, 0, mean_ttr)
 
       per_component_stats.each do |k, v|
@@ -1333,7 +1329,7 @@ module KUBETWIN
       end
 
       # Let's do the same for the workflow and customer stats
-      @logger.info 'Calculating chain and customer stats'
+      @logger.info "Calculating chain and customer stats"
       per_chain_and_customer_stats.each do |wft_id, cust_stats|
         @logger.info "  Workflow Type: #{wft_id}"
         cust_stats.each do |c_id, stats_wc|
@@ -1345,7 +1341,7 @@ module KUBETWIN
           chain_penalty += stats_wc.longer_than.inject(0.0) do |sum, (key, value)|
             @logger.info "Workflow Type: #{wft_id} Customer: #{c_id} Longer than #{key} s: #{value} closed: #{per_workflow_and_customer_stats[wft_id][c_id].closed} TTR: #{stats_wc.mean}"
             # next if per_workflow_and_customer_stats[wft_id][c_id].closed.nil? || per_workflow_and_customer_stats[wft_id][c_id].closed.nil?
-            penalty_value = stats_wc.closed.to_f > 0 ? (value / stats_wc.closed.to_f) * 10 : 0
+            penalty_value = (stats_wc.closed.to_f > 0) ? (value / stats_wc.closed.to_f) * 10 : 0
             @logger.info "penalty value: #{penalty_value}"
             sum + penalty_value
             # sum + (value / per_workflow_and_customer_stats[wft_id][c_id].closed.to_f) * @configuration.custom_stats.find { |x| x[:name] == key }[:weight]
@@ -1357,7 +1353,7 @@ module KUBETWIN
       ## Add the availability policy
       if availability_policy
         closed_percentage = (stats.closed.to_f / stats.received.to_f) # We scale penalty to 10 factor
-        availability_penalty = closed_percentage < availability_policy ? (closed_percentage - availability_policy) * 10 : 0
+        availability_penalty = (closed_percentage < availability_policy) ? (closed_percentage - availability_policy) * 10 : 0
         puts "Availability penalty: #{availability_penalty} closed_percentage: #{closed_percentage} availability"
         weighted_sum += normalize_objective(availability_penalty, 0, mean_ttr)
       end
@@ -1379,7 +1375,7 @@ module KUBETWIN
       if @microservice_mdn[service_name][:st][rps].nil?
         params = model.get_mixture_params_for_helper(rps)
         components = ERV::GaussianMixtureHelper.RawParametersToMixtureArgsFixedWeights(*params)
-        mixture_hash = { distribution: :mixture, args: components }
+        mixture_hash = {distribution: :mixture, args: components}
         @microservice_mdn[service_name][:st][rps] = ERV::RandomVariable.new(mixture_hash)
       end
 
@@ -1392,7 +1388,7 @@ module KUBETWIN
     # This is used for NSGA-II and multiobjective optimization.
     # Takes the same parameters as evaluate_allocation.
     def evaluate_allocation_multiobjective(rss = nil, css = nil, mtt = nil, lm = nil, mapping = nil,
-                                           replicas_mapping = nil)
+      replicas_mapping = nil)
       # Call the full evaluation to compute all metrics
       evaluate_allocation(rss, css, mtt, lm, mapping, replicas_mapping)
 

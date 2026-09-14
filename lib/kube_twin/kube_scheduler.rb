@@ -59,7 +59,7 @@ module KUBETWIN
       # here we could implement different policies
       # puts "Clusters: #{@clusters}"
       @clusters.values.each do |c|
-        raise 'Ranking nodes from a nil cluster' if c.nil?
+        raise "Ranking nodes from a nil cluster" if c.nil?
 
         c.nodes.values.each do |node|
           # debug node information here
@@ -67,12 +67,12 @@ module KUBETWIN
           available_resources_cpu = node.available_resources_cpu
           next unless available_resources_cpu >= req_cpu && node.available_resources_memory >= req_mem
 
-          @filtered_nodes << { node: node, cluster_id: c.cluster_id,
+          @filtered_nodes << {node: node, cluster_id: c.cluster_id,
                                tier: c.tier,
                                price: c.fixed_hourly_cost_cpu,
                                available_resources_cpu: available_resources_cpu,
                                requested_resources: node.requested_resources[:cpu],
-                               deployed_pods: node.pod_id_list.length }
+                               deployed_pods: node.pod_id_list.length}
         end
       end
     end
@@ -86,7 +86,7 @@ module KUBETWIN
       # {|n| (n[requested_resources] + n[:deployed_pods])}
 
       if @filtered_nodes.empty?
-        puts 'Resource saturation'
+        puts "Resource saturation"
         return nil
       end
       node = nil
@@ -95,10 +95,10 @@ module KUBETWIN
         node_with_affinity = @filtered_nodes.select { |n| n[:tier] == node_affinity }
 
         node = if node_with_affinity.empty?
-                 nil
-               else
-                 node_with_affinity.sort_by { |n| -n[:available_resources_cpu] }[0][:node]
-               end
+          nil
+        else
+          node_with_affinity.sort_by { |n| -n[:available_resources_cpu] }[0][:node]
+        end
       end
 
       # distribute the application load among clusters

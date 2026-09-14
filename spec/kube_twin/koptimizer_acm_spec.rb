@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require 'minitest_helper'
+require "minitest_helper"
 
 # KOptimizerACM#encode_replicas_set used to mutate its `rss` argument in
 # place instead of deep-copying it -- an apparent copy-paste drift from
@@ -9,9 +9,9 @@ require 'minitest_helper'
 # of the family, which fixes that. This spec locks the fix in as a
 # regression test.
 describe KUBETWIN::KOptimizerACM do
-  it 'delegates encode_replicas_set to KUBETWIN::VectorCodec and does not mutate its rss argument' do
+  it "delegates encode_replicas_set to KUBETWIN::VectorCodec and does not mutate its rss argument" do
     optimizer = KUBETWIN::KOptimizerACM.allocate
-    rss = { a: { selector: 'a', replicas: 1 }, b: { selector: 'b', replicas: 1 } }
+    rss = {a: {selector: "a", replicas: 1}, b: {selector: "b", replicas: 1}}
 
     result_rss, result_map = optimizer.encode_replicas_set([4, 6], 2, rss)
 

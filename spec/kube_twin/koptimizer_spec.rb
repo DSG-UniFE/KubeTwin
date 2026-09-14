@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require 'minitest_helper'
+require "minitest_helper"
 
 # KOptimizer#encode_replicas_set takes rss/n_ms as explicit parameters
 # rather than reading them off ivars, so it can be called directly on an
@@ -11,9 +11,9 @@ require 'minitest_helper'
 # KUBETWIN::VectorCodec.encode_replicas_set (see vector_codec_spec.rb for
 # the exhaustive behavior coverage); this spec only checks the wiring.
 describe KUBETWIN::KOptimizer do
-  it 'delegates encode_replicas_set to KUBETWIN::VectorCodec with (rss, n_ms, x) in the right order' do
+  it "delegates encode_replicas_set to KUBETWIN::VectorCodec with (rss, n_ms, x) in the right order" do
     optimizer = KUBETWIN::KOptimizer.allocate
-    rss = { a: { selector: 'a', replicas: 1 }, b: { selector: 'b', replicas: 1 } }
+    rss = {a: {selector: "a", replicas: 1}, b: {selector: "b", replicas: 1}}
 
     result_rss, result_map = optimizer.encode_replicas_set([4, 6], 2, rss)
 

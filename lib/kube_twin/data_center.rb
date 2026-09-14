@@ -1,9 +1,8 @@
 # frozen_string_literal: true
 
-require 'forwardable'
+require "forwardable"
 
 module KUBETWIN
-
   class DataCenter
     extend Forwardable
 
@@ -12,13 +11,13 @@ module KUBETWIN
     attr_reader :dcid, :location_id
 
     def initialize(id:, location_id:, name:, type:, **opts)
-      @dcid          = id
-      @location_id   = location_id
-      @vms           = {}
+      @dcid = id
+      @location_id = location_id
+      @vms = {}
       @vm_type_count = {}
-      @name          = name
-      @type          = type
-      raise ArgumentError, "Unsupported type!" unless [ :private, :public ].include?(@type)
+      @name = name
+      @type = type
+      raise ArgumentError, "Unsupported type!" unless [:private, :public].include?(@type)
       @availability_check_proc = opts[:maximum_vm_capacity]
     end
 
@@ -27,7 +26,7 @@ module KUBETWIN
       @vms[component_name] ||= []
       @vm_type_count[vm.size] ||= 0
 
-      raise 'Error! VM is already present!' if @vms[component_name].include? vm
+      raise "Error! VM is already present!" if @vms[component_name].include? vm
 
       # defer availablility check to user specified procedure
       if @availability_check_proc
@@ -41,7 +40,7 @@ module KUBETWIN
 
     def remove_vm(vm, component_name)
       if @vms.has_key? component_name and @vms[component_name].include? vm
-        raise 'Error! Inconsistent number of VMs!' unless @vm_type_count[vm.size] >= 1
+        raise "Error! Inconsistent number of VMs!" unless @vm_type_count[vm.size] >= 1
         @vm_type_count[vm.size] += 1
         @vms.delete(vm)
       end
@@ -60,7 +59,7 @@ module KUBETWIN
 
     def to_s
       "Data center #{@dcid}, with VMs:" +
-        @vms.inject("") {|s,(k,v)| s += " (#{k}: #{v.size})" }
+        @vms.inject("") { |s, (k, v)| s + " (#{k}: #{v.size})" }
     end
 
     def private?
@@ -70,7 +69,5 @@ module KUBETWIN
     def public?
       @type == :public
     end
-
   end
-
 end

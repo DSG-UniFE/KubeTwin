@@ -1,6 +1,5 @@
 # frozen_string_literal: true
 
-
 module KUBETWIN
   # just a simple class to model a ReplicaSet
   # selector is the label corrisponding to
@@ -12,12 +11,12 @@ module KUBETWIN
 
   class ReplicaSet
     attr_reader :name,
-                :selector,
-                :replicas,
-                :service
+      :selector,
+      :replicas,
+      :service
 
     # name and selector have the same value here
-    # the replica set creates the pods, which are 
+    # the replica set creates the pods, which are
     # associate to a service that provides naming,
     # discovery, and lookup capabilities
     def initialize(name, selector, replicas, service)
@@ -36,6 +35,5 @@ module KUBETWIN
     def set_replicas(replicas)
       @replicas = replicas
     end
-    
   end
 end

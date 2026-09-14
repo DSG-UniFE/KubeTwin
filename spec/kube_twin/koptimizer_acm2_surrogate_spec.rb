@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require 'minitest_helper'
+require "minitest_helper"
 
 # KOptimizerACM2Surrogate's encode_replicas_set / decode_cluster_mapping /
 # build_feature_labels / generate_nearby_candidates all delegate to
@@ -18,14 +18,14 @@ describe KUBETWIN::KOptimizerACM2Surrogate do
     optimizer.instance_variable_set(:@n_ms, n_ms)
     optimizer.instance_variable_set(:@max_replicas, max_replicas)
     optimizer.instance_variable_set(:@ms_names, ms_names)
-    optimizer.instance_variable_set(:@constraints, constraints || { min: [1, 1], max: [10, 10] })
+    optimizer.instance_variable_set(:@constraints, constraints || {min: [1, 1], max: [10, 10]})
     optimizer.instance_variable_set(:@sampling_rng, sampling_rng || Random.new(1))
     optimizer
   end
 
-  it 'delegates encode_replicas_set to KUBETWIN::VectorCodec using @rss and @n_ms' do
+  it "delegates encode_replicas_set to KUBETWIN::VectorCodec using @rss and @n_ms" do
     optimizer = build_optimizer(
-      rss: { a: { selector: 'a', replicas: 1 }, b: { selector: 'b', replicas: 1 } },
+      rss: {a: {selector: "a", replicas: 1}, b: {selector: "b", replicas: 1}},
       n_ms: 2
     )
 
@@ -35,7 +35,7 @@ describe KUBETWIN::KOptimizerACM2Surrogate do
     _(rss[:b][:replicas]).must_equal 7
   end
 
-  it 'delegates decode_cluster_mapping to KUBETWIN::VectorCodec using @n_ms and @max_replicas' do
+  it "delegates decode_cluster_mapping to KUBETWIN::VectorCodec using @n_ms and @max_replicas" do
     optimizer = build_optimizer(n_ms: 2, max_replicas: 3)
     vector = [2, 1] + [10, 11, 12] + [20, 21, 22]
 
@@ -44,7 +44,7 @@ describe KUBETWIN::KOptimizerACM2Surrogate do
     _(mapping).must_equal [10, 11, 20]
   end
 
-  it 'delegates the private build_feature_labels to KUBETWIN::VectorCodec using @ms_names and @max_replicas' do
+  it "delegates the private build_feature_labels to KUBETWIN::VectorCodec using @ms_names and @max_replicas" do
     optimizer = build_optimizer(ms_names: %w[svcA svcB], max_replicas: 2)
 
     labels = optimizer.send(:build_feature_labels)
@@ -56,8 +56,8 @@ describe KUBETWIN::KOptimizerACM2Surrogate do
     ]
   end
 
-  it 'delegates the private generate_nearby_candidates to KUBETWIN::VectorCodec using @constraints and @sampling_rng' do
-    optimizer = build_optimizer(constraints: { min: [1, 1], max: [10, 10] }, sampling_rng: Random.new(42))
+  it "delegates the private generate_nearby_candidates to KUBETWIN::VectorCodec using @constraints and @sampling_rng" do
+    optimizer = build_optimizer(constraints: {min: [1, 1], max: [10, 10]}, sampling_rng: Random.new(42))
 
     candidates = optimizer.send(:generate_nearby_candidates, [5, 5], 4)
 

@@ -1,9 +1,9 @@
 #!/usr/bin/env ruby
 
-require 'mhl'
-require 'rumale/ensemble/random_forest_regressor'
-require 'numo/narray'
-require 'logger'
+require "mhl"
+require "rumale/ensemble/random_forest_regressor"
+require "numo/narray"
+require "logger"
 
 module KUBETWIN
   # Surrogate-assisted variant of KOptimizerACM2.
@@ -19,7 +19,7 @@ module KUBETWIN
     MAX_REPLICAS = 10
 
     def initialize(configuration_file)
-      time = Time.now.strftime('%Y%m%d%H%M%S')
+      time = Time.now.strftime("%Y%m%d%H%M%S")
       ga_log = "KT_surrogate_optimizer_log_#{time}.log"
       @logger = Logger.new($stdout)
       @logger.level = Logger::DEBUG
@@ -55,7 +55,7 @@ module KUBETWIN
       # Human-readable label for each dimension of the search vector
       @feature_labels = build_feature_labels
 
-      rps = ENV['RPS'] ? ENV['RPS'].to_i : 10
+      rps = ENV["RPS"] ? ENV["RPS"].to_i : 10
       @logger.info "Setting RPS to #{rps}"
       @start_time = @sim_conf.start_time
     end
@@ -84,7 +84,7 @@ module KUBETWIN
       replicas_mapping = decode_cluster_mapping(int_vector)
 
       sim = KUBETWIN::KSimulation.new(configuration: @sim_conf,
-                                      evaluator: KUBETWIN::Evaluator.new(@sim_conf))
+        evaluator: KUBETWIN::Evaluator.new(@sim_conf))
       sim.evaluate_allocation(new_rss, nil, nil, nil, nil, replicas_mapping)
     end
 
@@ -151,9 +151,9 @@ module KUBETWIN
 
       # R² on training data (sanity check)
       y_pred = model.predict(x_numo)
-      ss_res = ((y_numo - y_pred) ** 2).sum
-      ss_tot = ((y_numo - y_numo.mean) ** 2).sum
-      r2 = ss_tot > 0 ? 1.0 - ss_res / ss_tot : 0.0
+      ss_res = ((y_numo - y_pred)**2).sum
+      ss_tot = ((y_numo - y_numo.mean)**2).sum
+      r2 = (ss_tot > 0) ? 1.0 - ss_res / ss_tot : 0.0
       @logger.info "Surrogate: training R² = #{r2.round(4)}"
       @ga_logger.info "Surrogate model R² on training data: #{r2.round(4)}"
 
@@ -184,7 +184,7 @@ module KUBETWIN
       }
 
       solver = MHL::QuantumPSOSolver.new(solver_conf)
-      best = solver.solve(surrogate_fn, { concurrent: false })
+      best = solver.solve(surrogate_fn, {concurrent: false})
 
       @logger.info "Surrogate PSO: best predicted fitness = #{best[:height].round(4)}"
       @ga_logger.info "Surrogate PSO best: fitness=#{best[:height].round(4)} " \
@@ -205,7 +205,7 @@ module KUBETWIN
       candidates.first(top_k).each_with_index do |vec, i|
         int_vec = vec.map(&:to_i)
         fitness = evaluate_real(int_vec)
-        results << { position: int_vec, fitness: fitness }
+        results << {position: int_vec, fitness: fitness}
         @logger.info "  Candidate #{i + 1}/#{top_k}: real fitness = #{fitness.round(4)}"
         @ga_logger.info "Validation #{i + 1}: fitness=#{fitness.round(4)} vector=#{int_vec.inspect}"
       end
@@ -227,7 +227,7 @@ module KUBETWIN
     # Total real simulator calls: n_initial_samples + top_k
     # (vs. swarm_size * num_iterations for pure PSO)
     def optimize(n_initial_samples: 200, surrogate_iterations: 50,
-                 surrogate_swarm_size: 100, top_k: 5)
+      surrogate_swarm_size: 100, top_k: 5)
       total_start = Time.now
 
       # Phase 1: Sample initial points
@@ -241,8 +241,8 @@ module KUBETWIN
 
       # Phase 3: PSO on surrogate
       pso_result = run_pso_on_surrogate(model,
-                                        num_iterations: surrogate_iterations,
-                                        swarm_size: surrogate_swarm_size)
+        num_iterations: surrogate_iterations,
+        swarm_size: surrogate_swarm_size)
 
       # Collect diverse candidate vectors from the PSO result.
       # We take the PSO best, plus generate nearby perturbations to get top_k
@@ -257,7 +257,7 @@ module KUBETWIN
       # Phase 5: Final simulation with the best parameters.
       # This ensures final_allocation.{json,txt} reflect the best solution found,
       # since evaluate_allocation overwrites those files on every call.
-      @logger.info 'Running final simulation with best parameters...'
+      @logger.info "Running final simulation with best parameters..."
       evaluate_real(best[:position])
 
       elapsed = (Time.now - total_start).round(1)
@@ -289,7 +289,7 @@ module KUBETWIN
     # offline analysis (feature importance, metrics, etc.) can be performed
     # without re-running the expensive sampling phase.
     def save_surrogate_bundle(model, x_samples, y_samples, training_r2)
-      timestamp = Time.now.strftime('%Y%m%d%H%M%S')
+      timestamp = Time.now.strftime("%Y%m%d%H%M%S")
       path = "surrogate_bundle_#{timestamp}.bin"
 
       bundle = {
@@ -307,7 +307,7 @@ module KUBETWIN
         training_r2: training_r2
       }
 
-      File.open(path, 'wb') { |f| f.write(Marshal.dump(bundle)) }
+      File.binwrite(path, Marshal.dump(bundle))
       @logger.info "Surrogate bundle saved to #{path}"
       @ga_logger.info "Surrogate bundle saved to #{path}"
       path

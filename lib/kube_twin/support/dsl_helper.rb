@@ -14,7 +14,7 @@ class Module
             @#{sym} = val.size == 1 ? val[0] : val
           end
         end
-      }
+      }, __FILE__, __LINE__ - 8
     }
   end
 end

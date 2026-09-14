@@ -7,27 +7,27 @@ module KUBETWIN
     # STATE_SUSPENDED = 2
 
     attr_reader :rid,
-                :arrival_time,
-                :closure_time,
-                # :communication_latency,
-                :customer_id,
-                :generation_time,
-                :next_step,
-                # :status,
-                :queuing_time,
-                :workflow_type_id,
-                :worked_step,
-                :step_queue_time,
-                :steps_ttr,
-                :active_branches,
-                :completed_branches,
-                :parallel_context,
-                :branch_results,
-                :component_sequence,
-                :branch_name,
-                :parent_request,
-                :child_kind,
-                :nested_call_context
+      :arrival_time,
+      :closure_time,
+      # :communication_latency,
+      :customer_id,
+      :generation_time,
+      :next_step,
+      # :status,
+      :queuing_time,
+      :workflow_type_id,
+      :worked_step,
+      :step_queue_time,
+      :steps_ttr,
+      :active_branches,
+      :completed_branches,
+      :parallel_context,
+      :branch_results,
+      :component_sequence,
+      :branch_name,
+      :parent_request,
+      :child_kind,
+      :nested_call_context
 
     attr_accessor :arrival_at_container, :chain_entering_time
 
@@ -36,21 +36,21 @@ module KUBETWIN
     attr_accessor :data_center_id
 
     def initialize(rid:,
-                   generation_time:,
-                   initial_data_center_id:,
-                   arrival_time:,
-                   workflow_type_id:,
-                   customer_id:,
-                   component_sequence: nil,
-                   branch_name: nil,
-                   parent_request: nil,
-                   child_kind: nil)
-      @rid              = rid
-      @generation_time  = generation_time
-      @data_center_id   = initial_data_center_id
-      @arrival_time     = arrival_time
+      generation_time:,
+      initial_data_center_id:,
+      arrival_time:,
+      workflow_type_id:,
+      customer_id:,
+      component_sequence: nil,
+      branch_name: nil,
+      parent_request: nil,
+      child_kind: nil)
+      @rid = rid
+      @generation_time = generation_time
+      @data_center_id = initial_data_center_id
+      @arrival_time = arrival_time
       @workflow_type_id = workflow_type_id
-      @customer_id      = customer_id
+      @customer_id = customer_id
 
       # steps start counting from zero
       @worked_step = 0
@@ -116,11 +116,11 @@ module KUBETWIN
     def ttr(time)
       # if incident isn't closed yet, just return nil without raising an exception.
       base_ttr = @closure_time.nil? ? (time - @arrival_at_container) : (@closure_time - @arrival_time)
-      
+
       # For requests with completed branches, include maximum branch completion time
       if @completed_branches && !@completed_branches.empty?
-        max_branch_time = @completed_branches.map { |branch| 
-          branch[:completed_at] ? (branch[:completed_at].to_f - @arrival_time.to_f) : 0 
+        max_branch_time = @completed_branches.map { |branch|
+          branch[:completed_at] ? (branch[:completed_at].to_f - @arrival_time.to_f) : 0
         }.max
         # Return the maximum between base TTR and branch completion times
         [base_ttr, max_branch_time].max
@@ -148,7 +148,7 @@ module KUBETWIN
         started_at: Time.now,
         parent_step: @next_step
       }
-      @active_branches = branches.map { |branch| { name: branch[:name], status: "running", started_at: Time.now } }
+      @active_branches = branches.map { |branch| {name: branch[:name], status: "running", started_at: Time.now} }
       @branch_results = {}
     end
 
@@ -158,7 +158,7 @@ module KUBETWIN
         branch[:status] = "completed"
         branch[:completed_at] = completion_time || Time.now
         @branch_results[branch_name] = result_data
-        @completed_branches << { name: branch_name, data: result_data, completed_at: completion_time || Time.now }
+        @completed_branches << {name: branch_name, data: result_data, completed_at: completion_time || Time.now}
       end
     end
 

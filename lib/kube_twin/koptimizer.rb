@@ -1,15 +1,15 @@
 #!/usr/bin/env ruby
 
-require 'mhl'
+require "mhl"
 
 module KUBETWIN
   class KOptimizer
     def do_abort(message)
-      abort <<-EOS.gsub(/^\s+\|/, '')
+      abort <<-EOS.gsub(/^\s+\|/, "")
             |#{message}
             |
             |Usage:
-            |    #{File.basename(__FILE__)} simulator_config_file#{' '}
+            |    #{File.basename(__FILE__)} simulator_config_file#{" "}
             |
       EOS
     end
@@ -18,17 +18,17 @@ module KUBETWIN
       # make sure both required arguments were given
       case ARGV.size
       when 0
-        do_abort('Missing simulator configuration files!')
+        do_abort("Missing simulator configuration files!")
       end
 
       # make sure simulator config file exists
-      do_abort('Invalid simulator configuration file!') unless File.exist? ARGV[0]
+      do_abort("Invalid simulator configuration file!") unless File.exist? ARGV[0]
     end
 
     def initialize(configuration_file)
       # here run the optimizer on the oracle
       # load simulation configuration
-      time = Time.now.strftime('%Y%m%d%H%M%S')
+      time = Time.now.strftime("%Y%m%d%H%M%S")
       ga_log = "KT_optimizer_log_#{time}.log"
       File.delete(ga_log) if File.exist?(ga_log)
       @ga_logger = Logger.new(ga_log)
@@ -61,7 +61,7 @@ module KUBETWIN
         # 0 means cluster 0, 1 means cluster 1, etc., n_clusters means random
         mapping = component_allocation[@n_ms..(@n_ms + @n_clusters - 1)]
         sim = KUBETWIN::KSimulation.new(configuration: @sim_conf,
-                                        evaluator: KUBETWIN::Evaluator.new(@sim_conf))
+          evaluator: KUBETWIN::Evaluator.new(@sim_conf))
 
         @ga_logger.debug component_allocation
         res = sim.evaluate_allocation(rss, nil, nil, nil, mapping)
@@ -82,10 +82,10 @@ module KUBETWIN
       solver = MHL::QuantumPSOSolver.new(solver_conf)
 
       # run the solver
-      best = solver.solve(to_optimize, { concurrent: false })
+      best = solver.solve(to_optimize, {concurrent: false})
 
       puts best
-      puts 'Best configuration'
+      puts "Best configuration"
 
       to_optimize.call(best[:position])
     end

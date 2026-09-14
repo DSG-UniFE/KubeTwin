@@ -27,9 +27,9 @@ module KUBETWIN
     def self.get_workflow_components(workflow)
       components = []
       workflow[:component_sequence].each do |cs|
-        if cs[:type] == 'parallel'
+        if cs[:type] == "parallel"
           cs[:branches].each do |branch|
-            branch_sequence = branch[:component_sequence] || [{ name: branch[:name] }]
+            branch_sequence = branch[:component_sequence] || [{name: branch[:name]}]
             components.concat(get_workflow_components(component_sequence: branch_sequence))
           end
         else

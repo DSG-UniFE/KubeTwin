@@ -1,13 +1,12 @@
 # frozen_string_literal: true
-require 'erv'
+
+require "erv"
 
 module KUBETWIN
-
   class RequestGenerator
-
     SEED = 12345
 
-    def initialize(opts={})
+    def initialize(opts = {})
       # get the configuration parameters
       @starting_time = opts[:starting_time]
       @rg_rv = ERV::RandomVariable.new(opts[:request_distribution])
@@ -24,9 +23,9 @@ module KUBETWIN
       if @num_requests && @next_rid >= @num_requests
         return nil
       end
-      #while (nr = @rg_rv.next) <= 1E-2; end
-      #rs = Array.new(10) { @rg_rv.next }
-      #nr = rs.sum() / rs.length
+      # while (nr = @rg_rv.next) <= 1E-2; end
+      # rs = Array.new(10) { @rg_rv.next }
+      # nr = rs.sum() / rs.length
       nr = @rg_rv.next
       # nr is commentedd for fitting purposes ...
       generation_time = current_time + nr
@@ -41,11 +40,8 @@ module KUBETWIN
         rid: @next_rid,
         generation_time: generation_time,
         workflow_type_id: workflow_type_id,
-        customer_id: customer_id,
+        customer_id: customer_id
       }
     end
-
-
   end
-
 end

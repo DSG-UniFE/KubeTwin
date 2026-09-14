@@ -1,17 +1,16 @@
 # frozen_string_literal: true
 
-
 module KUBETWIN
   class ComponentStatistics
     attr_reader :mean, :n, :received, :longer_than
-    alias closed n
+    alias_method :closed, :n
 
     # see http://en.wikipedia.org/wiki/Algorithms_for_calculating_variance#Online_algorithm
     # and https://www.johndcook.com/blog/standard_deviation/
     def initialize(opts = {})
-      @n    = 0 # number of requests
+      @n = 0 # number of requests
       @mean = 0.0
-      @m_2  = 0.0
+      @m_2 = 0.0
       @q_mean = 0.0
       @q_m_2 = 0.0
       @longer_than = init_counters_for_longer_than_stats(opts)
@@ -48,7 +47,7 @@ module KUBETWIN
       @n += 1
       delta = x - @mean
       @mean += delta / @n
-      @m_2  += delta * (x - @mean)
+      @m_2 += delta * (x - @mean)
       # update qtime values
       delta_q = qx - @q_mean
       @q_mean += delta_q / @n
@@ -84,8 +83,8 @@ module KUBETWIN
       Hash[
         # wrap the values in custom_kpis_config[:longer_than] in an array
         Array(custom_kpis_config[:longer_than]).
-        # and interval the numbers contained in that array with zeroes
-        zip(zeros) ]
+          # and interval the numbers contained in that array with zeroes
+          zip(zeros) ]
     end
 
     def init_counters_for_shorter_than_stats(custom_kpis_config)
@@ -95,8 +94,8 @@ module KUBETWIN
       Hash[
         # wrap the values in custom_kpis_config[:longer_than] in an array
         Array(custom_kpis_config[:longer_than]).
-        # and interval the numbers contained in that array with zeroes
-        zip(zeros) ]
+          # and interval the numbers contained in that array with zeroes
+          zip(zeros) ]
     end
   end
 end

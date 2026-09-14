@@ -1,11 +1,10 @@
-require 'fileutils'
-require 'logger'
-require 'time'
-require 'thread'
+require "fileutils"
+require "logger"
+require "time"
 
 # Define a module for the log management system
 module LogManager
-  LOG_DIR = './logs'
+  LOG_DIR = "./logs"
   @current_log_folder = nil
   @current_date = nil
   @loggers = {}
@@ -21,16 +20,16 @@ module LogManager
 
   # Set up loggers for file logging and optional CLI logging
   def self.setup_loggers(enable_cli: false, enable_debug_log: true)
-    setup_signal_handler ? setup_signal_handler : nil
+    setup_signal_handler || nil
     daily_folder = create_log_folder
 
     # Create log files for different severity levels
     file_loggers = {
-      info: Logger.new(File.join(daily_folder, 'info.log')),
-      error: Logger.new(File.join(daily_folder, 'error.log')),
-      warn: Logger.new(File.join(daily_folder, 'warn.log')),
-      fatal: Logger.new(File.join(daily_folder, 'fatal.log')),
-      debug: enable_debug_log ? Logger.new(File.join(daily_folder, 'debug.log')) : nil
+      info: Logger.new(File.join(daily_folder, "info.log")),
+      error: Logger.new(File.join(daily_folder, "error.log")),
+      warn: Logger.new(File.join(daily_folder, "warn.log")),
+      fatal: Logger.new(File.join(daily_folder, "fatal.log")),
+      debug: enable_debug_log ? Logger.new(File.join(daily_folder, "debug.log")) : nil
     }
 
     # Set up CLI logger if CLI logging is enabled
@@ -40,13 +39,13 @@ module LogManager
     file_loggers.each_value do |logger|
       next unless logger # Skip nil loggers like the disabled debug logger
       logger.formatter = proc do |severity, datetime, progname, msg|
-        "#{datetime.strftime('%Y-%m-%d %H:%M:%S')} - #{severity}: #{msg}\n"
+        "#{datetime.strftime("%Y-%m-%d %H:%M:%S")} - #{severity}: #{msg}\n"
       end
     end
 
     if cli_logger
       cli_logger.formatter = proc do |severity, datetime, progname, msg|
-        "#{datetime.strftime('%Y-%m-%d %H:%M:%S')} - #{severity}: #{msg}\n"
+        "#{datetime.strftime("%Y-%m-%d %H:%M:%S")} - #{severity}: #{msg}\n"
       end
     end
 
@@ -102,7 +101,6 @@ module LogManager
     @midnight_thread&.kill
     @midnight_thread = nil
   end
-
 
   # Setup the signal handler for Ctrl+C (SIGINT)
   # Maybe it's better to move this to a separate module (e.g., SignalManager). So to handle signals of every module.

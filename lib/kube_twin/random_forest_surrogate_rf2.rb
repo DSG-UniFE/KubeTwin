@@ -1,26 +1,26 @@
 # frozen_string_literal: true
 
-require 'rumale/ensemble/random_forest_regressor'
-require 'numo/narray'
-require 'logger'
+require "rumale/ensemble/random_forest_regressor"
+require "numo/narray"
+require "logger"
 
 module KUBETWIN
   class RandomForestSurrogateRF2
     attr_reader :full_model,
-                :reduced_model,
-                :full_r2,
-                :reduced_r2,
-                :mdi_importances,
-                :selected_feature_indices,
-                :selected_feature_labels,
-                :importance_threshold,
-                :feature_labels,
-                :ms_names,
-                :cluster_names,
-                :n_ms,
-                :n_clusters,
-                :max_replicas,
-                :n_dims
+      :reduced_model,
+      :full_r2,
+      :reduced_r2,
+      :mdi_importances,
+      :selected_feature_indices,
+      :selected_feature_labels,
+      :importance_threshold,
+      :feature_labels,
+      :ms_names,
+      :cluster_names,
+      :n_ms,
+      :n_clusters,
+      :max_replicas,
+      :n_dims
 
     def initialize(feature_labels:, ms_names:, cluster_names:, n_ms:, n_clusters:, max_replicas:, logger: nil)
       @feature_labels = feature_labels
@@ -43,16 +43,16 @@ module KUBETWIN
     end
 
     def predict(vector, reduced: true)
-      raise 'Surrogate must be trained before prediction' if model_for(reduced).nil?
+      raise "Surrogate must be trained before prediction" if model_for(reduced).nil?
 
       input = reduced ? @selected_feature_indices.map { |i| vector[i].to_i } : vector.map(&:to_i)
       model_for(reduced).predict(Numo::DFloat.cast([input]))[0]
     end
 
     def save_bundle(x_samples:, y_samples:, path: nil, timestamp: nil)
-      raise 'Surrogate must be trained before saving' if @full_model.nil? || @reduced_model.nil?
+      raise "Surrogate must be trained before saving" if @full_model.nil? || @reduced_model.nil?
 
-      timestamp ||= Time.now.strftime('%Y%m%d%H%M%S')
+      timestamp ||= Time.now.strftime("%Y%m%d%H%M%S")
       path ||= "surrogate_rf2_bundle_#{timestamp}.bin"
 
       bundle = {
@@ -68,7 +68,7 @@ module KUBETWIN
         n_dims: @n_dims,
         timestamp: timestamp,
         training_r2: @full_r2,
-        surrogate_type: 'rf2_feature_selection',
+        surrogate_type: "rf2_feature_selection",
         reduced_model: @reduced_model,
         reduced_r2: @reduced_r2,
         selected_feature_indices: @selected_feature_indices,
@@ -78,7 +78,7 @@ module KUBETWIN
         n_selected_features: @selected_feature_indices.length
       }
 
-      File.open(path, 'wb') { |f| f.write(Marshal.dump(bundle)) }
+      File.binwrite(path, Marshal.dump(bundle))
       path
     end
 
@@ -117,7 +117,7 @@ module KUBETWIN
       y_pred = model.predict(x_train)
       ss_res = ((y_numo - y_pred)**2).sum
       ss_tot = ((y_numo - y_numo.mean)**2).sum
-      r2 = ss_tot > 0 ? 1.0 - ss_res / ss_tot : 0.0
+      r2 = (ss_tot > 0) ? 1.0 - ss_res / ss_tot : 0.0
       importances = model.feature_importances.to_a
 
       [model, r2, importances]
@@ -127,8 +127,8 @@ module KUBETWIN
       total = importances.sum
       return (0...importances.length).to_a if total <= 0
 
-      ranked = importances.each_with_index.map { |imp, idx| { idx: idx, imp: imp } }
-                          .sort_by { |entry| -entry[:imp] }
+      ranked = importances.each_with_index.map { |imp, idx| {idx: idx, imp: imp} }
+        .sort_by { |entry| -entry[:imp] }
 
       selected = []
       cumulative = 0.0

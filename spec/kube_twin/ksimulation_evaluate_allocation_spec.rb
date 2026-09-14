@@ -1,10 +1,10 @@
 # frozen_string_literal: true
 
-require 'minitest_helper'
+require "minitest_helper"
 
-require 'tempfile'
+require "tempfile"
 
-require_relative './reference_configuration'
+require_relative "reference_configuration"
 
 # A characterization/smoke test for KSimulation#evaluate_allocation -- the
 # ~1200-line event-loop method this spec file's sibling (ksimulation_spec.rb)
@@ -60,7 +60,7 @@ require_relative './reference_configuration'
 # see, especially the deployed_pods count and whether the run is in fact
 # deterministic across repeated runs.
 describe KUBETWIN::KSimulation do
-  describe '#evaluate_allocation' do
+  describe "#evaluate_allocation" do
     # NOTE: these were originally plain ALL_CAPS constants (REQUEST_GENERATION_DATA,
     # SERVICES, REPLICA_SETS) assigned directly inside this describe block.
     # That broke generator_spec.rb: minitest's `describe` builds each block's
@@ -88,32 +88,32 @@ describe KUBETWIN::KSimulation do
 
     let(:services) do
       {
-        'Web Server' => { serviceName: 'WebServerSvc', selector: 'Web Server' },
-        'App Server' => { serviceName: 'AppServerSvc', selector: 'App Server' },
-        'Financial Transaction Server' => {
-          serviceName: 'FinancialTransactionServerSvc',
-          selector: 'Financial Transaction Server'
+        "Web Server" => {serviceName: "WebServerSvc", selector: "Web Server"},
+        "App Server" => {serviceName: "AppServerSvc", selector: "App Server"},
+        "Financial Transaction Server" => {
+          serviceName: "FinancialTransactionServerSvc",
+          selector: "Financial Transaction Server"
         }
       }
     end
 
     let(:replica_sets) do
       {
-        'web' => { name: 'web_rs', selector: 'Web Server', replicas: 2 },
-        'app' => { name: 'app_rs', selector: 'App Server', replicas: 2 },
-        'fin' => { name: 'fin_rs', selector: 'Financial Transaction Server', replicas: 1 }
+        "web" => {name: "web_rs", selector: "Web Server", replicas: 2},
+        "app" => {name: "app_rs", selector: "App Server", replicas: 2},
+        "fin" => {name: "fin_rs", selector: "Financial Transaction Server", replicas: 1}
       }
     end
 
-    it 'runs the reference configuration to completion and deploys pods' do
-      tf = Tempfile.new('ksimulation_evaluate_allocation_spec')
+    it "runs the reference configuration to completion and deploys pods" do
+      tf = Tempfile.new("ksimulation_evaluate_allocation_spec")
       tf.write(request_generation_data)
       tf.close
 
-      with_reference_config(seeds: { communication_latencies: 42, next_component_selection: 7 },
-                             services: services,
-                             replica_sets: replica_sets,
-                             request_generation: { command: "cat #{tf.path}" }) do |conf|
+      with_reference_config(seeds: {communication_latencies: 42, next_component_selection: 7},
+        services: services,
+        replica_sets: replica_sets,
+        request_generation: {command: "cat #{tf.path}"}) do |conf|
         sim = KUBETWIN::KSimulation.new(configuration: conf, evaluator: Object.new)
 
         result = suppress_output { sim.evaluate_allocation }

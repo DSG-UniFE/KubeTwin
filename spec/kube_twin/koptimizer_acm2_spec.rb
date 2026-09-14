@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require 'minitest_helper'
+require "minitest_helper"
 
 # KOptimizerACM2#encode_replicas_set / #decode_cluster_mapping delegate to
 # KUBETWIN::VectorCodec, reading @rss/@n_ms/@max_replicas off the instance
@@ -18,9 +18,9 @@ describe KUBETWIN::KOptimizerACM2 do
     optimizer
   end
 
-  it 'delegates encode_replicas_set to KUBETWIN::VectorCodec using @rss and @n_ms' do
+  it "delegates encode_replicas_set to KUBETWIN::VectorCodec using @rss and @n_ms" do
     optimizer = build_optimizer(
-      rss: { a: { selector: 'a', replicas: 1 }, b: { selector: 'b', replicas: 1 } },
+      rss: {a: {selector: "a", replicas: 1}, b: {selector: "b", replicas: 1}},
       n_ms: 2
     )
 
@@ -31,7 +31,7 @@ describe KUBETWIN::KOptimizerACM2 do
     _(replicas_per_ms).must_equal(a: 3, b: 7)
   end
 
-  it 'delegates decode_cluster_mapping to KUBETWIN::VectorCodec using @n_ms and @max_replicas' do
+  it "delegates decode_cluster_mapping to KUBETWIN::VectorCodec using @n_ms and @max_replicas" do
     optimizer = build_optimizer(rss: {}, n_ms: 2, max_replicas: 3)
     vector = [2, 1] + [10, 11, 12] + [20, 21, 22]
 

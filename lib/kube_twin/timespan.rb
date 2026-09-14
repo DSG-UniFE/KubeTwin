@@ -20,21 +20,21 @@ module KUBETWIN
   module Timespan
     SECOND = 1.0
     MINUTE = 60 * SECOND
-    HOUR   = 60 * MINUTE
-    MSEC   = SECOND / 1000
+    HOUR = 60 * MINUTE
+    MSEC = SECOND / 1000
 
     class << self
       def seconds(n) = n * SECOND
-      alias second seconds
+      alias_method :second, :seconds
 
       def minutes(n) = n * MINUTE
-      alias minute minutes
+      alias_method :minute, :minutes
 
       def hours(n) = n * HOUR
-      alias hour hours
+      alias_method :hour, :hours
 
       def msecs(n) = n * MSEC
-      alias msec msecs
+      alias_method :msec, :msecs
 
       # Timespan.new(seconds: 3, minutes: 4, hours: 1) => 3843.0
       def new(seconds: 0, minutes: 0, hours: 0, msecs: 0)

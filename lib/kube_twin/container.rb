@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-
 module KUBETWIN
   class RequestInfo < Struct.new(:request, :service_time, :arrival_time)
     include Comparable
+
     def <=>(other)
       arrival_time <=> other.arrival_time
     end
@@ -13,25 +13,25 @@ module KUBETWIN
     SEED = 123
 
     # states
-    CONTAINER_WAITING      = 0      # still running the operations it requires in order to complete start up
-    CONTAINER_RUNNING      = 1      # executing without issues
-    CONTAINER_TERMINATED   = 2      # began execution and then either ran to completion or failed for some reason
+    CONTAINER_WAITING = 0      # still running the operations it requires in order to complete start up
+    CONTAINER_RUNNING = 1      # executing without issues
+    CONTAINER_TERMINATED = 2      # began execution and then either ran to completion or failed for some reason
 
     # no need for :port now
     attr_reader :containerId,
-                :imageId,
-                :endCode,
-                :name,
-                :state,
-                :wait_for,
-                :service_time,
-                :request_queue,
-                :served_request,
-                :total_queue_time,
-                :total_queue_processing_time,
-                :max_processes,
-                :active_processes,
-                :max_concurrent_processes_used # endCode = 0 if all operations successfull, 0 if there's any kind of error
+      :imageId,
+      :endCode,
+      :name,
+      :state,
+      :wait_for,
+      :service_time,
+      :request_queue,
+      :served_request,
+      :total_queue_time,
+      :total_queue_processing_time,
+      :max_processes,
+      :active_processes,
+      :max_concurrent_processes_used # endCode = 0 if all operations successfull, 0 if there's any kind of error
 
     Guaranteed = Struct.new(:cpu, :memory)
     Limits = Struct.new(:cpu, :memory)
@@ -84,7 +84,7 @@ module KUBETWIN
       cutoff = now - window
 
       @arrival_window_head += 1 while @arrival_window_head < @arrival_times.length &&
-                                    @arrival_times[@arrival_window_head] <= cutoff
+          @arrival_times[@arrival_window_head] <= cutoff
 
       recent_count = @arrival_times.length - @arrival_window_head
       return @rps if recent_count < 2
@@ -97,7 +97,7 @@ module KUBETWIN
       keep_cutoff = time - 60.0
 
       @arrival_retention_head += 1 while @arrival_retention_head < @arrival_times.length &&
-                                         @arrival_times[@arrival_retention_head] < keep_cutoff
+          @arrival_times[@arrival_retention_head] < keep_cutoff
 
       return if @arrival_retention_head < 1024
 
@@ -152,16 +152,16 @@ module KUBETWIN
 
       # Determine RPS: use dynamic RPS if available, otherwise fallback to static
       rps = if @path.nil?
-              @rps
-            elsif @use_configured_rps
-              @rps
-            else
-              # Use dynamic RPS from traffic if we have enough data, else use static
-              computed_rps = current_rps
-              raw_rps = computed_rps > 0 ? computed_rps : @rps
-              [(@rps_correction_factor * raw_rps).round, 1].max
-              # computed_rps > 120 ? 120 : computed_rps.to_i # cap RPS to avoid extreme values
-            end
+        @rps
+      elsif @use_configured_rps
+        @rps
+      else
+        # Use dynamic RPS from traffic if we have enough data, else use static
+        computed_rps = current_rps
+        raw_rps = (computed_rps > 0) ? computed_rps : @rps
+        [(@rps_correction_factor * raw_rps).round, 1].max
+        # computed_rps > 120 ? 120 : computed_rps.to_i # cap RPS to avoid extreme values
+      end
 
       @last_request_time = time
       # Retrieve MDN model with computed RPS if so
@@ -178,12 +178,12 @@ module KUBETWIN
       @request_queue << ri
 
       if @trace
-        puts '***'
+        puts "***"
         @request_queue.each_cons(2) do |x, y|
           puts "#{x[2]},#{y[2]},#{y[2] - x[2]}"
-          raise 'Inconsistent ordering in request_queue!' if y[2] < x[2]
+          raise "Inconsistent ordering in request_queue!" if y[2] < x[2]
         end
-        puts '***'
+        puts "***"
       end
 
       try_servicing_new_request(sim, time) while @active_processes < @max_processes && !@request_queue.empty?
@@ -202,8 +202,8 @@ module KUBETWIN
 
         # Schedule parallel branch completion event
         sim.new_event(Event::ET_PARALLEL_BRANCH_COMPLETED,
-                      { request: parent_request, branch_name: branch_name, result: 'branch_result' },
-                      time, nil)
+          {request: parent_request, branch_name: branch_name, result: "branch_result"},
+          time, nil)
       end
 
       try_servicing_new_request(sim, time) while @active_processes < @max_processes && !@request_queue.empty?
@@ -225,7 +225,7 @@ module KUBETWIN
         @active_processes += 1 unless @max_processes == Float::INFINITY
         unless @max_processes == Float::INFINITY
           @max_concurrent_processes_used = [@max_concurrent_processes_used,
-                                            @active_processes].max
+            @active_processes].max
         end
       end
       # puts "Start: #{time}"
@@ -250,14 +250,14 @@ module KUBETWIN
     end
 
     def request_resources(moreCpu)
-      raise 'Impossible assign resources, container is still running' if @state == CONTAINER_RUNNING
+      raise "Impossible assign resources, container is still running" if @state == CONTAINER_RUNNING
 
       @guaranteed.cpu += moreCpu
-      raise 'CPU limits error, too much resources in request' if @guaranteed.cpu > @limits.cpu
+      raise "CPU limits error, too much resources in request" if @guaranteed.cpu > @limits.cpu
 
       @state = CONTAINER_WAITING
 
-      puts 'Resources assigned, waiting for setup...'
+      puts "Resources assigned, waiting for setup..."
       startupC
     end
   end

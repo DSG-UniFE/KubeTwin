@@ -1,13 +1,12 @@
 # frozen_string_literal: true
 
-require 'logger'
-
+require "logger"
 
 module KUBETWIN
   module Logging
     class << self
       def logger
-        @logger ||= ::Logger.new(STDERR).tap{|l| l.level = ::Logger::INFO }
+        @logger ||= ::Logger.new(STDERR).tap { |l| l.level = ::Logger::INFO }
       end
     end
 

@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require 'erv'
+require "erv"
 
 module KUBETWIN
   class LatencyManagerFederation
@@ -9,16 +9,16 @@ module KUBETWIN
     def initialize(latency_models, seed: nil)
       @latency_models = latency_models
       @intra_dc_latency = ERV::RandomVariable.new(distribution: :gaussian,
-                                                  args: { mean: 5E-3,
-                                                           sd: 1E-3, seed: seed || 12_345 })
-      @noise = ERV::RandomVariable.new(distribution: :gaussian, args: { mean: 0.0, sd: 10E-3, seed: seed || 12_345 })
+        args: {mean: 5E-3,
+               sd: 1E-3, seed: seed || 12_345})
+      @noise = ERV::RandomVariable.new(distribution: :gaussian, args: {mean: 0.0, sd: 10E-3, seed: seed || 12_345})
     end
 
     def sample_latency_between(loc1, loc2)
       lat = nil
       @latency_models.each do |model|
         if (model[:src] == loc1 && model[:dst] == loc2) ||
-           (model[:src] == loc2 && model[:dst] == loc1)
+            (model[:src] == loc2 && model[:dst] == loc1)
           # value is a constant value in seconds. Add jitter and clamp the final latency.
           lat = clamp_latency(model[:value] + @noise.next)
           # puts "latency between #{loc1} and #{loc2} is #{lat} seconds"
@@ -84,9 +84,9 @@ module KUBETWIN
       # latency in the same location is implemented as a truncated gaussian
       # with mean = 20ms, sd = 5ms, and a = 2ms
       @same_location_latency = ERV::RandomVariable.new(distribution: :gaussian,
-                                                       args: {
-                                                         mean: 20E-3, sd: 5E-3, seed: rng.rand(100_000_000)
-                                                       })
+        args: {
+          mean: 20E-3, sd: 5E-3, seed: rng.rand(100_000_000)
+        })
     end
 
     def sample_latency_between(loc1, loc2)
@@ -96,7 +96,7 @@ module KUBETWIN
       #  while (lat = @same_location_latency.next) < 2E-3; end
       #  lat
       # else
-      l1, l2 = loc1 < loc2 ? [loc1, loc2] : [loc2, loc1]
+      l1, l2 = (loc1 < loc2) ? [loc1, loc2] : [loc2, loc1]
 
       # since we use a compact representation for @latency_models_matrix, the
       # indexes become l1 and (l2-l1-1)
@@ -116,7 +116,7 @@ module KUBETWIN
       if loc1 == loc2
         @same_location_latency.mean
       else
-        l1, l2 = loc1 < loc2 ? [loc1, loc2] : [loc2, loc1]
+        l1, l2 = (loc1 < loc2) ? [loc1, loc2] : [loc2, loc1]
 
         # since we use a compact representation for @average_latency_between, the
         # indexes become l1 and (l2-l1-1)
