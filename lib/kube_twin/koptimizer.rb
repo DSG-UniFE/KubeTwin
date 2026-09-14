@@ -44,19 +44,10 @@ module KUBETWIN
       @start_time = @sim_conf.start_time
     end
 
+    # Delegates to KUBETWIN::VectorCodec (shared with the rest of the
+    # KOptimizer* family -- see that module for the full doc comment).
     def encode_replicas_set(x, n_ms, rss)
-      # Deep copy: rss values are hashes that must not be mutated
-      rss = rss.each_with_object({}) { |(k, v), h| h[k] = v.dup }
-      ra = rss.keys.to_a
-      replicas_per_ms = {}
-      (0..(n_ms - 1)).each do |sj|
-        rss[ra[sj]][:replicas] = x[sj]
-        replicas_per_ms[ra[sj]] = x[sj]
-      end
-      # here decide the load balancing configuration
-      # 0 would be round robin 1 is random
-      # $logger.debug "Replica Sets: #{rss}"
-      [rss, replicas_per_ms]
+      KUBETWIN::VectorCodec.encode_replicas_set(rss, n_ms, x)
     end
 
     def optimize(num_iterations: 5, population_size: 40)

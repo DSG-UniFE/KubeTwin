@@ -47,12 +47,21 @@ module KUBETWIN
       @sigma_b = Torch.tensor(@weights['sigma_head.bias'], dtype: :float)
     end
 
-    def normalize_rps(rps)
-      rmin = @scaler['rps_min']
-      rmax = @scaler['rps_max']
+    # Pure version of the min-max normalization below, taking the scaler
+    # hash explicitly instead of reading it off an instance. Split out so
+    # it's testable without constructing a real MDN (which requires a real
+    # Torch weights fixture -- see the class-level comment on
+    # .log_normal_mixture_to_linear for why that's expensive to fixture).
+    def self.normalize_rps(rps, scaler)
+      rmin = scaler['rps_min']
+      rmax = scaler['rps_max']
       return 0.0 if (rmax - rmin) < 1e-8
 
       (rps - rmin) / (rmax - rmin)
+    end
+
+    def normalize_rps(rps)
+      self.class.normalize_rps(rps, @scaler)
     end
 
     def relu(x)
@@ -185,19 +194,20 @@ module KUBETWIN
       }
     end
 
-    # Returns parameters ready for GaussianMixtureHelper.RawParametersToMixtureArgs
-    # Converts from log-space (log-normal) to linear-space Gaussian parameters.
-    # Output: flat array [pi0, mean0, std0, pi1, mean1, std1, ...] in seconds.
-    def get_mixture_params_for_helper(rps)
-      params = get_mixture_params_sec(rps)
-      pi = params[:pi]
-      mu_log = params[:mu_log]     # log-seconds
-      sigma_log = params[:sigma_log] # log-seconds std
-
-      # Convert from log-normal parameters to linear Gaussian parameters
-      # For log-normal: if X ~ N(mu, sigma^2), then Y = exp(X) has:
-      #   mean = exp(mu + sigma^2 / 2)
-      #   var  = (exp(sigma^2) - 1) * exp(2*mu + sigma^2)
+    # Converts (pi, mu_log, sigma_log) triples -- log-normal mixture
+    # component weight, log-space mean, and log-space standard deviation --
+    # into the flat [pi0, mean0, std0, pi1, mean1, std1, ...] linear-space
+    # format expected by GaussianMixtureHelper.RawParametersToMixtureArgs.
+    #
+    # For log-normal: if X ~ N(mu, sigma^2), then Y = exp(X) has:
+    #   mean = exp(mu + sigma^2 / 2)
+    #   var  = (exp(sigma^2) - 1) * exp(2*mu + sigma^2)
+    #
+    # Pure math -- no Torch, no instance state -- so it's tested directly
+    # here rather than only indirectly through forward()/get_mixture_params(),
+    # which need a real Torch weights fixture (matching the hardcoded
+    # 1 -> 128 -> 128 -> 128 -> 5 architecture) to exercise at all.
+    def self.log_normal_mixture_to_linear(pi, mu_log, sigma_log)
       result = []
       pi.each_with_index do |w, i|
         mu = mu_log[i]
@@ -211,6 +221,14 @@ module KUBETWIN
         result.concat([w, mean_lin, std_lin])
       end
       result
+    end
+
+    # Returns parameters ready for GaussianMixtureHelper.RawParametersToMixtureArgs
+    # Converts from log-space (log-normal) to linear-space Gaussian parameters.
+    # Output: flat array [pi0, mean0, std0, pi1, mean1, std1, ...] in seconds.
+    def get_mixture_params_for_helper(rps)
+      params = get_mixture_params_sec(rps)
+      self.class.log_normal_mixture_to_linear(params[:pi], params[:mu_log], params[:sigma_log])
     end
   end
 end

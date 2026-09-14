@@ -62,30 +62,17 @@ module KUBETWIN
 
     # ─── Vector encoding / decoding (same as KOptimizerACM2) ───
 
+    # Delegates to KUBETWIN::VectorCodec (shared with the rest of the
+    # KOptimizer* family -- see that module for the full doc comment).
     def encode_replicas_set(x)
-      # Deep copy: @rss values are hashes that must not be mutated
-      rss = @rss.each_with_object({}) { |(k, v), h| h[k] = v.dup }
-      ra = rss.keys.to_a
-      replicas_per_ms = {}
-      (0..(@n_ms - 1)).each do |sj|
-        rss[ra[sj]][:replicas] = x[sj]
-        replicas_per_ms[ra[sj]] = x[sj]
-      end
-      [rss, replicas_per_ms]
+      KUBETWIN::VectorCodec.encode_replicas_set(@rss, @n_ms, x)
     end
 
+    # Delegates to KUBETWIN::VectorCodec (shared with the rest of the
+    # KOptimizer* family -- see that module for the vector layout and full
+    # doc comment).
     def decode_cluster_mapping(vector)
-      replica_counts = vector[0...@n_ms]
-      cluster_section = vector[@n_ms..]
-      replicas_mapping = []
-      (0...@n_ms).each do |ms_idx|
-        n_reps = replica_counts[ms_idx]
-        block_start = ms_idx * @max_replicas
-        n_reps.times do |r|
-          replicas_mapping << cluster_section[block_start + r]
-        end
-      end
-      replicas_mapping
+      KUBETWIN::VectorCodec.decode_cluster_mapping(vector, @n_ms, @max_replicas)
     end
 
     # ─── Real simulation evaluation ───
@@ -292,12 +279,10 @@ module KUBETWIN
     #   [replicas_ms0, replicas_ms1, ..., replicas_msN,
     #    cluster_ms0_r0, ..., cluster_ms0_r(MAX-1),
     #    cluster_ms1_r0, ..., cluster_ms1_r(MAX-1), ...]
+    # Delegates to KUBETWIN::VectorCodec (shared with the rest of the
+    # KOptimizer* family -- see that module for the full doc comment).
     def build_feature_labels
-      labels = @ms_names.map { |name| "replicas_#{name}" }
-      @ms_names.each do |name|
-        @max_replicas.times { |r| labels << "cluster_#{name}_r#{r}" }
-      end
-      labels
+      KUBETWIN::VectorCodec.build_feature_labels(@ms_names, @max_replicas)
     end
 
     # Persist the trained surrogate model, training data, and metadata so that
@@ -330,21 +315,12 @@ module KUBETWIN
 
     # Generate n_candidates vectors near the given vector by small random perturbations.
     # This gives diversity in the validation phase.
+    # Delegates to KUBETWIN::VectorCodec (shared with the rest of the
+    # KOptimizer* family -- see that module for the full doc comment).
     def generate_nearby_candidates(base_vec, n_candidates)
-      mins = @constraints[:min]
-      maxs = @constraints[:max]
-      candidates = []
-
-      n_candidates.times do
-        perturbed = base_vec.each_with_index.map do |val, i|
-          # Perturbation: ±1 or ±2 with clamping to bounds
-          delta = @sampling_rng.rand(-2..2)
-          [[val + delta, mins[i]].max, maxs[i]].min
-        end
-        candidates << perturbed
-      end
-
-      candidates
+      KUBETWIN::VectorCodec.generate_nearby_candidates(
+        base_vec, n_candidates, @constraints[:min], @constraints[:max], @sampling_rng
+      )
     end
   end
 end # module KUBETWIN

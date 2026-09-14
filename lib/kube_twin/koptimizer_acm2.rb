@@ -54,49 +54,17 @@ module KUBETWIN
       @start_time = @sim_conf.start_time
     end
 
-    # Encode the first n_ms elements of x as replica counts into the replica sets hash.
-    # Returns [updated_rss, replicas_per_ms_hash].
+    # Delegates to KUBETWIN::VectorCodec (shared with the rest of the
+    # KOptimizer* family -- see that module for the full doc comment).
     def encode_replicas_set(x)
-      # Deep copy: @rss values are hashes that must not be mutated
-      rss = @rss.each_with_object({}) { |(k, v), h| h[k] = v.dup }
-      ra = rss.keys.to_a
-      replicas_per_ms = {}
-      (0..(@n_ms - 1)).each do |sj|
-        rss[ra[sj]][:replicas] = x[sj]
-        replicas_per_ms[ra[sj]] = x[sj]
-      end
-      [rss, replicas_per_ms]
+      KUBETWIN::VectorCodec.encode_replicas_set(@rss, @n_ms, x)
     end
 
-    # Decode the cluster assignment portion of the vector into a flat replicas_mapping
-    # array indexed by global pod_id.
-    #
-    # The vector layout is:
-    #   [rep_ms0, rep_ms1, ..., rep_msN,          # @n_ms values (1..MAX_REPLICAS)
-    #    c_ms0_r0, c_ms0_r1, ..., c_ms0_r(MAX-1), # MAX_REPLICAS values per MS
-    #    c_ms1_r0, c_ms1_r1, ..., c_ms1_r(MAX-1),
-    #    ...]
-    #
-    # For each microservice i with replica_count[i] replicas, we only take
-    # the first replica_count[i] cluster assignments from its block of MAX_REPLICAS,
-    # and ignore the rest (padding).
-    #
-    # Returns a flat array where index = global pod_id, value = cluster_id.
+    # Delegates to KUBETWIN::VectorCodec (shared with the rest of the
+    # KOptimizer* family -- see that module for the vector layout and full
+    # doc comment).
     def decode_cluster_mapping(vector)
-      replica_counts = vector[0...@n_ms]
-      cluster_section = vector[@n_ms..]
-      replicas_mapping = []
-
-      (0...@n_ms).each do |ms_idx|
-        n_reps = replica_counts[ms_idx]
-        # Each MS has a block of @max_replicas entries in the cluster section
-        block_start = ms_idx * @max_replicas
-        n_reps.times do |r|
-          replicas_mapping << cluster_section[block_start + r]
-        end
-      end
-
-      replicas_mapping
+      KUBETWIN::VectorCodec.decode_cluster_mapping(vector, @n_ms, @max_replicas)
     end
 
     def optimize(num_iterations: 5, population_size: 40)
