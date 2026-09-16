@@ -1373,6 +1373,10 @@ module KUBETWIN
       puts "Weighted sum: #{weighted_sum}"
       # Store multiobjective metrics for external access
       @last_mean_ttr = mean_ttr
+      @last_p50_ttr = stats.p50
+      @last_p90_ttr = stats.p90
+      @last_p95_ttr = stats.p95
+      @last_p99_ttr = stats.p99
       @last_replica_spreading = replica_spreading
       @last_global_cluster_spreading = global_cluster_spreading
       @last_bmap = Marshal.load(Marshal.dump(bmap)) # Deep copy of bmap for external access
@@ -1408,6 +1412,10 @@ module KUBETWIN
       # Return the raw multiobjective metrics (stored by evaluate_allocation)
       {
         mean_ttr: @last_mean_ttr,
+        p50_ttr: @last_p50_ttr,
+        p90_ttr: @last_p90_ttr,
+        p95_ttr: @last_p95_ttr,
+        p99_ttr: @last_p99_ttr,
         # replica_spreading: @last_replica_spreading,
         # global_cluster_spreading: @last_global_cluster_spreading,
         overall_spreading: @last_replica_spreading, # + @last_global_cluster_spreading, # Example of combining spreading metrics
