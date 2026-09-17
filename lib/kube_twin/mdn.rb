@@ -65,11 +65,17 @@ module KUBETWIN
     end
 
     def elu(x)
-      # Simplified ELU for torch-rb.
-      # Using abs as rough approximation (the original has exp branch)
-      # For correctness we should use: max(x, 0) + min(x, 0) * (exp(min(x,0)) - 1) + 1.0001
-      # We keep the +1.0001 offset here and avoid adding it again at call sites.
-      x + 1.0001
+      # Real ELU (alpha=1), matching Python training's
+      # `elu(sigma_head(h)) + 1.0 + SIGMA_MIN` (SIGMA_MIN = 1e-4, see
+      # mdn_service_time_predictor.py). The +1.0001 shift is kept combined
+      # here so call sites don't need to add it separately. A prior linear
+      # stand-in (`x + 1.0001`, no saturation for negative x) let a very
+      # negative raw sigma pre-activation - meant to signal a *tight*,
+      # confident sigma - turn into a large negative "sigma" instead, which
+      # got squared during log-normal -> linear-Gaussian moment matching
+      # (get_mixture_params_for_helper) and blew some mixture components up
+      # to a std of millions of seconds.
+      Torch::NN::Functional.elu(x) + 1.0001
     end
 
     def forward(rps)
