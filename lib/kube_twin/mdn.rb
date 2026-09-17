@@ -15,14 +15,19 @@ module KUBETWIN
     # Conversion factor from log‑microseconds to log‑seconds
     LOG_US_TO_S = Math.log(1e6).freeze
 
-    def initialize(weights_path:, scaler_path:)
+    attr_reader :scaler
+
+    # weights_data, when given, is an already-parsed { 'weights' => ..., 'scaler' => ... }
+    # hash and takes priority over weights_path - used by HurdleMDN to build its two
+    # submodels from sub-hashes of one combined JSON file without touching disk again.
+    def initialize(weights_path: nil, scaler_path: nil, weights_data: nil)
       @weights_path = weights_path
       @scaler_path = scaler_path
-      load_weights
+      load_weights(weights_data)
     end
 
-    def load_weights
-      data = JSON.parse(File.read(@weights_path))
+    def load_weights(preloaded_data = nil)
+      data = preloaded_data || JSON.parse(File.read(@weights_path))
 
       @weights = data['weights']
       @scaler = data['scaler']

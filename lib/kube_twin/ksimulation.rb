@@ -16,6 +16,7 @@ require_relative './kube_dns'
 require_relative './kube_scheduler'
 require_relative './node'
 require_relative './mdn'
+require_relative './hurdle_mdn'
 
 require 'json'
 require 'logger'
@@ -327,10 +328,18 @@ module KUBETWIN
       @microservice_types.each do |k, v|
         next if v[:mdn_file].nil?
 
-        model = KUBETWIN::MDN.new(
-          weights_path: v[:mdn_file],
-          scaler_path: v[:mdn_file]
-        )
+        # Two-stage ("hurdle") weight files carry a top-level "type": "hurdle"
+        # marker; anything else (including every existing single-mixture
+        # weights JSON, e.g. Bookinfo's) is untouched and loads as before.
+        mdn_file_type = JSON.parse(File.read(v[:mdn_file]))['type']
+        model = if mdn_file_type == 'hurdle'
+                  KUBETWIN::HurdleMDN.new(weights_path: v[:mdn_file])
+                else
+                  KUBETWIN::MDN.new(
+                    weights_path: v[:mdn_file],
+                    scaler_path: v[:mdn_file]
+                  )
+                end
         @microservice_mdn[k] = { model: model, st: {} }
       end
 
