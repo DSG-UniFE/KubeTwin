@@ -2,6 +2,7 @@
 
 require 'torch-rb'
 require 'json'
+require_relative './mdn_sampler'
 
 module KUBETWIN
   class MDN
@@ -194,6 +195,14 @@ module KUBETWIN
         mu_log: mu_log_sec,
         sigma_log: params[:sigma_log] # unchanged (scale shift doesn't affect std)
       }
+    end
+
+    # Builds a direct log-space sampler (see MDNSampler) for the given RPS -
+    # the path KSimulation#retrieve_mdn_model now uses instead of moment-
+    # matching to a linear Gaussian mixture.
+    def build_sampler(rps)
+      params = get_mixture_params_sec(rps)
+      MDNSampler.new(pi: params[:pi], mu_log: params[:mu_log], sigma_log: params[:sigma_log])
     end
 
     # Returns parameters ready for GaussianMixtureHelper.RawParametersToMixtureArgs

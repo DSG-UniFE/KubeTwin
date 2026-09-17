@@ -1398,12 +1398,9 @@ module KUBETWIN
       # warn "Called retrieve_mdn_model for service #{service_name} with RPS: #{rps}"
       model = @microservice_mdn[service_name][:model]
 
-      if @microservice_mdn[service_name][:st][rps].nil?
-        params = model.get_mixture_params_for_helper(rps)
-        components = ERV::GaussianMixtureHelper.RawParametersToMixtureArgsFixedWeights(*params)
-        mixture_hash = { distribution: :mixture, args: components }
-        @microservice_mdn[service_name][:st][rps] = ERV::RandomVariable.new(mixture_hash)
-      end
+      # Samples directly in log-space (MDNSampler) rather than moment-matching
+      # to a linear Gaussian mixture - see mdn_sampler.rb for why.
+      @microservice_mdn[service_name][:st][rps] ||= model.build_sampler(rps)
 
       # warn "MDN: loaded model for service #{service_name}: #{@microservice_mdn[service_name][:st]&.length}"
 

@@ -12,9 +12,10 @@ module KUBETWIN
   # Mathematically a hurdle model is just a single Gaussian mixture whose
   # components are the fast submodel's components (weight scaled by
   # 1 - p_slow) concatenated with the slow submodel's components (weight
-  # scaled by p_slow) - so get_mixture_params_for_helper below matches MDN's
-  # own output contract exactly, and KSimulation#retrieve_mdn_model /
-  # Container's sampling path need no changes to support it.
+  # scaled by p_slow) - so build_sampler below matches MDN's own output
+  # contract exactly (an object with #sample), and
+  # KSimulation#retrieve_mdn_model / Container's sampling path need no
+  # changes to support it.
   class HurdleMDN
     def initialize(weights_path:, scaler_path: nil)
       data = JSON.parse(File.read(weights_path))
@@ -38,20 +39,19 @@ module KUBETWIN
       @p_slow_by_level[levels.last]
     end
 
-    # Same output contract as MDN#get_mixture_params_for_helper: flat
-    # [w0, mean0_s, std0, w1, mean1_s, std1, ...] in linear seconds, ready
-    # for GaussianMixtureHelper.RawParametersToMixtureArgsFixedWeights.
-    def get_mixture_params_for_helper(rps)
+    # Same output contract as MDN#build_sampler: an object with #sample,
+    # built by concatenating the fast and slow submodels' own log-space
+    # components with their pi arrays rescaled by (1 - p_slow) / p_slow.
+    def build_sampler(rps)
       p_slow = interp_p_slow(rps)
+      fast = @fast.get_mixture_params_sec(rps)
+      slow = @slow.get_mixture_params_sec(rps)
 
-      scaled_fast = @fast.get_mixture_params_for_helper(rps).each_slice(3).flat_map do |w, m, s|
-        [w * (1.0 - p_slow), m, s]
-      end
-      scaled_slow = @slow.get_mixture_params_for_helper(rps).each_slice(3).flat_map do |w, m, s|
-        [w * p_slow, m, s]
-      end
+      pi = fast[:pi].map { |w| w * (1.0 - p_slow) } + slow[:pi].map { |w| w * p_slow }
+      mu_log = fast[:mu_log] + slow[:mu_log]
+      sigma_log = fast[:sigma_log] + slow[:sigma_log]
 
-      scaled_fast + scaled_slow
+      MDNSampler.new(pi: pi, mu_log: mu_log, sigma_log: sigma_log)
     end
   end
 end
