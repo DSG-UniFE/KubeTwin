@@ -1,0 +1,171 @@
+#!/usr/bin/env ruby
+
+begin
+  require 'kube_twin'
+  require 'kube_twin/evaluation'
+rescue LoadError
+  require 'rubygems'
+  require 'kube_twin'
+  require 'kube_twin/evaluation'
+end
+
+require 'csv'
+require 'logger'
+require 'time'
+
+# Runs examples/bookinfo_with_limits.conf once per RPS level collected in
+# the new Bologna Bookinfo dataset (1/10/20/.../120), overriding
+# request_gen's rate for each run via Configuration#set_rgen, and compares
+# the simulator's TTR distribution (mean/p50/p90/p95/p99) against the real
+# end-to-end productpage response times extracted from Jaeger traces
+# (OPTIMUUM-estensioni/bookinfo_with_limits/bookinfo_e2e_productpage.csv).
+
+def do_abort(message)
+  abort <<~EOS
+    #{message}
+
+    Usage:
+        #{File.basename(__FILE__)} real_e2e_csv [config]
+  EOS
+end
+
+real_csv_path = ARGV[0] || '/Users/filippopoltronieri/Downloads/OPTIMUUM-estensioni/bookinfo_with_limits/bookinfo_e2e_productpage.csv'
+config_path = ARGV[1] || 'examples/bookinfo_with_limits.conf'
+
+do_abort('Invalid real e2e csv path') unless File.exist?(real_csv_path)
+do_abort('Invalid config path') unless File.exist?(config_path)
+
+RPS_LEVELS = [1, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120].freeze
+METRICS = %i[mean p50 p90 p95 p99].freeze
+
+class BookinfoRpsComparison
+  def initialize(real_csv_path:, config_path:)
+    @real_csv_path = real_csv_path
+    @config_path = config_path
+  end
+
+  def run
+    real_stats = load_real_stats
+    comparisons = RPS_LEVELS.filter_map do |rps|
+      next unless real_stats[rps]
+
+      compare_at_rps(rps, real_stats[rps])
+    end
+    write_csv(comparisons)
+    write_report(comparisons)
+  end
+
+  private
+
+  def load_real_stats
+    rows = CSV.read(@real_csv_path, headers: true)
+    by_rps = Hash.new { |h, k| h[k] = [] }
+    rows.each { |r| by_rps[r['nominal_rps'].to_i] << r['e2e_time_us'].to_f / 1000.0 } # -> ms
+
+    by_rps.transform_values do |vals|
+      sorted = vals.sort
+      n = sorted.length
+      {
+        n: n,
+        mean: sorted.sum / n,
+        p50: sorted[(n * 0.50).to_i.clamp(0, n - 1)],
+        p90: sorted[(n * 0.90).to_i.clamp(0, n - 1)],
+        p95: sorted[(n * 0.95).to_i.clamp(0, n - 1)],
+        p99: sorted[(n * 0.99).to_i.clamp(0, n - 1)]
+      }
+    end
+  end
+
+  def compare_at_rps(rps, real)
+    conf = KUBETWIN::Configuration.load_from_file(@config_path)
+    conf.set_rgen(nil, {
+                    1 => {
+                      workflow_types: 1,
+                      starting_time: conf.start_time,
+                      request_distribution: { distribution: :exponential, args: { rate: rps, seed: conf.seed } },
+                      num_requests: 10_000,
+                      num_customers: 1
+                    }
+                  })
+
+    null_logger = Logger.new(File::NULL)
+    sim = KUBETWIN::KSimulation.new(configuration: conf,
+                                    evaluator: KUBETWIN::Evaluator.new(conf),
+                                    logger: null_logger,
+                                    log_level: Logger::FATAL)
+    original_stdout = $stdout
+    $stdout = File.open(File::NULL, 'w')
+    metrics = sim.evaluate_allocation_multiobjective
+    $stdout.close
+    $stdout = original_stdout
+
+    sim_ms = METRICS.to_h { |m| [m, metrics[:"#{m}_ttr"] * 1000.0] }
+
+    result = { rps: rps, real_n: real[:n] }
+    METRICS.each do |m|
+      result[:"real_#{m}"] = real[m]
+      result[:"sim_#{m}"] = sim_ms[m]
+      result[:"delta_#{m}_pct"] = pct_delta(sim_ms[m], real[m])
+    end
+    result
+  end
+
+  def pct_delta(simulated, real)
+    return nil if real.nil? || real.zero?
+
+    ((simulated - real) / real) * 100.0
+  end
+
+  def write_csv(comparisons)
+    path = 'bookinfo_rps_comparison.csv'
+    File.open(path, 'w') do |f|
+      header = %w[rps real_n]
+      METRICS.each { |m| header += ["real_#{m}", "sim_#{m}", "delta_#{m}_pct"] }
+      f.puts header.join(',')
+      comparisons.each do |row|
+        values = [row[:rps], row[:real_n]]
+        METRICS.each { |m| values += [row[:"real_#{m}"], row[:"sim_#{m}"], row[:"delta_#{m}_pct"]] }
+        f.puts values.join(',')
+      end
+    end
+    puts "Wrote #{path}"
+  end
+
+  def write_report(comparisons)
+    path = 'bookinfo_rps_comparison.md'
+    File.open(path, 'w') do |f|
+      f.puts '# Bookinfo (with CPU limits) RPS-level comparison: simulator vs real'
+      f.puts
+      f.puts "Generated at: `#{Time.now.utc.iso8601}`"
+      f.puts
+      f.puts "Config: `#{@config_path}`"
+      f.puts
+      f.puts "Real end-to-end productpage response times from: `#{@real_csv_path}`"
+      f.puts
+      f.puts '| RPS | n (real) | real mean | sim mean | Δ% | real p50 | sim p50 | Δ% | real p90 | sim p90 | Δ% | real p95 | sim p95 | Δ% | real p99 | sim p99 | Δ% |'
+      f.puts '| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |'
+      comparisons.each do |row|
+        cells = [row[:rps], row[:real_n]]
+        METRICS.each { |m| cells += [fmt(row[:"real_#{m}"]), fmt(row[:"sim_#{m}"]), fmt(row[:"delta_#{m}_pct"])] }
+        f.puts "| #{cells.join(' | ')} |"
+      end
+      f.puts
+      f.puts "## Summary (mean |Δ%| across all #{comparisons.length} RPS levels)"
+      f.puts
+      METRICS.each do |m|
+        vals = comparisons.map { |r| r[:"delta_#{m}_pct"] }.compact
+        mae = vals.sum(&:abs) / vals.length
+        f.puts "- #{m.to_s.upcase}: #{mae.round(2)}%"
+      end
+    end
+    puts "Wrote #{path}"
+  end
+
+  def fmt(value)
+    return '-' if value.nil?
+
+    value.round(2)
+  end
+end
+
+BookinfoRpsComparison.new(real_csv_path: real_csv_path, config_path: config_path).run
