@@ -17,6 +17,7 @@ require_relative './kube_scheduler'
 require_relative './node'
 require_relative './mdn'
 require_relative './hurdle_mdn'
+require_relative './lognormal_mdn'
 
 require 'json'
 require 'logger'
@@ -328,12 +329,17 @@ module KUBETWIN
       @microservice_types.each do |k, v|
         next if v[:mdn_file].nil?
 
-        # Two-stage ("hurdle") weight files carry a top-level "type": "hurdle"
-        # marker; anything else (including every existing single-mixture
-        # weights JSON, e.g. Bookinfo's) is untouched and loads as before.
+        # Weight files carry an optional top-level "type" marker: "hurdle"
+        # for the two-stage model, "lognorm_interp" for a per-RPS-level
+        # log-normal fit directly by MLE instead of a neural network.
+        # Anything else (every existing single-mixture weights JSON) is
+        # untouched and loads as before.
         mdn_file_type = JSON.parse(File.read(v[:mdn_file]))['type']
-        model = if mdn_file_type == 'hurdle'
+        model = case mdn_file_type
+                when 'hurdle'
                   KUBETWIN::HurdleMDN.new(weights_path: v[:mdn_file])
+                when 'lognorm_interp'
+                  KUBETWIN::LogNormalMDN.new(weights_path: v[:mdn_file])
                 else
                   KUBETWIN::MDN.new(
                     weights_path: v[:mdn_file],
