@@ -1,0 +1,115 @@
+#!/usr/bin/env ruby
+
+begin
+  require 'kube_twin'
+  require 'kube_twin/evaluation'
+rescue LoadError
+  require 'rubygems'
+  require 'kube_twin'
+  require 'kube_twin/evaluation'
+end
+
+require 'csv'
+require 'logger'
+require 'time'
+
+# Runs examples/ragbench.conf for every scenario and load level found in a
+# ragbench data directory (data/<scenario>/client_<rps>RPS.csv, k6's
+# per-request latencies) and compares KubeTwin's response times
+# (mean/p50/p90/p95/p99) with the measured ones (status 200 only).
+
+def do_abort(message)
+  abort <<~EOS
+    #{message}
+
+    Usage:
+        #{File.basename(__FILE__)} ragbench_data_dir [config] [out_prefix]
+  EOS
+end
+
+data_dir = ARGV[0] || do_abort('Missing ragbench data directory')
+config_path = ARGV[1] || 'examples/ragbench.conf'
+out_prefix = ARGV[2] || 'ragbench_comparison'
+do_abort('Invalid data directory') unless File.directory?(data_dir)
+do_abort('Invalid config path') unless File.exist?(config_path)
+
+SCENARIOS = %w[baseline baseline_repeat llm_3 reranker_3 gateway_6].freeze
+METRICS = %i[mean p50 p90 p95 p99].freeze
+
+def stats(values)
+  sorted = values.sort
+  n = sorted.length
+  pct = ->(q) { sorted[(n * q).to_i.clamp(0, n - 1)] }
+  { n: n, mean: sorted.sum / n, p50: pct.(0.50), p90: pct.(0.90), p95: pct.(0.95), p99: pct.(0.99) }
+end
+
+def real_stats(path)
+  rows = CSV.read(path, headers: true)
+  stats(rows.select { |r| r['status'] == '200' }.map { |r| r['latency_ms'].to_f })
+end
+
+def simulate(config_path, scenario, rps)
+  ENV['RAGBENCH_SCENARIO'] = scenario
+  ENV['RAGBENCH_RPS'] = rps.to_s
+  conf = KUBETWIN::Configuration.load_from_file(config_path)
+  sim = KUBETWIN::KSimulation.new(configuration: conf,
+                                  evaluator: KUBETWIN::Evaluator.new(conf),
+                                  logger: Logger.new(File::NULL),
+                                  log_level: Logger::FATAL)
+  original_stdout = $stdout
+  $stdout = File.open(File::NULL, 'w')
+  metrics = sim.evaluate_allocation_multiobjective
+  $stdout.close
+  $stdout = original_stdout
+  METRICS.to_h { |m| [m, metrics[:"#{m}_ttr"] * 1000.0] }
+end
+
+rows = []
+SCENARIOS.each do |scenario|
+  Dir.glob(File.join(data_dir, scenario, 'client_*RPS.csv'))
+     .map { |p| [File.basename(p)[/client_(\d+)RPS/, 1].to_i, p] }
+     .sort.each do |rps, path|
+    real = real_stats(path)
+    sim = simulate(config_path, scenario, rps)
+    row = { scenario: scenario, rps: rps, real_n: real[:n] }
+    METRICS.each do |m|
+      row[:"real_#{m}"] = real[m]
+      row[:"sim_#{m}"] = sim[m]
+      row[:"delta_#{m}_pct"] = (sim[m] - real[m]) / real[m] * 100.0
+    end
+    rows << row
+    warn format('%-16s %2d RPS  real mean %7.1f  sim %7.1f (%+.1f%%)  real p99 %7.1f  sim %7.1f (%+.1f%%)',
+                scenario, rps, real[:mean], sim[:mean], row[:delta_mean_pct],
+                real[:p99], sim[:p99], row[:delta_p99_pct])
+  end
+end
+
+header = %w[scenario rps real_n] + METRICS.flat_map { |m| ["real_#{m}", "sim_#{m}", "delta_#{m}_pct"] }
+File.open("#{out_prefix}.csv", 'w') do |f|
+  f.puts header.join(',')
+  rows.each { |r| f.puts header.map { |h| r[h.to_sym] }.join(',') }
+end
+
+File.open("#{out_prefix}.md", 'w') do |f|
+  f.puts '# ragbench: KubeTwin vs testbed'
+  f.puts
+  f.puts "Generated at `#{Time.now.utc.iso8601}`, config `#{config_path}`, data `#{data_dir}`."
+  f.puts
+  f.puts '| scenario | RPS | real mean | sim mean | Δ% | real p50 | sim p50 | Δ% | real p90 | sim p90 | Δ% | real p95 | sim p95 | Δ% | real p99 | sim p99 | Δ% |'
+  f.puts '|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|'
+  rows.each do |r|
+    cells = [r[:scenario], r[:rps]] + METRICS.flat_map do |m|
+      [r[:"real_#{m}"].round(1), r[:"sim_#{m}"].round(1), format('%+.1f', r[:"delta_#{m}_pct"])]
+    end
+    f.puts "| #{cells.join(' | ')} |"
+  end
+  f.puts
+  f.puts '## Mean |Δ%| per scenario'
+  f.puts
+  f.puts '| scenario | ' + METRICS.map(&:to_s).join(' | ') + ' |'
+  f.puts '|---|' + METRICS.map { '---:' }.join('|') + '|'
+  rows.group_by { |r| r[:scenario] }.each do |s, rs|
+    f.puts "| #{s} | " + METRICS.map { |m| (rs.sum { |r| r[:"delta_#{m}_pct"].abs } / rs.size).round(1) }.join(' | ') + ' |'
+  end
+end
+puts "Wrote #{out_prefix}.csv and #{out_prefix}.md"
