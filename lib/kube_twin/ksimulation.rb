@@ -870,7 +870,11 @@ module KUBETWIN
             next
           end
 
-          release_container_after_wait(container, e.time)
+          # a step whose nested calls have completed was already released
+          # when the last call returned (see the nested-call branch below);
+          # releasing it again would let a busy container start a second
+          # request beyond max_processes
+          release_container_after_wait(container, e.time) unless current_component_step[:calls]
           # puts "current_component_name #{current_component_name}"
 
           if req.parent_request.nil? && !chain.nil? && !current_component_name.nil? && chain[:component_sequence][0][:name] == current_component_name
