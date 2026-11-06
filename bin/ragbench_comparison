@@ -13,10 +13,14 @@ require 'csv'
 require 'logger'
 require 'time'
 
-# Runs examples/ragbench.conf for every scenario and load level found in a
-# ragbench data directory (data/<scenario>/client_<rps>RPS.csv, k6's
-# per-request latencies) and compares KubeTwin's response times
-# (mean/p50/p90/p95/p99) with the measured ones (status 200 only).
+# Runs a ragbench config (default examples/ragbench.conf) for every scenario
+# and load level found in a ragbench data directory
+# (data/<scenario>/client_<rps>RPS.csv, k6's per-request latencies) and
+# compares KubeTwin's response times (mean/p50/p90/p95/p99) with the
+# measured ones (status 200 only). Each level is simulated RAGBENCH_RUNS
+# times (default 1) with seeds 12345, 12346, ... and the statistics are
+# averaged: pod choice is random, so a single run is noisy under load.
+# RAGBENCH_SCENARIOS (comma-separated) restricts the scenarios.
 
 def do_abort(message)
   abort <<~EOS
@@ -33,7 +37,10 @@ out_prefix = ARGV[2] || 'ragbench_comparison'
 do_abort('Invalid data directory') unless File.directory?(data_dir)
 do_abort('Invalid config path') unless File.exist?(config_path)
 
-SCENARIOS = %w[baseline baseline_repeat llm_3 reranker_3 gateway_6].freeze
+SCENARIOS = (ENV['RAGBENCH_SCENARIOS']&.split(',') ||
+             %w[baseline baseline_repeat llm_3 reranker_3 gateway_6
+                gateway_2 gateway_3 gateway_4_llm_2]).freeze
+RUNS = (ENV['RAGBENCH_RUNS'] || 1).to_i
 METRICS = %i[mean p50 p90 p95 p99].freeze
 
 def stats(values)
@@ -49,8 +56,14 @@ def real_stats(path)
 end
 
 def simulate(config_path, scenario, rps)
+  runs = (0...RUNS).map { |i| simulate_once(config_path, scenario, rps, 12_345 + i) }
+  METRICS.to_h { |m| [m, runs.sum { |r| r[m] } / runs.size] }
+end
+
+def simulate_once(config_path, scenario, rps, seed)
   ENV['RAGBENCH_SCENARIO'] = scenario
   ENV['RAGBENCH_RPS'] = rps.to_s
+  ENV['RAGBENCH_SEED'] = seed.to_s
   conf = KUBETWIN::Configuration.load_from_file(config_path)
   sim = KUBETWIN::KSimulation.new(configuration: conf,
                                   evaluator: KUBETWIN::Evaluator.new(conf),
@@ -93,7 +106,7 @@ end
 File.open("#{out_prefix}.md", 'w') do |f|
   f.puts '# ragbench: KubeTwin vs testbed'
   f.puts
-  f.puts "Generated at `#{Time.now.utc.iso8601}`, config `#{config_path}`, data `#{data_dir}`."
+  f.puts "Generated at `#{Time.now.utc.iso8601}`, config `#{config_path}`, data `#{data_dir}`, #{RUNS} run(s) per level averaged."
   f.puts
   f.puts '| scenario | RPS | real mean | sim mean | Δ% | real p50 | sim p50 | Δ% | real p90 | sim p90 | Δ% | real p95 | sim p95 | Δ% | real p99 | sim p99 | Δ% |'
   f.puts '|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|'
