@@ -6,12 +6,19 @@ module KUBETWIN
   class LatencyManagerFederation
     MIN_LATENCY = 1E-3
 
-    def initialize(latency_models, seed: nil)
+    # intra_cluster: { mean:, sd: } (seconds) of a hop inside a cluster,
+    # jitter_sd: sd (seconds) of the noise added to inter-cluster latencies,
+    # min_latency: floor (seconds) of every sampled latency. Defaults are the
+    # historical values (5 +- 1 ms, 10 ms, 1 ms).
+    def initialize(latency_models, seed: nil, intra_cluster: nil, jitter_sd: nil, min_latency: nil)
       @latency_models = latency_models
+      intra = intra_cluster || {}
+      @min_latency = min_latency || MIN_LATENCY
       @intra_dc_latency = ERV::RandomVariable.new(distribution: :gaussian,
-                                                  args: { mean: 5E-3,
-                                                           sd: 1E-3, seed: seed || 12_345 })
-      @noise = ERV::RandomVariable.new(distribution: :gaussian, args: { mean: 0.0, sd: 10E-3, seed: seed || 12_345 })
+                                                  args: { mean: intra[:mean] || 5E-3,
+                                                           sd: intra[:sd] || 1E-3, seed: seed || 12_345 })
+      @noise = ERV::RandomVariable.new(distribution: :gaussian,
+                                       args: { mean: 0.0, sd: jitter_sd || 10E-3, seed: seed || 12_345 })
     end
 
     def sample_latency_between(loc1, loc2)
@@ -25,7 +32,7 @@ module KUBETWIN
           return lat
         elsif loc1 == loc2
           # return intra-dc latency. Let's approximate it from 1 to 5 ms and convert to seconds
-          while (lat = @intra_dc_latency.next) < MIN_LATENCY; end
+          while (lat = @intra_dc_latency.next) < @min_latency; end
           lat
         end
       end
@@ -34,7 +41,7 @@ module KUBETWIN
         # This is to simulate Liqo connectivity between leaf nodes via the home DC
         # If only a cluster is specified, we still need to return the intra-dc latency
         if loc1 == 0 || loc2 == 0
-          while (lat = @intra_dc_latency.next) < MIN_LATENCY; end
+          while (lat = @intra_dc_latency.next) < @min_latency; end
         else
           src_to_loc1 = @latency_models.find { |model| model[:src] == 0 && model[:dst] == loc1 }
           dst_to_loc2 = @latency_models.find { |model| model[:src] == 0 && model[:dst] == loc2 }
@@ -51,7 +58,7 @@ module KUBETWIN
     private
 
     def clamp_latency(value)
-      [value, MIN_LATENCY].max
+      [value, @min_latency].max
     end
   end
 

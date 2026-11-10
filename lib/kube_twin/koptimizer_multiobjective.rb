@@ -44,6 +44,10 @@ module KUBETWIN
 			[rss, replicas_per_ms]
 		end
 
+		def total_replicas(vector)
+			vector[0...@n_ms].sum
+		end
+
 		# Decode the cluster assignment section into a flat replicas mapping.
 		def decode_cluster_mapping(vector)
 			replica_counts = vector[0...@n_ms]
@@ -71,18 +75,17 @@ module KUBETWIN
 				sim = KUBETWIN::KSimulation.new(configuration: @sim_conf,
 																				evaluator: KUBETWIN::Evaluator.new(@sim_conf))
 
-				# Retrieve both objectives directly from simulation
 				metrics = sim.evaluate_allocation_multiobjective(new_rss, nil, nil, nil, nil, replicas_mapping)
 
-				# Return objectives: mean TTR, per-microservice spreading, and global cluster spreading (all minimized)
-				#[metrics[:mean_ttr], metrics[:replica_spreading], metrics[:global_cluster_spreading]]
-				[metrics[:mean_ttr], metrics[:overall_spreading]]
+				# Objectives, all minimized: mean TTR, replica spreading (normalized
+				# Gini) and total replica count
+				[metrics[:mean_ttr], metrics[:overall_spreading], total_replicas(component_allocation)]
 			end
 
 			# Fixed-size vector: n_ms replica counts + n_ms * MAX_REPLICAS cluster assignments
 			solver_conf = {
 				population_size: population_size || 40,
-				num_objectives: 2,
+				num_objectives: 3,
 				constraints: {
 					min: [@n_clusters] * @n_ms + [0] * (@n_ms * @max_replicas),
 					max: [@max_replicas] * @n_ms + [@n_clusters] * (@n_ms * @max_replicas)
@@ -109,7 +112,7 @@ module KUBETWIN
 			file_path = "pareto_front_#{timestamp}.csv"
 
 			max_variables = pareto_front.map { |entry| entry[:variables].length }.max || 0
-			headers = ['solution_id', 'mean_ttr', 'overall_spreading']
+			headers = ['solution_id', 'mean_ttr', 'overall_spreading', 'total_replicas']
 			headers += (0...max_variables).map { |i| "var_#{i}" }
 
 			CSV.open(file_path, 'w') do |csv|
@@ -117,7 +120,7 @@ module KUBETWIN
 				pareto_front.each_with_index do |entry, index|
 					objectives = entry[:objectives] || []
 					variables = entry[:variables] || []
-					row = [index, objectives[0], objectives[1]]
+					row = [index, objectives[0], objectives[1], objectives[2]]
 					row += variables
 					row += [nil] * (max_variables - variables.length)
 					csv << row
@@ -150,9 +153,8 @@ module KUBETWIN
                 	solution_id: index,
                 	objectives: {
                     	mean_ttr: (entry[:objectives] || [])[0],
-	                    #replica_spreading: (entry[:objectives] || [])[1],
-	                    #global_cluster_spreading: (entry[:objectives] || [])[2]
-						overall_spreading: (entry[:objectives] || [])[1]
+						overall_spreading: (entry[:objectives] || [])[1],
+						total_replicas: (entry[:objectives] || [])[2]
                 	},
                 	microservice_allocation: metrics[:bmap]
             	}
