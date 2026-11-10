@@ -9,7 +9,12 @@ module KUBETWIN
 	class KOptimizerMultiobjective
 		MAX_REPLICAS = 10
 
-		def initialize(configuration_file)
+		# runs: simulations per evaluated allocation, objectives averaged.
+		# seed: base seed of the random choices (pod choice, MDN sampling);
+		# run i uses seed + i, the same for every allocation (common random
+		# numbers). Defaults to the configuration's seeds[:random_choices];
+		# without either, every simulation draws different numbers.
+		def initialize(configuration_file, runs: 1, seed: nil)
 			time = Time.now.strftime('%Y%m%d%H%M%S')
 			ga_log = "KT_optimizer_moo_log_#{time}.log"
 
@@ -27,6 +32,20 @@ module KUBETWIN
 			@cluster_repository = KUBETWIN::KSimulation.create_cluster_configuration(@sim_conf)
 			@n_clusters = @cluster_repository.length
 			@max_replicas = MAX_REPLICAS
+			@runs = runs
+			@seed = seed || @sim_conf.seeds[:random_choices]
+		end
+
+		# Simulates an allocation @runs times; mean_ttr averaged, the rest
+		# (spreading, bmap) from the first run: they depend on the placement only.
+		def simulate(rss, replicas_mapping)
+			metrics = (0...@runs).map do |i|
+				sim = KUBETWIN::KSimulation.new(configuration: @sim_conf,
+				                                evaluator: KUBETWIN::Evaluator.new(@sim_conf),
+				                                random_seed: @seed && @seed + i)
+				sim.evaluate_allocation_multiobjective(rss, nil, nil, nil, nil, replicas_mapping)
+			end
+			metrics.first.merge(mean_ttr: metrics.sum { |m| m[:mean_ttr] } / metrics.size)
 		end
 
 		# Encode the first n_ms elements of x as replica counts into replica sets.
@@ -72,10 +91,7 @@ module KUBETWIN
 				new_rss, = encode_replicas_set(component_allocation[0...@n_ms])
 				replicas_mapping = decode_cluster_mapping(component_allocation)
 
-				sim = KUBETWIN::KSimulation.new(configuration: @sim_conf,
-																				evaluator: KUBETWIN::Evaluator.new(@sim_conf))
-
-				metrics = sim.evaluate_allocation_multiobjective(new_rss, nil, nil, nil, nil, replicas_mapping)
+				metrics = simulate(new_rss, replicas_mapping)
 
 				# Objectives, all minimized: mean TTR, replica spreading (normalized
 				# Gini) and total replica count
@@ -84,7 +100,7 @@ module KUBETWIN
 
 			# Fixed-size vector: n_ms replica counts + n_ms * MAX_REPLICAS cluster assignments
 			solver_conf = {
-				population_size: population_size || 40,
+				population_size: population_size,
 				num_objectives: 3,
 				constraints: {
 					min: [@n_clusters] * @n_ms + [0] * (@n_ms * @max_replicas),
@@ -140,14 +156,7 @@ module KUBETWIN
             	new_rss, = encode_replicas_set(component_allocation[0...@n_ms])
             	replicas_mapping = decode_cluster_mapping(component_allocation)
 
-            	sim = KUBETWIN::KSimulation.new(
-                	configuration: @sim_conf,
-                	evaluator: KUBETWIN::Evaluator.new(@sim_conf)
-           	 	)
-
-            	metrics = sim.evaluate_allocation_multiobjective(
-                	new_rss, nil, nil, nil, nil, replicas_mapping
-            	)
+            	metrics = simulate(new_rss, replicas_mapping)
 
             	{
                 	solution_id: index,

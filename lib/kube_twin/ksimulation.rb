@@ -45,6 +45,9 @@ module KUBETWIN
       @logger = opts[:logger] || Logger.new(STDOUT)
       @logger.level = opts[:log_level] || Logger::INFO
       @trace_requests = ENV['KUBETWIN_TRACE_REQUESTS'] == '1'
+      # seed of Ruby's global RNG for one evaluation (see evaluate_allocation);
+      # overrides the configuration's seeds[:random_choices]
+      @random_seed = opts[:random_seed]
     end
 
     def new_event(type, data, time, destination)
@@ -190,6 +193,13 @@ module KUBETWIN
       else
         Random.new
       end
+
+      # Pod choice (Service#get_random_pod) and MDN sampling (MDNSampler) draw
+      # from Ruby's global RNG. Seeding it makes an evaluation repeatable, so
+      # an optimizer compares allocations under the same random numbers.
+      # Opt-in: without seeds[:random_choices] (or random_seed:) runs differ.
+      random_seed = @random_seed || @configuration.seeds[:random_choices]
+      srand(random_seed) if random_seed
 
       # mapping is the mapping of microservices to clusters
       @mapping ||= mapping

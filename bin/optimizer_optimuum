@@ -9,13 +9,22 @@ rescue LoadError
   require 'kube_twin'
   require 'mhl'
 end
+require 'optparse'
+
+options = { generations: 10, population: 40, runs: 1, seed: nil }
+OptionParser.new do |o|
+  o.on('--generations N', Integer, 'NSGA-II generations (default 10)') { |v| options[:generations] = v }
+  o.on('--population N', Integer, 'population size (default 40)') { |v| options[:population] = v }
+  o.on('--runs N', Integer, 'simulations per allocation, averaged (default 1)') { |v| options[:runs] = v }
+  o.on('--seed N', Integer, "base seed of pod choice and MDN sampling (default: the config's seeds[:random_choices])") { |v| options[:seed] = v }
+end.parse!
 
 def do_abort(message)
   abort <<-EOS.gsub(/^\s+\|/, '')
       |#{message}
       |
       |Usage:
-      |    #{File.basename(__FILE__)} simulator_config_file#{' '}
+      |    #{File.basename(__FILE__)} simulator_config_file [--generations N] [--population N] [--runs N] [--seed N]
       |
   EOS
 end
@@ -33,7 +42,7 @@ end
 
 # This one instead takes decision per replica, not per microservice type
 #koptim = KUBETWIN::KOptimizerACM2.new(ARGV[0])
-koptim = KUBETWIN::KOptimizerMultiobjective.new(ARGV[0])
-koptim.optimize
+koptim = KUBETWIN::KOptimizerMultiobjective.new(ARGV[0], runs: options[:runs], seed: options[:seed])
+koptim.optimize(num_iterations: options[:generations], population_size: options[:population])
 
 exit 0
