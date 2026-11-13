@@ -25,7 +25,7 @@ describe KUBETWIN::VectorCodec do
 
       _(rss[:productpage][:replicas]).must_equal 3
       _(rss[:reviews][:replicas]).must_equal 5
-      _(replicas_per_ms).must_equal(productpage: 3, reviews: 5)
+      _(replicas_per_ms).must_equal({productpage: 3, reviews: 5})
     end
 
     it "ignores any elements of x beyond n_ms" do

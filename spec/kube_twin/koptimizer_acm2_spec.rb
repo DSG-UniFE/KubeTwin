@@ -28,7 +28,7 @@ describe KUBETWIN::KOptimizerACM2 do
 
     _(rss[:a][:replicas]).must_equal 3
     _(rss[:b][:replicas]).must_equal 7
-    _(replicas_per_ms).must_equal(a: 3, b: 7)
+    _(replicas_per_ms).must_equal({a: 3, b: 7})
   end
 
   it "delegates decode_cluster_mapping to KUBETWIN::VectorCodec using @n_ms and @max_replicas" do

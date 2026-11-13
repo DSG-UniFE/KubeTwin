@@ -21,7 +21,7 @@ describe KUBETWIN::HorizontalPodAutoscaler do
       hpa = build_hpa
       decision = hpa.decide_scaling(5, 1.0, 1.0) # ratio 1.0
 
-      _(decision).must_equal(action: :none, to_scale: 0, target_replicas: 5)
+      _(decision).must_equal({action: :none, to_scale: 0, target_replicas: 5})
     end
 
     it "treats the tolerance range as inclusive at both boundaries (0.90 and 1.10)" do
@@ -35,7 +35,7 @@ describe KUBETWIN::HorizontalPodAutoscaler do
       hpa = build_hpa(max_replicas: 10)
       decision = hpa.decide_scaling(5, 1.11, 1.0) # ratio 1.11 -> ceil(5 * 1.11) = 6
 
-      _(decision).must_equal(action: :scale_up, to_scale: 1, target_replicas: 6)
+      _(decision).must_equal({action: :scale_up, to_scale: 1, target_replicas: 6})
     end
 
     it "clamps the number of pods created at max_replicas, but NOT the recorded target_replicas" do
@@ -57,7 +57,7 @@ describe KUBETWIN::HorizontalPodAutoscaler do
       hpa = build_hpa(min_replicas: 2)
       decision = hpa.decide_scaling(5, 0.5, 1.0) # ratio 0.5 -> ceil(5 * 0.5) = 3
 
-      _(decision).must_equal(action: :scale_down, to_scale: 2, target_replicas: 3)
+      _(decision).must_equal({action: :scale_down, to_scale: 2, target_replicas: 3})
     end
 
     it "does NOT scale down when the desired count lands exactly on min_replicas" do
@@ -68,7 +68,7 @@ describe KUBETWIN::HorizontalPodAutoscaler do
       hpa = build_hpa(min_replicas: 2)
       decision = hpa.decide_scaling(5, 0.4, 1.0) # ratio 0.4 -> ceil(5 * 0.4) = 2 == min_replicas
 
-      _(decision).must_equal(action: :none, to_scale: 0, target_replicas: 5)
+      _(decision).must_equal({action: :none, to_scale: 0, target_replicas: 5})
     end
 
     it "does NOT scale down (or clamp to min_replicas) when the desired count is below min_replicas either" do
@@ -79,7 +79,7 @@ describe KUBETWIN::HorizontalPodAutoscaler do
       hpa = build_hpa(min_replicas: 2)
       decision = hpa.decide_scaling(5, 0.1, 1.0) # ratio 0.1 -> ceil(5 * 0.1) = 1 < min_replicas
 
-      _(decision).must_equal(action: :none, to_scale: 0, target_replicas: 5)
+      _(decision).must_equal({action: :none, to_scale: 0, target_replicas: 5})
     end
 
     it "accepts a custom tolerance_range" do

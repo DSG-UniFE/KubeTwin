@@ -17,7 +17,7 @@ describe KUBETWIN::KOptimizerACM do
 
     _(result_rss[:a][:replicas]).must_equal 4
     _(result_rss[:b][:replicas]).must_equal 6
-    _(result_map).must_equal(a: 4, b: 6)
+    _(result_map).must_equal({a: 4, b: 6})
     # regression check: the caller's rss must be left untouched
     _(rss[:a][:replicas]).must_equal 1
     _(rss[:b][:replicas]).must_equal 1

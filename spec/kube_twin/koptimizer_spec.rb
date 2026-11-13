@@ -19,7 +19,7 @@ describe KUBETWIN::KOptimizer do
 
     _(result_rss[:a][:replicas]).must_equal 4
     _(result_rss[:b][:replicas]).must_equal 6
-    _(result_map).must_equal(a: 4, b: 6)
+    _(result_map).must_equal({a: 4, b: 6})
     # original rss untouched (VectorCodec deep-copies)
     _(rss[:a][:replicas]).must_equal 1
   end
