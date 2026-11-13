@@ -41,29 +41,27 @@ jobs:
       # extension against -- see README.md's "Installing torch-rb
       # (LibTorch)" section for the same steps done here.
       #
-      # Version note: torch-rb 0.26.0 (what Gemfile.lock actually pins)
-      # needs LibTorch 2.14.x per torch-rb's own compatibility table --
-      # this is newer than the 2.13.0 the README currently documents,
-      # which is a stale doc (flagged on the roadmap), not a choice made
-      # here. The download URL below was confirmed to actually resolve
+      # Version note: torch-rb 0.27.x (pinned in the Gemfile) needs
+      # LibTorch 2.15.x per torch-rb's own compatibility table; bump both
+      # together. The download URL below was confirmed to actually resolve
       # (200 + a multi-hundred-MB zip, not a 404) when this workflow was
       # written; if torch-rb's pinned version changes, this needs
       # updating to match torch-rb's compatibility table, and the new URL
       # re-verified the same way -- PyTorch has changed this filename
       # scheme before (older LibTorch releases used a separate
-      # "libtorch-cxx11-abi-shared-with-deps-*" filename; 2.14.0 does not).
+      # "libtorch-cxx11-abi-shared-with-deps-*" filename; 2.14.0 and later do not).
       - name: Cache LibTorch
         id: libtorch-cache
         uses: actions/cache@v4
         with:
           path: ~/libtorch
-          key: libtorch-2.14.0-cpu-linux-x86_64
+          key: libtorch-2.15.0-cpu-linux-x86_64
 
       - name: Download LibTorch (CPU, Linux x86_64)
         if: steps.libtorch-cache.outputs.cache-hit != 'true'
         run: |
           curl -fsSL -o /tmp/libtorch.zip \
-            "https://download.pytorch.org/libtorch/cpu/libtorch-shared-with-deps-2.14.0%2Bcpu.zip"
+            "https://download.pytorch.org/libtorch/cpu/libtorch-shared-with-deps-2.15.0%2Bcpu.zip"
           unzip -q /tmp/libtorch.zip -d "$HOME"
           rm /tmp/libtorch.zip
 
