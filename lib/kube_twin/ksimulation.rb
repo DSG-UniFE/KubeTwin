@@ -12,6 +12,11 @@ module KUBETWIN
     attr_reader :start_time, :cluster_repository
 
     DEFAULT_NUM_REQS = 5000
+
+    # Seed for the simulation's own random choices (load balancing, which
+    # pods an autoscaler samples or removes) when the configuration sets
+    # neither seeds[:next_component_selection] nor seed.
+    DEFAULT_SEED = 12_345
     CONNECT_TIME = 0.00148205
     DEFAULT_CPU_PER_NODE = 4000.0 # in mCPU
     SEED = 123
@@ -157,12 +162,11 @@ module KUBETWIN
     def evaluate_allocation(rss = nil, css = nil, mtt = nil, lm = nil, mapping = nil, replicas_mapping = nil)
       # seeds
       latency_seed = @configuration.seeds[:communication_latencies]
-      @configuration.seeds[:service_times]
-      if @configuration.seeds[:next_component_selection]
-        Random.new(@configuration.seeds[:next_component_selection])
-      else
-        Random.new
-      end
+      # Every random choice the simulation makes itself draws from @rng, so
+      # a configuration always produces the same results. (These choices
+      # used to draw from Ruby's global generator, unseeded, so results
+      # differed on every run.)
+      @rng = Random.new(@configuration.seeds[:next_component_selection] || @configuration.seed || DEFAULT_SEED)
 
       # mapping is the mapping of microservices to clusters
       @mapping ||= mapping
@@ -503,7 +507,7 @@ module KUBETWIN
       # we could use a repository here
       # dry could be very useful in here...
       css.each do |k, conf|
-        @services[k] = Service.new(k, conf[:selector])
+        @services[k] = Service.new(k, conf[:selector], random: @rng)
         # need to register this service into kube_dns
         @kube_dns.registerService(@services[k])
       end
@@ -1005,7 +1009,7 @@ module KUBETWIN
 
           # improve this initialization
           # right now it is terrible (okay for MVP)
-          service_time_rv = s.pods[s.selector].sample.container.service_time
+          service_time_rv = s.pods[s.selector].sample(random: @rng).container.service_time
 
           # The desired/current metric math itself now lives in
           # HorizontalPodAutoscaler#desired_metric / #average_processing_metric
@@ -1081,7 +1085,7 @@ module KUBETWIN
             # NOTE: unlike scale_up, nothing here updates the replica_set's
             # recorded replica count -- the original code never did on this
             # path either.
-            ppl = s.pods[hpa.name].sample(decision[:to_scale])
+            ppl = s.pods[hpa.name].sample(decision[:to_scale], random: @rng)
             ppl.each do |p|
               p.deactivate_pod
               s.delete_pod(s.selector, p)

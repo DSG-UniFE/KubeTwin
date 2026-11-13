@@ -15,9 +15,12 @@ module KUBETWIN
 
     SEED = 45_678
 
-    def initialize(service_name, selector, load_balancing = :random)
+    # @param random [Random, nil] the generator :random load balancing
+    #   draws from; nil means Ruby's global generator.
+    def initialize(service_name, selector, load_balancing = :random, random: nil)
       @service_name = service_name
       @selector = selector
+      @random = random
       @pods = {}
       # round robin pod selector
       @rri = 0
@@ -37,7 +40,7 @@ module KUBETWIN
 
     def get_pod(label)
       if @load_balancing == :random
-        pod = get_random_pod(label)
+        pod = get_random_pod(label, random: @random)
       elsif (pod = get_pod_rr(label))
         # this is for round robin
       end
