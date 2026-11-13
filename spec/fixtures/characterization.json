@@ -1,0 +1,106 @@
+{
+  "parallel-working-test": {
+    "result": -0.0603842323476618,
+    "mean_ttr": 0.0603842323476618,
+    "replica_spreading": 0.0,
+    "allocation": {
+      "productpage": {
+        "europe-cloud-control-plane": 2
+      },
+      "reviews": {
+        "europe-cloud-control-plane": 2
+      },
+      "ratings": {
+        "europe-cloud-control-plane": 2
+      },
+      "details": {
+        "europe-cloud-control-plane": 2
+      }
+    },
+    "events": {
+      "0": 141,
+      "1": 141,
+      "2": 387,
+      "3": 444,
+      "4": 110,
+      "100": 1
+    },
+    "completions": 220,
+    "completions_digest": "55ee0d03a70a0552afe60fe58eda3994b083a4ff274481df1f4f78dcc1e3e4b7"
+  },
+  "example-hpa": {
+    "result": -11.350521366462482,
+    "mean_ttr": 0.0816407620504738,
+    "replica_spreading": 0.92,
+    "allocation": {
+      "MS1": {
+        "eu-south-1 - Local DC": 10,
+        "eu-central-1 Tier 1 Regional Edge": 40,
+        "eu-west-3 Tier 1": 0,
+        "eu-west-2 Tier 2": 0,
+        "eu-north-1 - Tier 2": 0,
+        "ca-central-1 - Remote DC": 0,
+        "us-east-1 - Remote DC": 0
+      },
+      "MS2": {
+        "eu-south-1 - Local DC": 20,
+        "eu-central-1 Tier 1 Regional Edge": 7,
+        "eu-west-3 Tier 1": 0,
+        "eu-west-2 Tier 2": 0,
+        "eu-north-1 - Tier 2": 0,
+        "ca-central-1 - Remote DC": 0,
+        "us-east-1 - Remote DC": 0
+      }
+    },
+    "events": {
+      "0": 45195,
+      "1": 45195,
+      "2": 88348,
+      "3": 88348,
+      "4": 44174,
+      "5": 24,
+      "6": 179,
+      "100": 1
+    },
+    "completions": 88348,
+    "completions_digest": "a08d9d2b9da2f2ea76bbd24c9e78fc374e7b908a6e51fb31d84cdac648d512a1"
+  },
+  "bookinfo-3c-xr": {
+    "result": -7.618624678721101,
+    "mean_ttr": 0.09974895551002652,
+    "replica_spreading": 0.75,
+    "allocation": {
+      "productpage": {
+        "cluster1": 1,
+        "cluster2edge": 0,
+        "cluster3edge": 0
+      },
+      "reviews": {
+        "cluster1": 3,
+        "cluster2edge": 0,
+        "cluster3edge": 0
+      },
+      "ratings": {
+        "cluster1": 3,
+        "cluster2edge": 0,
+        "cluster3edge": 0
+      },
+      "details": {
+        "cluster1": 3,
+        "cluster2edge": 0,
+        "cluster3edge": 0
+      }
+    },
+    "events": {
+      "0": 10000,
+      "1": 10000,
+      "2": 38764,
+      "3": 58146,
+      "4": 9691,
+      "6": 99979,
+      "100": 1
+    },
+    "completions": 19382,
+    "completions_digest": "06d1de50baa19e57bcfe0b0cb3d44dd78ffd5c6fa003f20b113da154b42e1036"
+  }
+}

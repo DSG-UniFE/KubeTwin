@@ -1,0 +1,16 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# Regenerates spec/fixtures/characterization.json, the expected fingerprints
+# checked by spec/kube_twin/characterization_spec.rb. Run it only after an
+# intended behaviour change, and review the fixture's diff before committing.
+$LOAD_PATH.unshift File.expand_path("../lib", __dir__)
+$LOAD_PATH.unshift File.expand_path("../spec", __dir__)
+require "characterization_helper"
+
+fingerprints = Characterization::EXAMPLES.to_h do |example|
+  warn "recording #{example}..."
+  [example, Characterization.fingerprint(example)]
+end
+File.write(Characterization::FIXTURE, JSON.pretty_generate(fingerprints) + "\n")
+warn "wrote #{Characterization::FIXTURE}"
