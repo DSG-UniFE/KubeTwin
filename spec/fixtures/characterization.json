@@ -1,7 +1,7 @@
 {
   "parallel-working-test": {
-    "result": -0.0603842323476618,
-    "mean_ttr": 0.0603842323476618,
+    "result": -0.06058764240958476,
+    "mean_ttr": 0.06058764240958476,
     "replica_spreading": 0.0,
     "allocation": {
       "productpage": {
@@ -26,12 +26,12 @@
       "100": 1
     },
     "completions": 220,
-    "completions_digest": "55ee0d03a70a0552afe60fe58eda3994b083a4ff274481df1f4f78dcc1e3e4b7"
+    "completions_digest": "19fe82ffc8d3a218a8c78d1bed682999a1f18f05cf048c6cee1524da2cd969f2"
   },
   "example-hpa": {
-    "result": -11.350521366462482,
-    "mean_ttr": 0.0816407620504738,
-    "replica_spreading": 0.92,
+    "result": -11.593413429398165,
+    "mean_ttr": 0.08078082852478483,
+    "replica_spreading": 0.93,
     "allocation": {
       "MS1": {
         "eu-south-1 - Local DC": 10,
@@ -44,7 +44,7 @@
       },
       "MS2": {
         "eu-south-1 - Local DC": 20,
-        "eu-central-1 Tier 1 Regional Edge": 7,
+        "eu-central-1 Tier 1 Regional Edge": 5,
         "eu-west-3 Tier 1": 0,
         "eu-west-2 Tier 2": 0,
         "eu-north-1 - Tier 2": 0,
@@ -55,19 +55,19 @@
     "events": {
       "0": 45195,
       "1": 45195,
-      "2": 88348,
-      "3": 88348,
-      "4": 44174,
+      "2": 88352,
+      "3": 88352,
+      "4": 44176,
       "5": 24,
       "6": 179,
       "100": 1
     },
-    "completions": 88348,
-    "completions_digest": "a08d9d2b9da2f2ea76bbd24c9e78fc374e7b908a6e51fb31d84cdac648d512a1"
+    "completions": 88352,
+    "completions_digest": "53e3317edcb378da7b8d3d313a1839cd81da5b12a9de7ca18e6098521018e624"
   },
   "bookinfo-3c-xr": {
-    "result": -7.618624678721101,
-    "mean_ttr": 0.09974895551002652,
+    "result": -7.459391976446256,
+    "mean_ttr": 0.10193742892405368,
     "replica_spreading": 0.75,
     "allocation": {
       "productpage": {
@@ -101,6 +101,6 @@
       "100": 1
     },
     "completions": 19382,
-    "completions_digest": "06d1de50baa19e57bcfe0b0cb3d44dd78ffd5c6fa003f20b113da154b42e1036"
+    "completions_digest": "34ae9642946cb1007450ac9bdd9211fb8289286360ab7cc66d556027290ceca0"
   }
 }

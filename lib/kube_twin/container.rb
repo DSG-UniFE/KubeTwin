@@ -69,7 +69,13 @@ module KUBETWIN
       @rps = opts[:img_info][:rps].to_i
       @use_configured_rps = opts[:img_info][:use_configured_rps] == true
       @rps_correction_factor = opts[:img_info][:rps_correction_factor]&.to_f || 1.0
-      @service_time = ERV::RandomVariable.new(st_distribution) if @path.nil?
+      if @path.nil?
+        @service_time = if opts[:stream_seeds]
+          IndependentStreams.distribution(st_distribution, opts[:stream_seeds])
+        else
+          ERV::RandomVariable.new(st_distribution)
+        end
+      end
       @arrival_times = []
       @arrival_window_head = 0
       @arrival_retention_head = 0

@@ -17,6 +17,10 @@ module KUBETWIN
     # pods an autoscaler samples or removes) when the configuration sets
     # neither seeds[:next_component_selection] nor seed.
     DEFAULT_SEED = 12_345
+
+    # Mixed into the base seed to seed the service-time stream generator,
+    # when the configuration sets no seeds[:service_times].
+    STREAM_SEED_SALT = 0x5EED_CAFE
     CONNECT_TIME = 0.00148205
     DEFAULT_CPU_PER_NODE = 4000.0 # in mCPU
     SEED = 123
@@ -166,7 +170,12 @@ module KUBETWIN
       # a configuration always produces the same results. (These choices
       # used to draw from Ruby's global generator, unseeded, so results
       # differed on every run.)
-      @rng = Random.new(@configuration.seeds[:next_component_selection] || @configuration.seed || DEFAULT_SEED)
+      base_seed = @configuration.seeds[:next_component_selection] || @configuration.seed || DEFAULT_SEED
+      @rng = Random.new(base_seed)
+      # Seeds for the service-time distributions: each pod, and each MDN
+      # distribution, gets its own random stream (see IndependentStreams).
+      # A separate generator keeps them independent of @rng's draws.
+      @stream_seeds = Random.new(@configuration.seeds[:service_times] || (base_seed ^ STREAM_SEED_SALT))
 
       # mapping is the mapping of microservices to clusters
       @mapping ||= mapping
@@ -561,7 +570,7 @@ module KUBETWIN
           # we can retrieve also the service_time_distribution
           # depending on its cluster type
 
-          pod = Pod.new(pod_id, "#{selector}_#{pod_id}", node, selector, sct)
+          pod = Pod.new(pod_id, "#{selector}_#{pod_id}", node, selector, sct, stream_seeds: @stream_seeds)
           pod.startUpPod
 
           # assign resources for the pod
@@ -1072,7 +1081,7 @@ module KUBETWIN
 
               break if node.nil? # check here --- what happens if no nodes are available
 
-              pod = Pod.new(pod_id, "#{selector}_#{pod_id}", node, selector, sct)
+              pod = Pod.new(pod_id, "#{selector}_#{pod_id}", node, selector, sct, stream_seeds: @stream_seeds)
               pod.startUpPod
               # assign resources for the pod
               node.assign_resources(pod, reqs_c, reqs_m)
@@ -1354,7 +1363,7 @@ module KUBETWIN
         params = model.get_mixture_params_for_helper(rps)
         components = ERV::GaussianMixtureHelper.RawParametersToMixtureArgsFixedWeights(*params)
         mixture_hash = {distribution: :mixture, args: components}
-        @microservice_mdn[service_name][:st][rps] = ERV::RandomVariable.new(mixture_hash)
+        @microservice_mdn[service_name][:st][rps] = IndependentStreams.distribution(mixture_hash, @stream_seeds)
       end
 
       # warn "MDN: loaded model for service #{service_name}: #{@microservice_mdn[service_name][:st]&.length}"

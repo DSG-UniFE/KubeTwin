@@ -15,7 +15,10 @@ module KUBETWIN
     # here fix it
     # instead of nodeIP we could use a nodeID
     # pod name could not be important
-    def initialize(pod_id, pod_name, node, label, image_info)
+    # @param stream_seeds [Random, nil] gives this pod's service times their
+    #   own random stream (see IndependentStreams); nil keeps the configured
+    #   distribution's own seed.
+    def initialize(pod_id, pod_name, node, label, image_info, stream_seeds: nil)
       @pod_id = pod_id
       @pod_name = pod_name
       @node = node
@@ -23,7 +26,8 @@ module KUBETWIN
       @node_affinity = image_info[:node_affinity].nil? ? nil : image_info[:node_affinity]
 
       @container = Container.new(0, 1, image_info[:service_time_distribution][node.type],
-        {blocking: image_info[:blocking], node: @node, label: label, img_info: image_info, max_processes: image_info[:max_processes]})
+        {blocking: image_info[:blocking], node: @node, label: label, img_info: image_info, max_processes: image_info[:max_processes],
+         stream_seeds: stream_seeds})
 
       # image_info[:blocking]) #, opts[:port]) # @containers = {}
       # startup the container here -- we just need a MVP for now
