@@ -31,6 +31,10 @@ module KUBETWIN
 
     attr_accessor :arrival_at_container, :chain_entering_time
 
+    # Where the request came from (a customer's location, or an external
+    # workload's), so the response goes back there.
+    attr_accessor :origin_location_id
+
     # the data_center_id attribute is updated as requests move from a Cloud
     # data center to another
     attr_accessor :data_center_id

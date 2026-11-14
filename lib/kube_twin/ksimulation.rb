@@ -54,6 +54,11 @@ module KUBETWIN
       @route_retry_interval = opts[:route_retry_interval] || 1.0
       # Federation policies (see #build_federation_policies), or nil.
       @federation_option = opts[:federation]
+      # An external workload (see #schedule_workload), or something that
+      # builds one when called, so each run starts afresh; nil for none.
+      @workload_option = opts[:workload]
+      @workload_interval = opts[:workload_interval] || 1.0
+      @workload_customer = opts[:workload_customer]
     end
 
     def new_event(type, data, time, destination)
@@ -396,7 +401,7 @@ module KUBETWIN
 
     # Read-only after setup, or not copyable: a fork shares these with its
     # parent instead of copying them.
-    FORK_SHARED = %i[@configuration @evaluator @logger @network_option].freeze
+    FORK_SHARED = %i[@configuration @evaluator @logger @network_option @workload_option].freeze
 
     # An independent copy of this simulation in its current state, random
     # generators included: given the same actions, it runs the same future
@@ -688,6 +693,7 @@ module KUBETWIN
       build_network
       schedule_failures
       build_federation_policies
+      schedule_workload
       nil
     end
 
@@ -1222,7 +1228,9 @@ module KUBETWIN
       Event::ET_NODES_DOWN => :handle_nodes_down,
       Event::ET_NODES_UP => :handle_nodes_up,
       Event::ET_SHARED_COMPLETION => :handle_shared_completion,
-      Event::ET_FEDERATION_RECONCILE => :handle_federation_reconcile
+      Event::ET_FEDERATION_RECONCILE => :handle_federation_reconcile,
+      Event::ET_WORKLOAD_PULL => :handle_workload_pull,
+      Event::ET_EXTERNAL_REQUEST => :handle_external_request
     }.freeze
 
     def process_event(e)
@@ -1295,13 +1303,13 @@ module KUBETWIN
     # Sends a new request to its first component: from the customer's
     # location to a pod of that service. With no pod ready, tries again
     # later.
-    def route_new_request(req_attrs, customer_location_id, first_component_name)
+    def route_new_request(req_attrs, customer_location_id, first_component_name, bytes = nil)
       initial_route = @request_forwarder.route(first_component_name, customer_location_id, @messaging, @current_time,
-        bytes: request_bytes(req_attrs[:workflow_type_id]))
+        bytes: bytes || request_bytes(req_attrs[:workflow_type_id]))
       if initial_route.nil?
         raise "No service for component #{first_component_name}" unless @kube_dns.lookup(first_component_name)
 
-        new_event(Event::ET_NEW_REQUEST_RETRY, [req_attrs, customer_location_id, first_component_name],
+        new_event(Event::ET_NEW_REQUEST_RETRY, [req_attrs, customer_location_id, first_component_name, bytes],
           @current_time + @route_retry_interval, nil)
         return
       end
@@ -1316,9 +1324,46 @@ module KUBETWIN
       # generate the request here
       new_req = Request.new(**req_attrs.merge!(initial_data_center_id: cluster_id,
         arrival_time: arrival_time))
+      new_req.origin_location_id = customer_location_id
 
       # schedule arrival of current request
       new_event(Event::ET_REQUEST_ARRIVAL, [new_req, pod], arrival_time, nil)
+    end
+
+    # An external workload (any Continuum::WorkloadSource: #arrivals(from:,
+    # to:) returning objects with #time, #location, #workflow, #bytes) adds
+    # requests beside the configured generators: each arrival becomes a
+    # request of its workflow from its location (a location id the network
+    # knows), its bytes the first message's size; the response goes back to
+    # that location. The workload is asked for one workload_interval at a
+    # time, in seconds since the simulation's start, until the cool-down.
+    # Its requests count in the statistics of workload_customer (by default
+    # the first configured customer).
+    def schedule_workload
+      return unless @workload_option
+
+      @workload = @workload_option.respond_to?(:call) ? @workload_option.call : @workload_option
+      @workload_customer ||= @customer_repository.keys.first
+      @external_requests = 0
+      new_event(Event::ET_WORKLOAD_PULL, nil, @current_time, nil)
+    end
+
+    def handle_workload_pull(_e)
+      from = @current_time - @start_time
+      @workload.arrivals(from:, to: from + @workload_interval).each do |arrival|
+        new_event(Event::ET_EXTERNAL_REQUEST, arrival, @start_time + arrival.time, nil)
+      end
+      next_pull = @current_time + @workload_interval
+      new_event(Event::ET_WORKLOAD_PULL, nil, next_pull, nil) if next_pull < @cooldown_threshold
+    end
+
+    def handle_external_request(e)
+      arrival = e.data
+      workflow = @workflow_type_repository.fetch(arrival.workflow) { raise ArgumentError, "unknown workflow #{arrival.workflow.inspect}" }
+      @external_requests += 1
+      req_attrs = {rid: "x#{@external_requests}", generation_time: @current_time, workflow_type_id: arrival.workflow,
+                   customer_id: @workload_customer}
+      route_new_request(req_attrs, arrival.location, workflow[:component_sequence][0][:name], arrival.bytes)
     end
 
     def handle_new_request_retry(e)
@@ -1530,7 +1575,7 @@ module KUBETWIN
         # calculate transmission time
         # the response travels from the data center back to the customer
         transmission_time = @messaging.message_delay(@cluster_repository[req.data_center_id].location_id,
-          @customer_repository.dig(req.customer_id, :location_id), time: e.time,
+          req.origin_location_id || @customer_repository.dig(req.customer_id, :location_id), time: e.time,
           bytes: response_bytes(req.workflow_type_id))
 
         raise "Negative transmission time (#{transmission_time})!" unless transmission_time >= 0.0

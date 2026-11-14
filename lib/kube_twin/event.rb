@@ -25,6 +25,8 @@ module KUBETWIN
     ET_NODES_UP = 18 # failed nodes come back
     ET_SHARED_COMPLETION = 19 # a request on a shared CPU may have finished
     ET_FEDERATION_RECONCILE = 20 # the federation sets replicas per cluster from its policies
+    ET_WORKLOAD_PULL = 21 # ask the external workload for its next arrivals
+    ET_EXTERNAL_REQUEST = 22 # a request from the external workload arrives
     ET_END_OF_SIMULATION = 100
 
     # let the comparable mixin provide the < and > operators for us
