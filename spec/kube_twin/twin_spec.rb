@@ -143,6 +143,104 @@ describe KUBETWIN::Twin do
     end
   end
 
+  describe "#observe" do
+    def bookinfo
+      KUBETWIN::Configuration.load_from_file(File.join(Characterization::ROOT, "examples", "bookinfo-3c-xr.conf"))
+    end
+
+    def features(entities, key = :id)
+      entities.to_h { |e| [e[key], e[:features]] }
+    end
+
+    it "covers every cluster, cluster pair, service in each cluster, and workflow, with zero rates after reset" do
+      twin = KUBETWIN::Twin.new(configuration)
+
+      in_scratch_directory do
+        twin.reset
+        o = twin.observe
+        _(o.keys).must_equal %i[time locations links placements workflows global]
+        _(o[:time]).must_equal 0.0
+        _(o[:locations].map { |l| l[:id] }).must_equal [:"europe-cloud-control-plane"]
+        _(o[:links]).must_equal []
+        _(o[:placements].map { |p| p[:service] }.sort).must_equal %w[details productpage ratings reviews]
+        _(o[:workflows].map { |w| w[:id] }).must_equal configuration.workflow_types.keys
+        _(o[:placements].sum { |p| p[:features][:arrival_rate] }).must_equal 0.0
+        _(o[:workflows].sum { |w| w[:features][:completed] }).must_equal 0
+        _(o[:global]).must_equal({time: 0.0, cost: 0.0})
+      end
+    end
+
+    it "summarizes the last step" do
+      twin = KUBETWIN::Twin.new(configuration, decision_interval: 10.0, slos: {1 => 0.0})
+
+      in_scratch_directory do
+        twin.reset
+        twin.step([KUBETWIN::Twin::ScaleReplicas.new(service: "reviews", cluster: "europe-cloud-control-plane", replicas: 3)])
+        o = twin.observe
+        _(o[:time]).must_equal 10.0
+
+        placements = features(o[:placements], :service)
+        _(placements["reviews"][:replicas_ready]).must_equal 3
+        _(placements["productpage"][:arrival_rate]).must_be :>, 0
+        _(placements["productpage"][:service_time_mean]).must_be :>, 0
+
+        location = o[:locations].first[:features]
+        # Eight initial pods plus one more reviews pod.
+        _(location[:cpu_requested]).must_equal 2 * 200 + 3 * 400 + 2 * 200 + 2 * 200.0
+        _(location[:cpu_utilization]).must_be :>, 0
+        _(location[:cpu_utilization]).must_be :<=, 1
+
+        workflows = features(o[:workflows])
+        workflows.each_value do |w|
+          _(w[:completed]).must_be :>, 0
+          _(w[:response_p50]).must_be :<=, w[:response_p95]
+        end
+        _(workflows[1][:slo_violation_rate]).must_equal 1.0
+        _(workflows[2][:slo_violation_rate]).must_equal 0.0
+
+        # One node at 0.100 per hour, for 10 seconds.
+        _(o[:global][:cost]).must_be_within_epsilon 0.1 * 10 / 3600, 1e-12
+
+        twin.step
+        _(twin.observe[:time]).must_equal 20.0
+        _(features(twin.observe[:workflows])[1][:completed]).wont_equal workflows[1][:completed]
+      end
+    end
+
+    it "reports latencies on the links messages cross" do
+      twin = KUBETWIN::Twin.new(bookinfo, decision_interval: 10.0)
+
+      in_scratch_directory do
+        twin.reset
+        twin.step
+        _(features(twin.observe[:links]).values.map { |l| l[:latency_mean] }.uniq).must_equal [0.0]
+
+        # Move reviews from cluster1 to cluster2edge: productpage (cluster1)
+        # now calls across the link.
+        twin.step([
+          KUBETWIN::Twin::ScaleReplicas.new(service: "reviews", cluster: "cluster2edge", replicas: 2),
+          KUBETWIN::Twin::ScaleReplicas.new(service: "reviews", cluster: "cluster1", replicas: 0)
+        ])
+        _(twin.last_rejected).must_equal []
+        link = features(twin.observe[:links])[[:cluster1, :cluster2edge]]
+        _(link[:latency_mean]).must_be :>, 0
+        _(link[:latency_p95]).must_be :>=, link[:latency_mean] * 0.5
+        _(features(twin.observe[:links])[[:cluster1, :cluster3edge]][:latency_mean]).must_equal 0.0
+      end
+    end
+
+    it "is reproducible" do
+      observations = 2.times.map do
+        twin = KUBETWIN::Twin.new(bookinfo, decision_interval: 10.0)
+        in_scratch_directory do
+          twin.reset
+          3.times.map { twin.step && twin.observe }
+        end
+      end
+      _(observations[0]).must_equal observations[1]
+    end
+  end
+
   it "needs a reset before stepping, and a positive decision interval" do
     _ { KUBETWIN::Twin.new(configuration).step }.must_raise RuntimeError
     _ { KUBETWIN::Twin.new(configuration, decision_interval: 0) }.must_raise ArgumentError

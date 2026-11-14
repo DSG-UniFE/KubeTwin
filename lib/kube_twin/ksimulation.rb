@@ -37,6 +37,9 @@ module KUBETWIN
       @logger = opts[:logger] || Logger.new($stdout)
       @logger.level = opts[:log_level] || Logger::INFO
       @trace_requests = ENV["KUBETWIN_TRACE_REQUESTS"] == "1"
+      # Whether to collect per-step statistics for #observation (Twin turns
+      # this on; a plain evaluate_allocation run doesn't need them).
+      @observe = opts[:observe] == true
     end
 
     def new_event(type, data, time, destination)
@@ -83,6 +86,7 @@ module KUBETWIN
 
       req.update_transfer_time(route.transmission_time)
       req.data_center_id = route.cluster.cluster_id
+      @step_observer&.link_latency(source_cluster.cluster_id, route.cluster.cluster_id, route.transmission_time)
       trace_request(req, "forward #{source_cluster.name}->#{route.cluster.name} to #{component_name}, latency=#{format("%.6f", route.transmission_time)}, event_time=#{format("%.6f", route.forwarding_time)}")
       route.pod.container.to_free(waiting_container) if waiting_container && !waiting_container.wait_for.empty?
       @forwarded += 1
@@ -115,6 +119,8 @@ module KUBETWIN
       return [0.0, nil] if resolution.nil?
 
       parent_req.update_transfer_time(resolution.latency)
+      @step_observer&.link_latency(resolution.child_cluster.cluster_id, resolution.parent_cluster.cluster_id,
+        resolution.latency)
       parent_req.data_center_id = resolution.parent_cluster.cluster_id
       trace_request(parent_req, "return #{resolution.child_cluster.name}->#{resolution.parent_cluster.name} from #{child_req.branch_name}, latency=#{format("%.6f", resolution.latency)}")
       [resolution.latency, resolution.parent_cluster]
@@ -258,7 +264,113 @@ module KUBETWIN
       nil
     end
 
+    # A snapshot of the simulation summarizing the last `duration` simulated
+    # seconds (everything since the previous call), shaped like
+    # continuum-twin's Continuum::Observation: {time:, locations:, links:,
+    # placements:, workflows:, global:}, each entity a Hash with its id and
+    # a :features Hash (units as in Continuum::Observation::UNITS).
+    #
+    # Locations are clusters; links are every pair of distinct clusters;
+    # placements are every (service, cluster) pair; workflows are the
+    # configured workflow types. The sets don't change during a run.
+    # `time` is reported as given; `slos` maps workflow ids to response
+    # time objectives in ms (workflows without one report a violation
+    # rate of 0).
+    #
+    # Not modelled by KubeTwin, so reported as constants: up (1), energy,
+    # loss_rate, bandwidth_capacity, bandwidth_utilization,
+    # replicas_starting and dropped (0). A link no message crossed in the
+    # window repeats its last latencies (0 before the first message).
+    #
+    # Needs the simulation created with `observe: true` (Twin does so).
+    def observation(duration, time:, slos: {})
+      raise "create the simulation with observe: true to observe it" unless @step_observer
+
+      window = @step_observer.snapshot
+      counters = window[:placements]
+      @last_link_latencies ||= {}
+      rate = ->(count) { duration.positive? ? count / duration.to_f : 0.0 }
+
+      locations = @cluster_repository.map do |key, cluster|
+        nodes = cluster.nodes.values
+        cpu_capacity = nodes.sum(&:resources_cpu).to_f
+        busy_cpu = counters.sum { |(service, cid), c| (cid == key) ? c.service_time * cpu_per_process(service) : 0.0 }
+        utilization = (duration.positive? && cpu_capacity.positive?) ? [busy_cpu / (cpu_capacity * duration), 1.0].min : 0.0
+        {id: key, kind: (cluster.type == :cloud) ? :cloud : :edge,
+         features: {up: 1.0, cpu_capacity:, cpu_requested: nodes.sum { |n| n.requested_resources[:cpu] }.to_f,
+                    memory_capacity: nodes.sum(&:resources_memory).to_f,
+                    memory_requested: nodes.sum { |n| n.requested_resources[:memory] }.to_f,
+                    cpu_utilization: utilization, energy: 0.0}}
+      end
+
+      links = @cluster_repository.keys.combination(2).map do |a, b|
+        id = StepObserver.link_id(a, b)
+        samples = window[:link_latencies][id]
+        if samples&.any?
+          @last_link_latencies[id] = [mean(samples) * 1000.0, percentile(samples, 0.95) * 1000.0]
+        end
+        latency_mean, latency_p95 = @last_link_latencies[id] || [0.0, 0.0]
+        {id:, features: {up: 1.0, latency_mean:, latency_p95:, loss_rate: 0.0, bandwidth_capacity: 0.0,
+                         bandwidth_utilization: 0.0}}
+      end
+
+      placements = @services.values.flat_map do |service|
+        @cluster_repository.keys.map do |key|
+          c = counters[[service.selector, key]] || StepObserver::PlacementCounters.new
+          {service: service.service_name, location: key,
+           features: {replicas_ready: pods_in_cluster(service, key).length, replicas_starting: 0,
+                      queue_length_mean: rate.call(c.queue_time),
+                      arrival_rate: rate.call(c.arrivals),
+                      service_time_mean: c.started.positive? ? c.service_time / c.started * 1000.0 : 0.0}}
+        end
+      end
+
+      workflows = @workflow_type_repository.keys.map do |id|
+        responses = window[:workflow_responses].fetch(id, []).map { |r| r * 1000.0 }
+        slo = slos[id]
+        violations = (slo && responses.any?) ? responses.count { |r| r > slo } / responses.size.to_f : 0.0
+        {id:, features: {arrival_rate: rate.call(window[:workflow_arrivals][id]), completed: responses.size,
+                         dropped: 0, response_p50: percentile(responses, 0.5), response_p95: percentile(responses, 0.95),
+                         slo_violation_rate: violations}}
+      end
+
+      {time:, locations:, links:, placements:, workflows:, global: {time:, cost: cost_over(duration)}}
+    end
+
     private
+
+    # The CPU (millicores) one busy process of `service` uses: its pod's
+    # request shared among the pod's concurrent processes.
+    def cpu_per_process(service)
+      sct = @microservice_types[service]
+      processes = sct[:max_processes] || 1
+      processes = 1 unless processes.is_a?(Numeric) && processes.finite? && processes.positive?
+      sct[:resources_requirements_cpu].to_f / processes
+    end
+
+    # What the nodes now running pods cost over `duration` seconds, at
+    # their cluster's hourly price (the rule wind_down's daily cost uses).
+    def cost_over(duration)
+      @cluster_repository.values.sum do |cluster|
+        busy_nodes = cluster.nodes.values.count { |n| n.pod_id_list.any? }
+        (cluster.fixed_hourly_cost_cpu || 0.100) * busy_nodes * duration / 3600.0
+      end
+    end
+
+    def mean(values)
+      values.sum / values.size.to_f
+    end
+
+    # Linear interpolation between the closest ranks; 0 for no values.
+    def percentile(values, q)
+      return 0.0 if values.empty?
+
+      sorted = values.sort
+      rank = q * (sorted.size - 1)
+      lower = sorted[rank.floor]
+      upper = sorted[rank.ceil]
+      lower + (upper - lower) * (rank - rank.floor)
+    end
 
     def find_service(name)
       @services[name] || @services.find { |k, _| k.to_s == name.to_s }&.last
@@ -294,11 +406,21 @@ module KUBETWIN
         .select { |n| n.available_resources_cpu >= cpu && n.available_resources_memory >= mem }
         .min_by { |n| n.pod_id_list.length }
 
+      launch_pod(service, node)
+    end
+
+    # Creates and starts a pod of `service` on `node`, reserving its
+    # resources and registering it with the service.
+    def launch_pod(service, node)
+      selector = service.selector
+      sct = @microservice_types[selector]
       pod = Pod.new(@next_pod_id, "#{selector}_#{@next_pod_id}", node, selector, sct, stream_seeds: @stream_seeds)
+      pod.container.placement_counters = @step_observer&.placement(selector, node.cluster_id)
       pod.startUpPod
-      node.assign_resources(pod, cpu, mem)
+      node.assign_resources(pod, sct[:resources_requirements_cpu], sct[:resources_requirements_memory])
       service.assignPod(pod)
       @next_pod_id += 1
+      pod
     end
 
     # Builds the simulated world: clusters, nodes, latency model, MDN models,
@@ -324,6 +446,7 @@ module KUBETWIN
 
       # setup simulation start and current time
       @current_time = @start_time = @configuration.start_time
+      @step_observer = StepObserver.new if @observe
 
       build_clusters
       build_latency_manager(lm)
@@ -747,17 +870,7 @@ module KUBETWIN
           # we can retrieve also the service_time_distribution
           # depending on its cluster type
 
-          pod = Pod.new(@next_pod_id, "#{selector}_#{@next_pod_id}", node, selector, sct, stream_seeds: @stream_seeds)
-          pod.startUpPod
-
-          # assign resources for the pod
-          node.assign_resources(pod, reqs_c, reqs_m)
-          # get the service here and assign the pod to the service
-          # convert string to sym
-          # we could also assing the service to the replica set
-          s = @services[selector]
-          s.assignPod(pod)
-          @next_pod_id += 1
+          launch_pod(@services[selector], node)
         end
         # return a penalty if no pods were created for rs
         @logger.debug "{selector} Pods Created: #{pods_created}/#{pods_tbc}"
@@ -953,6 +1066,7 @@ module KUBETWIN
     def handle_request_arrival(e)
       # get request
       req, pod = e.data
+      @step_observer&.workflow_arrival(req.workflow_type_id)
 
       # do not consider warmup here
       if req.arrival_time > @warmup_threshold && req.arrival_time < @cooldown_threshold
@@ -1171,6 +1285,7 @@ module KUBETWIN
 
       # request is closed
       req.finished_processing(e.time)
+      @step_observer&.workflow_completion(req.workflow_type_id, req.ttr(@current_time))
       trace_request(req, "request closed; total_ttr=#{format("%.6f", req.ttr(@current_time))}")
       # puts "#{req.arrival_time} #{now}"
       if now >= @configuration.end_time
@@ -1267,12 +1382,7 @@ module KUBETWIN
 
           break if node.nil? # check here --- what happens if no nodes are available
 
-          pod = Pod.new(@next_pod_id, "#{selector}_#{@next_pod_id}", node, selector, sct, stream_seeds: @stream_seeds)
-          pod.startUpPod
-          # assign resources for the pod
-          node.assign_resources(pod, reqs_c, reqs_m)
-          s.assignPod(pod)
-          @next_pod_id += 1
+          launch_pod(s, node)
         end
       when :scale_down
         # we need to select some pods to terminate

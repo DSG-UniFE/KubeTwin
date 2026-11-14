@@ -33,6 +33,10 @@ module KUBETWIN
       :active_processes,
       :max_concurrent_processes_used # endCode = 0 if all operations successfull, 0 if there's any kind of error
 
+    # Where this container reports arrivals and service starts for per-step
+    # observations (a StepObserver::PlacementCounters), or nil.
+    attr_accessor :placement_counters
+
     Guaranteed = Struct.new(:cpu, :memory)
     Limits = Struct.new(:cpu, :memory)
 
@@ -150,6 +154,8 @@ module KUBETWIN
       # improve this code in the future
       r.arrival_at_container = time
 
+      @placement_counters&.request_arrived
+
       # Track arrival time for RPS calculation
       @arrival_times << time
 
@@ -248,6 +254,7 @@ module KUBETWIN
 
       # update container-based metric here
       @total_queue_time += time - ri.arrival_time
+      @placement_counters&.request_started(time - ri.arrival_time, ri.service_time)
       # raise "We are looking at two different times" if req.queuing_time != (time - ri.arrival_time)
       @total_queue_processing_time += ri.service_time + (time - ri.arrival_time)
       # schedule completion of workflow step
