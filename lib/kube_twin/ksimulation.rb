@@ -496,6 +496,7 @@ module KUBETWIN
         slo = slos[id]
         violations = (slo && responses.any?) ? responses.count { |r| r > slo } / responses.size.to_f : 0.0
         {id:, features: {arrival_rate: rate.call(window[:workflow_arrivals][id]), completed: responses.size,
+                         response_mean: responses.empty? ? 0.0 : responses.sum / responses.size,
                          dropped: 0, response_p50: percentile(responses, 0.5), response_p95: percentile(responses, 0.95),
                          slo_violation_rate: violations}}
       end

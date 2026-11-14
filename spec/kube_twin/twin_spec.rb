@@ -406,6 +406,21 @@ describe KUBETWIN::Twin do
     end
   end
 
+  it "places initial pods in the clusters a replicas mapping names" do
+    config = KUBETWIN::Configuration.load_from_file(File.join(Characterization::ROOT, "examples", "bookinfo-3c-xr.conf"))
+    # replica sets in order: productpage 1, reviews 3, ratings 3, details 3; clusters 0, 1, 2
+    mapping = [0, 1, 1, 2, 0, 0, 0, 2, 2, 2]
+    twin = KUBETWIN::Twin.new(config, replicas_mapping: mapping)
+
+    in_scratch_directory do
+      twin.reset
+      clusters = %w[cluster1 cluster2edge cluster3edge]
+      _(clusters.map { |c| twin.replicas("reviews", c) }).must_equal [0, 2, 1]
+      _(clusters.map { |c| twin.replicas("details", c) }).must_equal [0, 0, 3]
+      _(twin.observe[:workflows].first[:features].key?(:response_mean)).must_equal true
+    end
+  end
+
   it "needs a reset before stepping, and a positive decision interval" do
     _ { KUBETWIN::Twin.new(configuration).step }.must_raise RuntimeError
     _ { KUBETWIN::Twin.new(configuration, decision_interval: 0) }.must_raise ArgumentError

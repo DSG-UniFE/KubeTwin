@@ -55,9 +55,11 @@ module KUBETWIN
     # #reset; Messaging's {timeout:, max_attempts:}); failures: failure
     # processes (see KSimulation#schedule_failures); federation: policies
     # (see KSimulation#build_federation_policies); workload: an external
-    # workload source, or a builder of one (see KSimulation#schedule_workload).
+    # workload source, or a builder of one (see KSimulation#schedule_workload);
+    # replicas_mapping: with a federation configuration, the cluster index
+    # (position in its resources) of each initial pod, in replica-set order.
     def initialize(configuration, decision_interval: DEFAULT_DECISION_INTERVAL, logger: Logger.new(File::NULL),
-      slos: {}, network: nil, retransmission: {}, failures: nil, federation: nil, workload: nil)
+      slos: {}, network: nil, retransmission: {}, failures: nil, federation: nil, workload: nil, replicas_mapping: nil)
       raise ArgumentError, "decision_interval must be positive" unless decision_interval.positive?
 
       @configuration = configuration
@@ -69,6 +71,7 @@ module KUBETWIN
       @failures = failures
       @federation = federation
       @workload = workload
+      @replicas_mapping = replicas_mapping
       @last_rejected = []
     end
 
@@ -78,7 +81,7 @@ module KUBETWIN
       @simulation = KSimulation.new(configuration: @configuration, evaluator: Evaluator.new(@configuration),
         logger: @logger, observe: true, network: @network, retransmission: @retransmission, failures: @failures,
         federation: @federation, workload: @workload)
-      raise UnfeasibleAllocation, "the initial pods can't all be placed" if @simulation.reset
+      raise UnfeasibleAllocation, "the initial pods can't all be placed" if @simulation.reset(nil, nil, nil, nil, nil, @replicas_mapping)
 
       @origin = @simulation.warmup_threshold
       @simulation.run_until(@origin)
