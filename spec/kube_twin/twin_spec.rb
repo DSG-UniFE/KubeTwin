@@ -8,9 +8,13 @@ describe KUBETWIN::Twin do
     KUBETWIN::Configuration.load_from_file(File.join(Characterization::ROOT, "examples", "parallel-working-test.conf"))
   end
 
-  # The run's wind-down writes final_allocation.* into the current directory.
+  # The run's wind-down writes final_allocation.* into the current
+  # directory, and MDN examples load ./mdn_models/.
   def in_scratch_directory(&block)
-    Dir.mktmpdir { |dir| Dir.chdir(dir) { Characterization.quietly(&block) } }
+    Dir.mktmpdir do |dir|
+      File.symlink(File.join(Characterization::ROOT, "mdn_models"), File.join(dir, "mdn_models"))
+      Dir.chdir(dir) { Characterization.quietly(&block) }
+    end
   end
 
   it "starts at time 0 after the warm-up and advances one decision interval per step" do
@@ -46,6 +50,96 @@ describe KUBETWIN::Twin do
 
       _(twin.result).must_be_within_epsilon Characterization.fingerprint("parallel-working-test")["result"], 1e-12
       _(twin.result).must_equal twin.result
+    end
+  end
+
+  describe "ScaleReplicas" do
+    def scale(service, replicas, cluster: "europe-cloud-control-plane")
+      KUBETWIN::Twin::ScaleReplicas.new(service:, cluster:, replicas:)
+    end
+
+    it "scales a service up and down at the start of a step" do
+      twin = KUBETWIN::Twin.new(configuration, decision_interval: 5.0)
+
+      in_scratch_directory do
+        twin.reset
+        _(twin.replicas("reviews", "europe-cloud-control-plane")).must_equal 2
+
+        twin.step([scale("reviews", 5)])
+        _(twin.last_rejected).must_equal []
+        _(twin.replicas("reviews", "europe-cloud-control-plane")).must_equal 5
+        _(twin.simulation.instance_variable_get(:@replica_sets)["reviews-app"].replicas).must_equal 5
+
+        twin.step([scale("reviews", 1)])
+        _(twin.replicas("reviews", "europe-cloud-control-plane")).must_equal 1
+
+        twin.step until twin.done?
+        _(twin.result).must_be_kind_of Float
+      end
+    end
+
+    it "frees the resources of the pods it removes" do
+      twin = KUBETWIN::Twin.new(configuration, decision_interval: 5.0)
+
+      in_scratch_directory do
+        twin.reset
+        node = twin.simulation.instance_variable_get(:@cluster_repository).values.first.nodes.values.first
+        free_cpu = node.available_resources_cpu
+
+        twin.step([scale("reviews", 6)])
+        _(node.available_resources_cpu).must_equal free_cpu - 4 * 400
+        twin.step([scale("reviews", 2)])
+        _(node.available_resources_cpu).must_equal free_cpu
+      end
+    end
+
+    it "rejects actions it can't apply, and changes nothing for them" do
+      twin = KUBETWIN::Twin.new(configuration, decision_interval: 5.0)
+
+      in_scratch_directory do
+        twin.reset
+        # One 8000 mCPU node; the eight initial pods take 2000, so at most
+        # 15 more reviews pods (400 mCPU each) fit.
+        actions = [
+          scale("nonexistent", 1),
+          scale("reviews", 1, cluster: "nowhere"),
+          scale("reviews", -1),
+          scale("reviews", 2.5),
+          scale("ratings", 0),
+          scale("reviews", 18),
+          scale("reviews", 17)
+        ]
+        _(actions.map { |a| twin.feasible?(a) }).must_equal [false, false, false, false, false, false, true]
+
+        twin.step(actions)
+        _(twin.last_rejected.map(&:last)).must_equal %i[unknown_service unknown_cluster invalid_replicas
+          invalid_replicas no_replicas_left insufficient_resources]
+        _(twin.last_rejected.map(&:first)).must_equal actions[0..5]
+        _(twin.replicas("ratings", "europe-cloud-control-plane")).must_equal 2
+        _(twin.replicas("reviews", "europe-cloud-control-plane")).must_equal 17
+
+        twin.step
+        _(twin.last_rejected).must_equal []
+        _(twin.feasible?(scale("productpage", 3))).must_equal false
+        _(twin.feasible?(:not_an_action)).must_equal false
+      end
+    end
+
+    it "scales only the pods in the given cluster" do
+      config = KUBETWIN::Configuration.load_from_file(File.join(Characterization::ROOT, "examples", "bookinfo-3c-xr.conf"))
+      twin = KUBETWIN::Twin.new(config, decision_interval: 5.0)
+
+      in_scratch_directory do
+        twin.reset
+        clusters = %w[cluster1 cluster2edge cluster3edge]
+        before = clusters.map { |c| twin.replicas("reviews", c) }
+
+        twin.step([scale("reviews", before[1] + 2, cluster: "cluster2edge")])
+        _(twin.last_rejected).must_equal []
+        _(clusters.map { |c| twin.replicas("reviews", c) }).must_equal [before[0], before[1] + 2, before[2]]
+        pods = twin.simulation.instance_variable_get(:@services)["reviews"].pods["reviews"]
+        _(pods.count { |p| p.node.cluster_id == :cluster2edge }).must_equal before[1] + 2
+      end
     end
   end
 

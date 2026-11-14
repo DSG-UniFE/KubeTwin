@@ -11,16 +11,29 @@ module KUBETWIN
   #   twin.step until twin.done? # advance one decision interval at a time
   #   twin.result                # what evaluate_allocation would return
   #
+  # A step can carry actions, applied at its start:
+  #
+  #   twin.step([KUBETWIN::Twin::ScaleReplicas.new(service: "reviews", cluster: "rome", replicas: 3)])
+  #   twin.last_rejected         # => [] or [[action, reason], ...]
+  #
   # Time is measured in simulated seconds from the end of the warm-up.
-  # Running a configuration to the end in steps gives exactly the results
-  # of KSimulation#evaluate_allocation.
+  # Running a configuration to the end in steps without actions gives
+  # exactly the results of KSimulation#evaluate_allocation.
   class Twin
     DEFAULT_DECISION_INTERVAL = 30.0
 
     # Raised by #reset when the initial pods can't all be placed.
     class UnfeasibleAllocation < StandardError; end
 
+    # Run `replicas` pods of `service` in `cluster` (names as in the
+    # configuration).
+    ScaleReplicas = Data.define(:service, :cluster, :replicas)
+
     attr_reader :configuration, :decision_interval, :simulation
+
+    # The actions the last #step rejected, as [action, reason] pairs (see
+    # KSimulation#scale_replicas_rejection for the reasons).
+    attr_reader :last_rejected
 
     def initialize(configuration, decision_interval: DEFAULT_DECISION_INTERVAL, logger: Logger.new(File::NULL))
       raise ArgumentError, "decision_interval must be positive" unless decision_interval.positive?
@@ -28,6 +41,7 @@ module KUBETWIN
       @configuration = configuration
       @decision_interval = decision_interval.to_f
       @logger = logger
+      @last_rejected = []
     end
 
     # Builds a fresh simulated world from the configuration and runs the
@@ -41,21 +55,40 @@ module KUBETWIN
       @simulation.run_until(@origin)
       @elapsed = 0.0
       @result = nil
+      @last_rejected = []
       now
     end
 
-    # Advances `duration` simulated seconds (by default one decision
-    # interval; it must be a positive multiple of it). Returns #now.
-    def step(duration: @decision_interval)
+    # Applies `actions` in order (an action that can't be applied is skipped
+    # and recorded in #last_rejected), then advances `duration` simulated
+    # seconds (by default one decision interval; it must be a positive
+    # multiple of it). Returns #now.
+    def step(actions = [], duration: @decision_interval)
       ensure_reset!
       intervals = duration / @decision_interval
       unless duration.positive? && (intervals - intervals.round).abs < 1e-9
         raise ArgumentError, "duration must be a positive multiple of the decision interval (#{@decision_interval} s)"
       end
 
+      @last_rejected = actions.filter_map do |action|
+        reason = apply(action)
+        [action, reason] if reason
+      end
       @elapsed += duration
       @simulation.run_until(@origin + @elapsed)
       now
+    end
+
+    # Whether `action` could be applied now.
+    def feasible?(action)
+      ensure_reset!
+      rejection(action).nil?
+    end
+
+    # How many pods of `service` run in `cluster` now.
+    def replicas(service, cluster)
+      ensure_reset!
+      @simulation.replicas(service, cluster)
     end
 
     # Simulated seconds since the end of the warm-up.
@@ -82,6 +115,20 @@ module KUBETWIN
 
     def ensure_reset!
       raise "call #reset first" unless @simulation
+    end
+
+    def apply(action)
+      case action
+      when ScaleReplicas then @simulation.scale_replicas(action.service, action.cluster, action.replicas)
+      else :unknown_action
+      end
+    end
+
+    def rejection(action)
+      case action
+      when ScaleReplicas then @simulation.scale_replicas_rejection(action.service, action.cluster, action.replicas)
+      else :unknown_action
+      end
     end
   end
 end

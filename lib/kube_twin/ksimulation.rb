@@ -202,7 +202,104 @@ module KUBETWIN
     # the same units as #now).
     attr_reader :warmup_threshold, :cooldown_threshold
 
+    # How many pods of `service` run in `cluster` (both as named in the
+    # configuration).
+    def replicas(service, cluster)
+      s = find_service(service) or raise ArgumentError, "unknown service #{service.inspect}"
+      cluster_key = find_cluster_key(cluster) or raise ArgumentError, "unknown cluster #{cluster.inspect}"
+
+      pods_in_cluster(s, cluster_key).length
+    end
+
+    # Why setting `service`'s pods in `cluster` to `count` would be
+    # rejected, or nil when it can be applied: :unknown_service,
+    # :unknown_cluster, :invalid_replicas (not a non-negative integer),
+    # :no_replicas_left (the service would have no pods anywhere) or
+    # :insufficient_resources (the cluster's nodes can't host the new pods).
+    def scale_replicas_rejection(service, cluster, count)
+      s = find_service(service)
+      return :unknown_service unless s
+
+      cluster_key = find_cluster_key(cluster)
+      return :unknown_cluster unless cluster_key
+      return :invalid_replicas unless count.is_a?(Integer) && count >= 0
+
+      current = pods_in_cluster(s, cluster_key).length
+      return :no_replicas_left if count.zero? && current == s.pods[s.selector].to_a.length
+      return :insufficient_resources if count - current > pod_capacity(cluster_key, s.selector)
+
+      nil
+    end
+
+    # Sets how many pods of `service` run in `cluster`, at the current
+    # simulated time. New pods go on the cluster's least-loaded nodes and
+    # start serving at once; removed pods are drawn at random, stop
+    # receiving requests and free their resources (requests already queued
+    # on them still complete). Returns nil when applied, otherwise the
+    # rejection reason (see #scale_replicas_rejection) and changes nothing.
+    def scale_replicas(service, cluster, count)
+      reason = scale_replicas_rejection(service, cluster, count)
+      return reason if reason
+
+      s = find_service(service)
+      cluster_key = find_cluster_key(cluster)
+      current = pods_in_cluster(s, cluster_key)
+      if count > current.length
+        (count - current.length).times { start_pod(s, cluster_key) }
+      else
+        current.sample(current.length - count, random: @rng).each do |pod|
+          pod.deactivate_pod
+          s.delete_pod(s.selector, pod)
+        end
+      end
+
+      replica_set = @replica_sets.values.find { |rs| rs.selector == s.selector }
+      replica_set&.set_replicas(s.pods[s.selector].length)
+      nil
+    end
+
     private
+
+    def find_service(name)
+      @services[name] || @services.find { |k, _| k.to_s == name.to_s }&.last
+    end
+
+    def find_cluster_key(name)
+      @cluster_repository.keys.find { |k| k == name || k.to_s == name.to_s }
+    end
+
+    def pods_in_cluster(service, cluster_key)
+      service.pods[service.selector].to_a.select { |pod| pod.node.cluster_id == cluster_key }
+    end
+
+    # How many more pods of `selector` fit on the cluster's nodes.
+    def pod_capacity(cluster_key, selector)
+      sct = @microservice_types[selector]
+      cpu = sct[:resources_requirements_cpu]
+      mem = sct[:resources_requirements_memory]
+      fits = ->(available, needed) { needed.positive? ? [(available / needed.to_f).floor, 0].max : Float::INFINITY }
+      @cluster_repository[cluster_key].nodes.values.sum do |node|
+        [fits.call(node.available_resources_cpu, cpu), fits.call(node.available_resources_memory, mem)].min
+      end
+    end
+
+    # Starts one pod of `service` on the cluster node with the fewest pods
+    # among those that fit it (the same rule KubeScheduler scores with).
+    def start_pod(service, cluster_key)
+      selector = service.selector
+      sct = @microservice_types[selector]
+      cpu = sct[:resources_requirements_cpu]
+      mem = sct[:resources_requirements_memory]
+      node = @cluster_repository[cluster_key].nodes.values
+        .select { |n| n.available_resources_cpu >= cpu && n.available_resources_memory >= mem }
+        .min_by { |n| n.pod_id_list.length }
+
+      pod = Pod.new(@next_pod_id, "#{selector}_#{@next_pod_id}", node, selector, sct, stream_seeds: @stream_seeds)
+      pod.startUpPod
+      node.assign_resources(pod, cpu, mem)
+      service.assignPod(pod)
+      @next_pod_id += 1
+    end
 
     # Builds the simulated world: clusters, nodes, latency model, MDN models,
     # statistics, policies, Kubernetes objects and the initial pods, then
