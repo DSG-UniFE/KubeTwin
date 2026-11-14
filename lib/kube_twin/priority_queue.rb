@@ -4,9 +4,10 @@ module KUBETWIN
   ### Mauro suggested thtat a prioritiy queue would be more efficient than a sorted array for the event queue, so here it is.
   ### We removed the old sorted array implementation, but we kept the same interface for backward compatibility.
   ### We also added a sequence_id to ensure stable ordering of events with the same time, which is important for deterministic behavior.
+  #
+  # Items must respond to #time and #sequence_id= (as Event does); the
+  # queue stores them directly rather than wrapping each in an entry.
   class PriorityQueue
-    Entry = Struct.new(:time, :sequence_id, :item)
-
     def initialize(*_args)
       @heap = [nil]
       @next_sequence_id = 0
@@ -30,10 +31,10 @@ module KUBETWIN
 
     def insert(*args)
       item = (args.length == 1) ? args[0] : args[1]
-      entry = Entry.new(item.time, @next_sequence_id, item)
+      item.sequence_id = @next_sequence_id
       @next_sequence_id += 1
 
-      @heap << entry
+      @heap << item
       swim(@heap.size - 1)
       item
     end
@@ -41,7 +42,7 @@ module KUBETWIN
     def shift
       return nil if empty?
 
-      min_item = @heap[1].item
+      min_item = @heap[1]
       last_index = @heap.size - 1
       exchange(1, last_index)
       @heap.pop
@@ -52,13 +53,17 @@ module KUBETWIN
     def first
       return nil if empty?
 
-      @heap[1].item
+      @heap[1]
     end
 
     private
 
+    # (A parallel assignment here would allocate an array per swap.)
     def exchange(i, j)
-      @heap[i], @heap[j] = @heap[j], @heap[i]
+      entry = @heap[i]
+      @heap[i] = @heap[j]
+      @heap[j] = entry
+      nil
     end
 
     def swim(index)

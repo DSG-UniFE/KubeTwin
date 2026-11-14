@@ -66,10 +66,12 @@ module KUBETWIN
       WorkflowSequence.request_step_key(req, component_sequence)
     end
 
-    def trace_request(req, message)
+    # Prints the message the block returns when KUBETWIN_TRACE_REQUESTS=1
+    # (a block, so the message isn't built otherwise).
+    def trace_request(req)
       return unless @trace_requests
 
-      puts format("[TRACE t=%.6f rid=%s dc=%s] %s", @current_time || 0.0, req.rid, req.data_center_id, message)
+      puts format("[TRACE t=%.6f rid=%s dc=%s] %s", @current_time || 0.0, req.rid, req.data_center_id, yield)
     end
 
     # The actual routing decision (is component_name routable, and if so
@@ -87,7 +89,7 @@ module KUBETWIN
       req.update_transfer_time(route.transmission_time)
       req.data_center_id = route.cluster.cluster_id
       @step_observer&.link_latency(source_cluster.cluster_id, route.cluster.cluster_id, route.transmission_time)
-      trace_request(req, "forward #{source_cluster.name}->#{route.cluster.name} to #{component_name}, latency=#{format("%.6f", route.transmission_time)}, event_time=#{format("%.6f", route.forwarding_time)}")
+      trace_request(req) { "forward #{source_cluster.name}->#{route.cluster.name} to #{component_name}, latency=#{format("%.6f", route.transmission_time)}, event_time=#{format("%.6f", route.forwarding_time)}" }
       route.pod.container.to_free(waiting_container) if waiting_container && !waiting_container.wait_for.empty?
       @forwarded += 1
       new_event(Event::ET_REQUEST_FORWARDING, req, route.forwarding_time, route.pod)
@@ -122,7 +124,7 @@ module KUBETWIN
       @step_observer&.link_latency(resolution.child_cluster.cluster_id, resolution.parent_cluster.cluster_id,
         resolution.latency)
       parent_req.data_center_id = resolution.parent_cluster.cluster_id
-      trace_request(parent_req, "return #{resolution.child_cluster.name}->#{resolution.parent_cluster.name} from #{child_req.branch_name}, latency=#{format("%.6f", resolution.latency)}")
+      trace_request(parent_req) { "return #{resolution.child_cluster.name}->#{resolution.parent_cluster.name} from #{child_req.branch_name}, latency=#{format("%.6f", resolution.latency)}" }
       [resolution.latency, resolution.parent_cluster]
     end
 
@@ -1152,7 +1154,7 @@ module KUBETWIN
       # increase count of received requests in hpa_component_stats
       @hpa_component_stats[component_name].request_received
       @per_component_stats[component_name].request_received
-      trace_request(req, "arrived at #{component_name}")
+      trace_request(req) { "arrived at #{component_name}" }
 
       # here we should use the delegator
       # puts "#{now},#{pod.container.container_id},#{pod.container.request_queue.length}\n"
@@ -1179,12 +1181,12 @@ module KUBETWIN
       else
         current_component_step[:name]
       end
-      trace_request(req, "completed local step #{current_component_name || current_component_step[:type]}")
+      trace_request(req) { "completed local step #{current_component_name || current_component_step[:type]}" }
 
       if current_component_step[:calls] && !req.calls_completed?(request_step_key(req, component_sequence))
         req.start_nested_calls(current_component_step[:calls], container, request_step_key(req, component_sequence))
         next_call = req.next_nested_call
-        trace_request(req, "opening nested calls from #{current_component_name}: #{current_component_step[:calls].map { |c| c[:name] }.join(" -> ")}")
+        trace_request(req) { "opening nested calls from #{current_component_name}: #{current_component_step[:calls].map { |c| c[:name] }.join(" -> ")}" }
         raise "Cannot dispatch nested call for #{req.rid}" unless dispatch_nested_call(req, next_call, e.time,
           @latency_manager)
 
@@ -1283,14 +1285,14 @@ module KUBETWIN
 
             if parent_req.nested_calls_remaining?
               next_call = parent_req.next_nested_call
-              trace_request(parent_req, "resuming after nested call #{req.branch_name}, next nested call #{next_call[:name]}")
+              trace_request(parent_req) { "resuming after nested call #{req.branch_name}, next nested call #{next_call[:name]}" }
               raise "Cannot dispatch nested call for #{parent_req.rid}" unless dispatch_nested_call(parent_req,
                 next_call,
                 resume_time,
                 @latency_manager)
             else
               waiting_container = parent_req.finish_nested_calls
-              trace_request(parent_req, "all nested calls completed for #{current_component_name || req.branch_name}, resuming parent")
+              trace_request(parent_req) { "all nested calls completed for #{current_component_name || req.branch_name}, resuming parent" }
               release_container_after_wait(waiting_container, resume_time)
               new_event(Event::ET_WORKFLOW_STEP_COMPLETED, parent_req, resume_time, waiting_container)
             end
@@ -1324,7 +1326,7 @@ module KUBETWIN
       # request is closed
       req.finished_processing(e.time)
       @step_observer&.workflow_completion(req.workflow_type_id, req.ttr(@current_time))
-      trace_request(req, "request closed; total_ttr=#{format("%.6f", req.ttr(@current_time))}")
+      trace_request(req) { "request closed; total_ttr=#{format("%.6f", req.ttr(@current_time))}" }
       # puts "#{req.arrival_time} #{now}"
       if now >= @configuration.end_time
         raise "Processing request after the simulation time current:#{now} end:#{@configuration.end_time}"
@@ -1448,15 +1450,10 @@ module KUBETWIN
     end
 
     def handle_stats_print(e)
-      # calculate the number of pods
-      pods_n = ""
-      @services.each do |k, s|
-        pods_number = s.pods[s.selector].length
-        pods_n += "#{k}: #{pods_number} "
-        # @allocation_bench << "#{now},#{k},#{hpa_component_stats[k].received},#{hpa_component_stats[k].mean},#{pods_number}\n"
-        # puts "#{now},#{k},#{hpa_component_stats[k].received},#{hpa_component_stats[k].mean},#{pods_number}\n"
-        # just to print the allocation map
-      end
+      # @services.each do |k, s|
+      #   pods_number = s.pods[s.selector].length
+      #   puts "#{now},#{k},#{@hpa_component_stats[k].received},#{@hpa_component_stats[k].mean},#{pods_number}"
+      # end
 
       # puts "++++++++++++++++\n"+
       # "#{now}\n" +
@@ -1465,14 +1462,9 @@ module KUBETWIN
       # "component_stats: #{hpa_component_stats.to_s}\n"+
       # ls"#{pods_n}"
 
-      # reset also comoponent statistics
-
-      @hpa_component_stats = @microservice_types.keys.map do |m_id|
-        [
-          m_id,
-          ComponentStatistics.new
-        ]
-      end.to_h
+      # reset also component statistics (in place: with frequent prints,
+      # rebuilding them dominated the simulation's allocations)
+      @hpa_component_stats.each_value(&:reset)
 
       next_event_time = @current_time + @stats_print_interval
 

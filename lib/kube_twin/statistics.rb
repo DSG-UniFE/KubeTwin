@@ -7,6 +7,10 @@ module KUBETWIN
 
     # see http://en.wikipedia.org/wiki/Algorithms_for_calculating_variance#Online_algorithm
     # and https://www.johndcook.com/blog/standard_deviation/
+    #
+    # opts[:keep_csv]: keep a CSV line per recorded request, for #to_csv
+    # (off by default: it costs several allocations and ~100 bytes per
+    # request).
     def initialize(opts = {})
       @n = 0 # number of requests
       @mean = 0.0
@@ -16,7 +20,7 @@ module KUBETWIN
       @longer_than = init_counters_for_longer_than_stats(opts)
       @shorter_than = init_counters_for_shorter_than_stats(opts)
       @received = 0
-      @csv = []
+      @csv = opts[:keep_csv] ? [] : nil
       @samples = []
     end
 
@@ -33,10 +37,7 @@ module KUBETWIN
       end
       raise "TTR #{x} for request #{req.rid} invalid!" unless x > 0.0
 
-      # string operations are slow << is the fastest
-      steps = req.steps_ttr.join(",")
-      # @csv << req.rid << ',' << x << ',' << steps << '\n'
-      @csv << "#{req.rid},#{x},#{steps}\n"
+      @csv << "#{req.rid},#{x},#{req.steps_ttr.join(",")}\n" if @csv
       @samples << x
 
       qx = req.queuing_time
@@ -103,7 +104,10 @@ module KUBETWIN
         "QTIME: (mean: #{@q_mean}, variance: #{q_variance})"
     end
 
+    # The recorded requests as CSV; needs keep_csv: true.
     def to_csv
+      raise "create the Statistics with keep_csv: true to get its CSV" unless @csv
+
       header = "rid,ttr"
       "#{header}\n#{@csv.join}"
     end
@@ -111,21 +115,11 @@ module KUBETWIN
     private
 
     def init_counters_for_longer_than_stats(custom_kpis_config)
-      # prepare an infinite length enumerator that always returns zero
-      zeros = Enumerator.new { |x| loop { x << 0 } }
-
-      Array(custom_kpis_config[:longer_than]).
-        # and interval the numbers contained in that array with zeroes
-        zip(zeros).to_h
+      Array(custom_kpis_config[:longer_than]).to_h { |threshold| [threshold, 0] }
     end
 
     def init_counters_for_shorter_than_stats(custom_kpis_config)
-      # prepare an infinite length enumerator that always returns zero
-      zeros = Enumerator.new { |x| loop { x << 0 } }
-
-      Array(custom_kpis_config[:longer_than]).
-        # and interval the numbers contained in that array with zeroes
-        zip(zeros).to_h
+      Array(custom_kpis_config[:longer_than]).to_h { |threshold| [threshold, 0] }
     end
   end
 end

@@ -200,7 +200,7 @@ module KUBETWIN
 
     def start_nested_calls(calls, container, sequence_key)
       @nested_call_context = {
-        pending_calls: Marshal.load(Marshal.dump(calls)),
+        pending_calls: deep_copy(calls),
         waiting_container: container,
         sequence_key: sequence_key
       }
@@ -253,7 +253,7 @@ module KUBETWIN
         arrival_time: @arrival_at_container,
         workflow_type_id: @workflow_type_id,
         customer_id: @customer_id,
-        component_sequence: Marshal.load(Marshal.dump(branch_sequence)),
+        component_sequence: branch_sequence,
         branch_name: branch_name,
         parent_request: self,
         child_kind: :parallel_branch
@@ -280,7 +280,7 @@ module KUBETWIN
         arrival_time: @arrival_at_container,
         workflow_type_id: @workflow_type_id,
         customer_id: @customer_id,
-        component_sequence: Marshal.load(Marshal.dump(call_sequence)),
+        component_sequence: call_sequence,
         branch_name: call_name,
         parent_request: self,
         child_kind: :nested_call
@@ -305,11 +305,23 @@ module KUBETWIN
 
     private
 
+    # A fresh copy of the component sequence `step` runs.
     def nested_sequence_for(step)
       if step[:component_sequence]
-        Marshal.load(Marshal.dump(step[:component_sequence]))
+        deep_copy(step[:component_sequence])
       else
-        [Marshal.load(Marshal.dump(step))]
+        [deep_copy(step)]
+      end
+    end
+
+    # Copies the Hashes, Arrays and Strings of a workflow description (what
+    # a Marshal round trip used to do, with far fewer allocations).
+    def deep_copy(value)
+      case value
+      when Hash then value.to_h { |k, v| [deep_copy(k), deep_copy(v)] }
+      when Array then value.map { |v| deep_copy(v) }
+      when String then value.dup
+      else value
       end
     end
 

@@ -96,7 +96,9 @@ module KUBETWIN
       #  while (lat = @same_location_latency.next) < 2E-3; end
       #  lat
       # else
-      l1, l2 = (loc1 < loc2) ? [loc1, loc2] : [loc2, loc1]
+      # (Not a parallel assignment: that allocates an array per sample.)
+      l1 = (loc1 < loc2) ? loc1 : loc2
+      l2 = (loc1 < loc2) ? loc2 : loc1
 
       # since we use a compact representation for @latency_models_matrix, the
       # indexes become l1 and (l2-l1-1)
@@ -116,7 +118,8 @@ module KUBETWIN
       if loc1 == loc2
         @same_location_latency.mean
       else
-        l1, l2 = (loc1 < loc2) ? [loc1, loc2] : [loc2, loc1]
+        l1 = (loc1 < loc2) ? loc1 : loc2
+        l2 = (loc1 < loc2) ? loc2 : loc1
 
         # since we use a compact representation for @average_latency_between, the
         # indexes become l1 and (l2-l1-1)

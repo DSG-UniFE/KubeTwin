@@ -25,6 +25,9 @@ module KUBETWIN
     # should this be attr_accessor instead?
     attr_reader :type, :data, :time, :destination
 
+    # Set by PriorityQueue: orders events scheduled for the same time.
+    attr_accessor :sequence_id
+
     def initialize(type, data, time, destination)
       @type = type
       @data = data

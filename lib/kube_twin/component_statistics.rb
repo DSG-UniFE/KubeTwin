@@ -22,6 +22,17 @@ module KUBETWIN
       @received += 1
     end
 
+    # Back to no requests received or recorded, keeping the thresholds.
+    def reset
+      @n = 0
+      @mean = @m_2 = @q_mean = @q_m_2 = 0.0
+      @variance = @q_variance = nil
+      @longer_than.transform_values! { 0 }
+      @shorter_than.transform_values! { 0 }
+      @received = 0
+      self
+    end
+
     def add_custom_kpis(custom_kpis_config)
       # add custom kpis to the longer_than and shorter_than counters
       @longer_than.merge!(init_counters_for_longer_than_stats(custom_kpis_config))
@@ -77,21 +88,11 @@ module KUBETWIN
     private
 
     def init_counters_for_longer_than_stats(custom_kpis_config)
-      # prepare an infinite length enumerator that always returns zero
-      zeros = Enumerator.new { |x| loop { x << 0 } }
-
-      Array(custom_kpis_config[:longer_than]).
-        # and interval the numbers contained in that array with zeroes
-        zip(zeros).to_h
+      Array(custom_kpis_config[:longer_than]).to_h { |threshold| [threshold, 0] }
     end
 
     def init_counters_for_shorter_than_stats(custom_kpis_config)
-      # prepare an infinite length enumerator that always returns zero
-      zeros = Enumerator.new { |x| loop { x << 0 } }
-
-      Array(custom_kpis_config[:longer_than]).
-        # and interval the numbers contained in that array with zeroes
-        zip(zeros).to_h
+      Array(custom_kpis_config[:longer_than]).to_h { |threshold| [threshold, 0] }
     end
   end
 end
