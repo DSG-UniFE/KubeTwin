@@ -164,6 +164,21 @@ module KUBETWIN
     # rss is replica set
     # css is service configuration
     def evaluate_allocation(rss = nil, css = nil, mtt = nil, lm = nil, mapping = nil, replicas_mapping = nil)
+      unfeasible = setup(rss, css, mtt, lm, mapping, replicas_mapping)
+      return unfeasible if unfeasible
+
+      run_events
+      wind_down
+    end
+
+    private
+
+    # Builds the simulated world: clusters, nodes, latency model, MDN models,
+    # statistics, policies, Kubernetes objects and the initial pods, then
+    # schedules the first events. Returns -1000 (the penalty
+    # evaluate_allocation reports) when a replica set's pods can't all be
+    # placed, nil otherwise.
+    def setup(rss, css, mtt, lm, mapping, replicas_mapping)
       # seeds
       latency_seed = @configuration.seeds[:communication_latencies]
       # Every random choice the simulation makes itself draws from @rng, so
@@ -280,7 +295,7 @@ module KUBETWIN
       # given by the federation or if we can use the provided map
       if @configuration.federation.nil?
         latency_models = lm.nil? ? @configuration.latency_models : lm
-        latency_manager = if latency_seed
+        @latency_manager = if latency_seed
           LatencyManager.new(latency_models, seed: latency_seed)
         else
           LatencyManager.new(latency_models)
@@ -300,7 +315,7 @@ module KUBETWIN
 
           {src: src.location_id, dst: dst.location_id, value: lm[:value].to_f / 2}
         end
-        latency_manager = LatencyManagerFederation.new(latency_models, seed: latency_seed)
+        @latency_manager = LatencyManagerFederation.new(latency_models, seed: latency_seed)
       end
 
       # information regarding microservices
@@ -319,21 +334,21 @@ module KUBETWIN
       # @logger.debug "init mdns #{@microservice_mdn}"
 
       # information regarding customers
-      customer_repository = @configuration.customers
-      workflow_type_repository = @configuration.workflow_types
+      @customer_repository = @configuration.customers
+      @workflow_type_repository = @configuration.workflow_types
 
       # initialize statistics --- leave for later
-      stats = Statistics.new
+      @stats = Statistics.new
 
       # statistics for servicemdnmdn
-      hpa_component_stats = @microservice_types.keys.map do |m_id|
+      @hpa_component_stats = @microservice_types.keys.map do |m_id|
         [
           m_id,
           ComponentStatistics.new
         ]
       end.to_h
 
-      per_component_stats = @microservice_types.keys.map do |m_id|
+      @per_component_stats = @microservice_types.keys.map do |m_id|
         @logger.debug "Microservice type: #{m_id}"
         [
           m_id,
@@ -341,10 +356,10 @@ module KUBETWIN
         ]
       end.to_h
 
-      per_workflow_and_customer_stats = workflow_type_repository.keys.map do |wft_id|
+      @per_workflow_and_customer_stats = @workflow_type_repository.keys.map do |wft_id|
         [
           wft_id,
-          customer_repository.keys.map do |c_id|
+          @customer_repository.keys.map do |c_id|
             [c_id, Statistics.new(@configuration.custom_stats.find do |x|
               x[:customer_id] == c_id && x[:workflow_type_id] == wft_id
             end || {})]
@@ -355,7 +370,7 @@ module KUBETWIN
       # Separate workflow and chain stats to do so we need to create a chain and look if microservices in that chain
       # are within a workflow and then get the wokrflow id
       @chain_repository = {}
-      per_chain_and_customer_stats = {}
+      @per_chain_and_customer_stats = {}
 
       # reqs_received_per_workflow_and_customer = Hash[
       #  workflow_type_repository.keys.map do |wft_id|
@@ -365,7 +380,7 @@ module KUBETWIN
 
       # Read policies from configuration
       policies = @configuration.policies || {}
-      availability_policy = nil
+      @availability_policy = nil
 
       unless policies.empty?
         policies.each do |policy|
@@ -376,20 +391,20 @@ module KUBETWIN
             policy[:targets].each do |target|
               @logger.debug "  Target: #{target}"
               # check if target is a microservice type
-              per_component_stats[target].add_custom_kpis(longer_than: [policy[:properties][:latency_max_value_ms] / 1E3])
-              @logger.debug per_component_stats[target].longer_than
+              @per_component_stats[target].add_custom_kpis(longer_than: [policy[:properties][:latency_max_value_ms] / 1E3])
+              @logger.debug @per_component_stats[target].longer_than
             end
           end
           if policy[:properties] && policy[:properties][:response_time_value_ms]
             @logger.debug "  Response time value (s): #{policy[:properties][:response_time_value_ms] / 1E3}"
             policy[:targets].each do |target|
               @logger.debug "  Target: #{target}"
-              per_component_stats[target].add_custom_kpis(longer_than: [policy[:properties][:response_time_value_ms] / 1E3])
+              @per_component_stats[target].add_custom_kpis(longer_than: [policy[:properties][:response_time_value_ms] / 1E3])
             end
           end
           if policy[:properties] && policy[:properties][:target_availability_percentage]
             @logger.debug "  Target availability percentage: #{policy[:properties][:target_availability_percentage]}"
-            availability_policy = policy[:properties][:target_availability_percentage].to_f / 100.0
+            @availability_policy = policy[:properties][:target_availability_percentage].to_f / 100.0
           end
           next unless policy[:properties] && policy[:properties][:service_chain_max_latency_ms]
 
@@ -402,7 +417,7 @@ module KUBETWIN
           # Check for each workflow type if the chain matches
           # create the chain in the chain stats
           wf_cid = nil
-          workflow_type_repository.each do |wft_id, wf|
+          @workflow_type_repository.each do |wft_id, wf|
             # verify if chain is part of the workflow
             if chain.to_set.subset?(get_workflow_components(wf).to_set)
               wf_cid = wft_id
@@ -421,16 +436,16 @@ module KUBETWIN
 
           # @logger.info "chain_repository #{@chain_repository[wf_cid]}"
 
-          per_chain_and_customer_stats[wf_cid] = customer_repository.keys.map do |c_id|
+          @per_chain_and_customer_stats[wf_cid] = @customer_repository.keys.map do |c_id|
             [c_id, Statistics.new(@configuration.custom_stats.find do |x|
               x[:customer_id] == c_id && x[:workflow_type_id] == wf_cid
             end || {})]
           end.to_h
 
-          customer_repository.each do |c_id, _|
+          @customer_repository.each do |c_id, _|
             @logger.debug "Customer: #{c_id}"
-            @logger.debug "Adding custom KPI for workflow #{per_chain_and_customer_stats[wf_cid][1]}"
-            per_chain_and_customer_stats[wf_cid][c_id].add_custom_kpis(longer_than: [sc_max_latency])
+            @logger.debug "Adding custom KPI for workflow #{@per_chain_and_customer_stats[wf_cid][1]}"
+            @per_chain_and_customer_stats[wf_cid][c_id].add_custom_kpis(longer_than: [sc_max_latency])
           end
         end
 
@@ -444,7 +459,7 @@ module KUBETWIN
         #             next unless workflow_chain == chain
       end
 
-      @logger.debug "per_chain_and_customer_stats: #{per_chain_and_customer_stats}"
+      @logger.debug "per_chain_and_customer_stats: #{@per_chain_and_customer_stats}"
 
       # abort
 
@@ -526,7 +541,7 @@ module KUBETWIN
       # the pods
       @kube_scheduler = KubeScheduler.new(@cluster_repository)
 
-      pod_id = 0
+      @next_pod_id = 0
       ms_id = 0
       saturation_penalties = 0
       @replica_sets.each do |_k, rs|
@@ -553,7 +568,7 @@ module KUBETWIN
           # if node not found --> go for what available
           elsif @replicas_mapping
             # let's get the mapping from somehting like this --> {:a => 10, :b => 100, :c => 30 }
-            cid = @clusters_mapping[@replicas_mapping[pod_id]]
+            cid = @clusters_mapping[@replicas_mapping[@next_pod_id]]
             node = @kube_scheduler.get_node_from_cluster(reqs_c, reqs_m, cid)
             saturation_penalties += 1 if node.nil?
             # @logger.info "Replicas Mapping: #{@replicas_mapping}"
@@ -570,7 +585,7 @@ module KUBETWIN
           # we can retrieve also the service_time_distribution
           # depending on its cluster type
 
-          pod = Pod.new(pod_id, "#{selector}_#{pod_id}", node, selector, sct, stream_seeds: @stream_seeds)
+          pod = Pod.new(@next_pod_id, "#{selector}_#{@next_pod_id}", node, selector, sct, stream_seeds: @stream_seeds)
           pod.startUpPod
 
           # assign resources for the pod
@@ -580,7 +595,7 @@ module KUBETWIN
           # we could also assing the service to the replica set
           s = @services[selector]
           s.assignPod(pod)
-          pod_id += 1
+          @next_pod_id += 1
         end
         # return a penalty if no pods were created for rs
         @logger.debug "{selector} Pods Created: #{pods_created}/#{pods_tbc}"
@@ -649,18 +664,18 @@ module KUBETWIN
       end
 
       # calculate warmup threshold
-      warmup_threshold = @configuration.start_time + @configuration.warmup_duration.to_i
+      @warmup_threshold = @configuration.start_time + @configuration.warmup_duration.to_i
 
-      cooldown_treshold = @configuration.end_time - @configuration.cooldown_duration.to_i
+      @cooldown_threshold = @configuration.end_time - @configuration.cooldown_duration.to_i
 
       # get stats print
       unless @stats_print_interval.nil?
-        new_event(Event::ET_STATS_PRINT, nil, warmup_threshold + @stats_print_interval,
+        new_event(Event::ET_STATS_PRINT, nil, @warmup_threshold + @stats_print_interval,
           nil)
       end
 
-      requests_being_worked_on = 0
-      current_event = 0
+      @requests_being_worked_on = 0
+      @current_event = 0
 
       # benchmark file
       Time.now.strftime("%Y%m%d%H%M%S")
@@ -673,495 +688,509 @@ module KUBETWIN
 
       # @allocation_bench << "Time,Component,Request,TTP,Pods\n"
 
-      # launch simulation
-      until @event_queue.empty?
-        e = @event_queue.shift
+      nil
+    end
 
-        current_event += 1
-        # sanity check on simulation time flow
-        if @current_time > e.time
-          raise "Error: simulation time inconsistency for event #{current_event} " \
-            "e.type=#{e.type} @current_time=#{@current_time}, e.time=#{e.time}"
-        end
+    # Processes events in time order until the queue is empty.
+    def run_events
+      process_event(@event_queue.shift) until @event_queue.empty?
+    end
 
-        @current_time = e.time
+    HANDLERS = {
+      Event::ET_REQUEST_GENERATION => :handle_request_generation,
+      Event::ET_REQUEST_ARRIVAL => :handle_request_arrival,
+      Event::ET_REQUEST_FORWARDING => :handle_request_forwarding,
+      Event::ET_WORKFLOW_STEP_COMPLETED => :handle_workflow_step_completed,
+      Event::ET_REQUEST_CLOSURE => :handle_request_closure,
+      Event::ET_HPA_CONTROL => :handle_hpa_control,
+      Event::ET_END_OF_SIMULATION => :handle_end_of_simulation,
+      Event::ET_STATS_PRINT => :handle_stats_print,
+      Event::ET_ALLOCATE_NODE => :handle_allocate_node,
+      Event::ET_DEALLOCATE_NODE => :handle_deallocate_node
+    }.freeze
 
-        case e.type
-        when Event::ET_REQUEST_GENERATION
-          req_attrs = e.data
+    def process_event(e)
+      @current_event += 1
+      # sanity check on simulation time flow
+      if @current_time > e.time
+        raise "Error: simulation time inconsistency for event #{@current_event} " \
+          "e.type=#{e.type} @current_time=#{@current_time}, e.time=#{e.time}"
+      end
 
-          @generated += 1
-          if @current_time.to_i == @last_second
-            @req_in_sec += 1
-          elsif @current_time.to_i == @last_second + 1
-            # @request_profile << "#{@current_time.to_i},#{@req_in_sec}\n"
-            @req_in_sec = 1
-            @last_second = @current_time.to_i
-          elsif (@current_time.to_i - 1) > @last_second
-            @last_second = @current_time.to_i
-          end
+      @current_time = e.time
+      handler = HANDLERS[e.type]
+      send(handler, e) if handler
+    end
 
-          # find closest data center
-          customer_location_id =
-            customer_repository
-              .dig(req_attrs[:customer_id], :location_id)
+    def handle_request_generation(e)
+      req_attrs = e.data
 
-          # find first component name for requested workflow
-          workflow = workflow_type_repository[req_attrs[:workflow_type_id]]
-          if workflow.nil? || workflow[:component_sequence].nil?
-            puts "DEBUG: workflow type #{req_attrs[:workflow_type_id]} = #{workflow.inspect}"
-            puts "DEBUG: workflow type repository = #{workflow_type_repository.inspect}"
-          end
+      @generated += 1
+      if @current_time.to_i == @last_second
+        @req_in_sec += 1
+      elsif @current_time.to_i == @last_second + 1
+        # @request_profile << "#{@current_time.to_i},#{@req_in_sec}\n"
+        @req_in_sec = 1
+        @last_second = @current_time.to_i
+      elsif (@current_time.to_i - 1) > @last_second
+        @last_second = @current_time.to_i
+      end
 
-          first_component_name = workflow[:component_sequence][0][:name]
+      # find closest data center
+      customer_location_id =
+        @customer_repository
+          .dig(req_attrs[:customer_id], :location_id)
 
-          # puts "DEBUG: first_component_name = #{first_component_name} #{workflow.inspect}"
-          # first we need to resolve the component name using
-          # the kubernetes DNS
-          # TODO -- modeling internal service time
-          # this code can be split into two when
+      # find first component name for requested workflow
+      workflow = @workflow_type_repository[req_attrs[:workflow_type_id]]
+      if workflow.nil? || workflow[:component_sequence].nil?
+        puts "DEBUG: workflow type #{req_attrs[:workflow_type_id]} = #{workflow.inspect}"
+        puts "DEBUG: workflow type repository = #{@workflow_type_repository.inspect}"
+      end
 
-          # Same routing decision RequestForwarder already makes for every
-          # later hop (see schedule_request_forward's call to it) -- here
-          # it's routing from the customer's location instead of a
-          # cluster's, which is why #route takes a bare location_id rather
-          # than a Cluster (see request_forwarder.rb). Unlike those later
-          # hops, this one isn't guarded with a "can't route this" check --
-          # the original inline code had none either (an unregistered
-          # first_component_name already crashed here with a bare
-          # NoMethodError, just one call deeper, on service.get_pod);
-          # preserved rather than silently hardened.
-          initial_route = @request_forwarder.route(first_component_name, customer_location_id, latency_manager, @current_time)
-          pod = initial_route.pod
-          cluster_id = initial_route.cluster.cluster_id
+      first_component_name = workflow[:component_sequence][0][:name]
 
-          # here we should also add the HTTP connection time (8 ms) -- only
-          # on this very first hop, unlike later inter-component forwards
-          arrival_time = initial_route.forwarding_time + CONNECT_TIME
+      # puts "DEBUG: first_component_name = #{first_component_name} #{workflow.inspect}"
+      # first we need to resolve the component name using
+      # the kubernetes DNS
+      # TODO -- modeling internal service time
+      # this code can be split into two when
 
-          # generate the request here
-          new_req = Request.new(**req_attrs.merge!(initial_data_center_id: cluster_id,
-            arrival_time: arrival_time))
+      # Same routing decision RequestForwarder already makes for every
+      # later hop (see schedule_request_forward's call to it) -- here
+      # it's routing from the customer's location instead of a
+      # cluster's, which is why #route takes a bare location_id rather
+      # than a Cluster (see request_forwarder.rb). Unlike those later
+      # hops, this one isn't guarded with a "can't route this" check --
+      # the original inline code had none either (an unregistered
+      # first_component_name already crashed here with a bare
+      # NoMethodError, just one call deeper, on service.get_pod);
+      # preserved rather than silently hardened.
+      initial_route = @request_forwarder.route(first_component_name, customer_location_id, @latency_manager, @current_time)
+      pod = initial_route.pod
+      cluster_id = initial_route.cluster.cluster_id
 
-          # schedule arrival of current request
-          new_event(Event::ET_REQUEST_ARRIVAL, [new_req, pod], arrival_time, nil)
+      # here we should also add the HTTP connection time (8 ms) -- only
+      # on this very first hop, unlike later inter-component forwards
+      arrival_time = initial_route.forwarding_time + CONNECT_TIME
 
-          # schedule generation of next request
-          if @current_time < cooldown_treshold && @generated < @to_generate # warmup_threshold
-            rg = e.destination
-            req_attrs = rg.generate(@current_time)
-            new_event(Event::ET_REQUEST_GENERATION, req_attrs, req_attrs[:generation_time], rg) if req_attrs
-          end
+      # generate the request here
+      new_req = Request.new(**req_attrs.merge!(initial_data_center_id: cluster_id,
+        arrival_time: arrival_time))
 
-        when Event::ET_REQUEST_ARRIVAL
-          # get request
-          req, pod = e.data
+      # schedule arrival of current request
+      new_event(Event::ET_REQUEST_ARRIVAL, [new_req, pod], arrival_time, nil)
 
-          # do not consider warmup here
-          if req.arrival_time > warmup_threshold && req.arrival_time < cooldown_treshold
+      # schedule generation of next request
+      if @current_time < @cooldown_threshold && @generated < @to_generate # warmup_threshold
+        rg = e.destination
+        req_attrs = rg.generate(@current_time)
+        new_event(Event::ET_REQUEST_GENERATION, req_attrs, req_attrs[:generation_time], rg) if req_attrs
+      end
+    end
 
-            # get the pod here, we do not need thr cluster
-            @arrived += 1
+    def handle_request_arrival(e)
+      # get request
+      req, pod = e.data
 
-            # cluster = @cluster_repository[req.data_center_id]
-            # update reqs_received_per_workflow_and_customer
-            # reqs_received_per_workflow_and_customer[req.workflow_type_id][req.customer_id] += 1
+      # do not consider warmup here
+      if req.arrival_time > @warmup_threshold && req.arrival_time < @cooldown_threshold
 
-            # find next component name
-            workflow = workflow_type_repository[req.workflow_type_id]
-            chain = @chain_repository[req.workflow_type_id] || nil
-            # next_component_name = workflow[:component_sequence][req.next_step][:name]
-            # puts "next_component_name #{next_component_name}, pod.label #{pod.label}"
+        # get the pod here, we do not need thr cluster
+        @arrived += 1
 
-            # schedule request forwarding to pod
-            @forwarded += 1
-            new_event(Event::ET_REQUEST_FORWARDING, req, e.time, pod)
+        # cluster = @cluster_repository[req.data_center_id]
+        # update reqs_received_per_workflow_and_customer
+        # reqs_received_per_workflow_and_customer[req.workflow_type_id][req.customer_id] += 1
 
-            # update stats
-            # increase the number of requests being worked on
-            requests_being_worked_on += 1
+        # schedule request forwarding to pod
+        @forwarded += 1
+        new_event(Event::ET_REQUEST_FORWARDING, req, e.time, pod)
 
-            # increase count of received requests
-            stats.request_received
+        # update stats
+        # increase the number of requests being worked on
+        @requests_being_worked_on += 1
 
-            # increase count of received requests in per_workflow_and_customer_stats
-            per_workflow_and_customer_stats[req.workflow_type_id][req.customer_id].request_received
-          end
+        # increase count of received requests
+        @stats.request_received
 
-          # Leave these events for when we add VM migration support
-          # when Event::ET_VM_SUSPEND
-          # when Event::ET_VM_RESUME
+        # increase count of received requests in per_workflow_and_customer_stats
+        @per_workflow_and_customer_stats[req.workflow_type_id][req.customer_id].request_received
+      end
 
-        when Event::ET_REQUEST_FORWARDING
-          # get request
-          # do we need to handle this event? we could have
-          # done everything in the previous one
-          req = e.data
-          time = e.time
-          pod = e.destination
+      # Leave these events for when we add VM migration support
+      # when Event::ET_VM_SUSPEND
+      # when Event::ET_VM_RESUME
+    end
 
-          # Check if this is a parallel branch request
-          workflow = workflow_type_repository[req.workflow_type_id]
-          component_sequence = request_component_sequence(req, workflow)
-          component_name = WorkflowSequence.next_component_name(req, component_sequence)
+    def handle_request_forwarding(e)
+      # get request
+      # do we need to handle this event? we could have
+      # done everything in the previous one
+      req = e.data
+      time = e.time
+      pod = e.destination
 
-          # increase count of received requests in hpa_component_stats
-          hpa_component_stats[component_name].request_received
-          per_component_stats[component_name].request_received
-          trace_request(req, "arrived at #{component_name}")
+      # Check if this is a parallel branch request
+      workflow = @workflow_type_repository[req.workflow_type_id]
+      component_sequence = request_component_sequence(req, workflow)
+      component_name = WorkflowSequence.next_component_name(req, component_sequence)
 
-          # here we should use the delegator
-          # puts "#{now},#{pod.container.container_id},#{pod.container.request_queue.length}\n"
-          pod.container.new_request(self, req, time)
+      # increase count of received requests in hpa_component_stats
+      @hpa_component_stats[component_name].request_received
+      @per_component_stats[component_name].request_received
+      trace_request(req, "arrived at #{component_name}")
 
-        when Event::ET_WORKFLOW_STEP_COMPLETED
+      # here we should use the delegator
+      # puts "#{now},#{pod.container.container_id},#{pod.container.request_queue.length}\n"
+      pod.container.new_request(self, req, time)
+    end
 
-          # retrieve request and vm
-          req = e.data
-          container = e.destination
-          @processed += 1
+    def handle_workflow_step_completed(e)
+      # retrieve request and vm
+      req = e.data
+      container = e.destination
+      @processed += 1
 
-          current_cluster = @cluster_repository[req.data_center_id]
-          # find the next workflow
-          workflow = workflow_type_repository[req.workflow_type_id]
-          component_sequence = request_component_sequence(req, workflow)
-          chain = @chain_repository[req.workflow_type_id] || nil
+      current_cluster = @cluster_repository[req.data_center_id]
+      # find the next workflow
+      workflow = @workflow_type_repository[req.workflow_type_id]
+      component_sequence = request_component_sequence(req, workflow)
+      chain = @chain_repository[req.workflow_type_id] || nil
 
-          # Get current component name safely - handle parallel components
-          current_component_step = component_sequence[req.worked_step]
-          current_component_name = if current_component_step[:type] == "parallel"
-            # For parallel components, we don't track them in stats since they're containers
-            nil
-          else
-            current_component_step[:name]
-          end
-          trace_request(req, "completed local step #{current_component_name || current_component_step[:type]}")
+      # Get current component name safely - handle parallel components
+      current_component_step = component_sequence[req.worked_step]
+      current_component_name = if current_component_step[:type] == "parallel"
+        # For parallel components, we don't track them in stats since they're containers
+        nil
+      else
+        current_component_step[:name]
+      end
+      trace_request(req, "completed local step #{current_component_name || current_component_step[:type]}")
 
-          if current_component_step[:calls] && !req.calls_completed?(request_step_key(req, component_sequence))
-            req.start_nested_calls(current_component_step[:calls], container, request_step_key(req, component_sequence))
-            next_call = req.next_nested_call
-            trace_request(req, "opening nested calls from #{current_component_name}: #{current_component_step[:calls].map { |c| c[:name] }.join(" -> ")}")
-            raise "Cannot dispatch nested call for #{req.rid}" unless dispatch_nested_call(req, next_call, e.time,
-              latency_manager)
+      if current_component_step[:calls] && !req.calls_completed?(request_step_key(req, component_sequence))
+        req.start_nested_calls(current_component_step[:calls], container, request_step_key(req, component_sequence))
+        next_call = req.next_nested_call
+        trace_request(req, "opening nested calls from #{current_component_name}: #{current_component_step[:calls].map { |c| c[:name] }.join(" -> ")}")
+        raise "Cannot dispatch nested call for #{req.rid}" unless dispatch_nested_call(req, next_call, e.time,
+          @latency_manager)
 
-            next
-          end
+        return
+      end
 
-          release_container_after_wait(container, e.time)
-          # puts "current_component_name #{current_component_name}"
+      release_container_after_wait(container, e.time)
+      # puts "current_component_name #{current_component_name}"
 
-          # entering_chain?/exiting_chain? are pure (see chain_tracker.rb,
-          # unit-tested in spec/kube_twin/chain_tracker_spec.rb) -- the
-          # mutation below (req.chain_entered/finished_chain, the stats
-          # bookkeeping) stays here where the simulation state lives.
-          if ChainTracker.entering_chain?(req, chain, current_component_name)
-            # we are entering the chain, set the workflow to be the chain
-            # @logger.info "Request #{req.rid} #{current_component_name} entering chain #{chain}"
-            req.chain_entered(@current_time)
-            per_chain_and_customer_stats[req.workflow_type_id][req.customer_id].request_received
-          end
+      # entering_chain?/exiting_chain? are pure (see chain_tracker.rb,
+      # unit-tested in spec/kube_twin/chain_tracker_spec.rb) -- the
+      # mutation below (req.chain_entered/finished_chain, the stats
+      # bookkeeping) stays here where the simulation state lives.
+      if ChainTracker.entering_chain?(req, chain, current_component_name)
+        # we are entering the chain, set the workflow to be the chain
+        # @logger.info "Request #{req.rid} #{current_component_name} entering chain #{chain}"
+        req.chain_entered(@current_time)
+        @per_chain_and_customer_stats[req.workflow_type_id][req.customer_id].request_received
+      end
 
-          if ChainTracker.exiting_chain?(req, chain, current_component_name)
-            # @logger.info "Request #{req.rid} #{current_component_name} exiting chain #{chain}"
-            req.finished_chain(@current_time)
-            per_chain_and_customer_stats[req.workflow_type_id][req.customer_id].record_request(req, now, chain = true)
-          end
+      if ChainTracker.exiting_chain?(req, chain, current_component_name)
+        # @logger.info "Request #{req.rid} #{current_component_name} exiting chain #{chain}"
+        req.finished_chain(@current_time)
+        @per_chain_and_customer_stats[req.workflow_type_id][req.customer_id].record_request(req, now, true) # true: chain statistics
+      end
 
-          # Skip processing if request is waiting for parallel branches
-          next if req.parallel_context && req.parallel_context[:branch_count] > 0
+      # Skip processing if request is waiting for parallel branches
+      return if req.parallel_context && req.parallel_context[:branch_count] > 0
 
-          # register step completion only for regular components (not parallel containers)
-          if current_component_name
-            hpa_component_stats[current_component_name].record_request(req, now)
-            per_component_stats[current_component_name].record_request(req, now)
-          end
+      # register step completion only for regular components (not parallel containers)
+      if current_component_name
+        @hpa_component_stats[current_component_name].record_request(req, now)
+        @per_component_stats[current_component_name].record_request(req, now)
+      end
 
-          req.ttr_step(@current_time)
+      req.ttr_step(@current_time)
 
-          # check if there are other steps left to complete the workflow
-          if req.next_step < component_sequence.size
+      # check if there are other steps left to complete the workflow
+      if req.next_step < component_sequence.size
 
-            next_step_config = component_sequence[req.next_step]
+        next_step_config = component_sequence[req.next_step]
 
-            # Handle parallel execution
-            if next_step_config[:type] == "parallel"
-              # Start parallel execution for all branches
-              branches = next_step_config[:branches]
-              req.start_parallel_execution(branches)
+        # Handle parallel execution
+        if next_step_config[:type] == "parallel"
+          # Start parallel execution for all branches
+          branches = next_step_config[:branches]
+          req.start_parallel_execution(branches)
 
-              # Create separate request flows for each branch
-              branches.each do |branch|
-                branch_req = req.clone_for_parallel_branch(branch)
+          # Create separate request flows for each branch
+          branches.each do |branch|
+            branch_req = req.clone_for_parallel_branch(branch)
 
-                # Each branch starts with the branch component
-                branch_component_name = WorkflowSequence.next_component_name(branch_req, branch_req.component_sequence)
-                raise "Cannot dispatch parallel branch #{branch_component_name}" unless schedule_request_forward(branch_req,
-                  branch_component_name,
-                  current_cluster,
-                  e.time,
-                  latency_manager)
-              end
-
-              # Move to next step after parallel block (use step_completed)
-              req.step_completed(0.0) # Duration 0 for parallel initiation
-
-              # Parent request waits for branches to complete
-              next
-            else
-              # Regular component processing
-              next_component_name = next_step_config[:name]
-            end
-
-            # http chained microservices
-            # if the current microservice is the one which the old was waiting, free the old container
-            raise "Cannot dispatch next component #{next_component_name}" unless schedule_request_forward(req,
-              next_component_name,
+            # Each branch starts with the branch component
+            branch_component_name = WorkflowSequence.next_component_name(branch_req, branch_req.component_sequence)
+            raise "Cannot dispatch parallel branch #{branch_component_name}" unless schedule_request_forward(branch_req,
+              branch_component_name,
               current_cluster,
               e.time,
-              latency_manager,
-              waiting_container: container)
-
-          else # workflow or branch sequence is finished
-            if req.parent_request
-              parent_req = req.parent_request
-
-              if req.is_parallel_branch? && parent_req.parallel_context
-                # Request#complete_parallel_branch (unit-tested in
-                # spec/kube_twin/request_spec.rb) owns the branch-count
-                # bookkeeping and reports back whether every branch is now
-                # in; scheduling the parent's resumption event is the one
-                # bit that still belongs here, since it needs @event_queue.
-                all_branches_completed = parent_req.complete_parallel_branch(req.branch_name, req, @current_time)
-                new_event(Event::ET_WORKFLOW_STEP_COMPLETED, parent_req, e.time, container) if all_branches_completed
-              elsif req.is_nested_call? && parent_req.nested_calls_active?
-                return_latency, = nested_return_latency(parent_req, req, latency_manager)
-                resume_time = e.time + return_latency
-
-                if parent_req.nested_calls_remaining?
-                  next_call = parent_req.next_nested_call
-                  trace_request(parent_req, "resuming after nested call #{req.branch_name}, next nested call #{next_call[:name]}")
-                  raise "Cannot dispatch nested call for #{parent_req.rid}" unless dispatch_nested_call(parent_req,
-                    next_call,
-                    resume_time,
-                    latency_manager)
-                else
-                  waiting_container = parent_req.finish_nested_calls
-                  trace_request(parent_req, "all nested calls completed for #{current_component_name || req.branch_name}, resuming parent")
-                  release_container_after_wait(waiting_container, resume_time)
-                  new_event(Event::ET_WORKFLOW_STEP_COMPLETED, parent_req, resume_time, waiting_container)
-                end
-              end
-              next
-            end
-
-            # calculate transmission time
-            transmission_time =
-              latency_manager.sample_latency_between(
-                # data center location
-                @cluster_repository[req.data_center_id].location_id,
-                # customer location
-                customer_repository.dig(req.customer_id, :location_id)
-              )
-
-            raise "Negative transmission time (#{transmission_time})!" unless transmission_time >= 0.0
-
-            # keep track of transmission time
-            req.update_transfer_time(transmission_time)
-
-            # schedule request closure
-            new_event(Event::ET_REQUEST_CLOSURE, req, e.time + transmission_time, nil)
+              @latency_manager)
           end
 
-        when Event::ET_REQUEST_CLOSURE
-          # retrieve request and vm
-          req = e.data
+          # Move to next step after parallel block (use step_completed)
+          req.step_completed(0.0) # Duration 0 for parallel initiation
 
-          # request is closed
-          req.finished_processing(e.time)
-          trace_request(req, "request closed; total_ttr=#{format("%.6f", req.ttr(@current_time))}")
-          # puts "#{req.arrival_time} #{now}"
-          if now >= @configuration.end_time
-            raise "Processing request after the simulation time current:#{now} end:#{@configuration.end_time}"
-          end
+          # Parent request waits for branches to complete
+          return
+        else
+          # Regular component processing
+          next_component_name = next_step_config[:name]
+        end
 
-          # update stats
-          if req.arrival_time > warmup_threshold && now < @configuration.end_time
-            # decrease the number of requests being worked on
-            requests_being_worked_on -= 1
+        # http chained microservices
+        # if the current microservice is the one which the old was waiting, free the old container
+        raise "Cannot dispatch next component #{next_component_name}" unless schedule_request_forward(req,
+          next_component_name,
+          current_cluster,
+          e.time,
+          @latency_manager,
+          waiting_container: container)
 
-            # collect request statistics
-            stats.record_request(req, @current_time)
+      else # workflow or branch sequence is finished
+        if req.parent_request
+          parent_req = req.parent_request
 
-            # collect request statistics in per_workflow_and_customer_stats
-            per_workflow_and_customer_stats[req.workflow_type_id][req.customer_id].record_request(req, @current_time)
-            # @benchmark << "#{req.rid},#{req.ttr(@current_time)}\n"
-          end
+          if req.is_parallel_branch? && parent_req.parallel_context
+            # Request#complete_parallel_branch (unit-tested in
+            # spec/kube_twin/request_spec.rb) owns the branch-count
+            # bookkeeping and reports back whether every branch is now
+            # in; scheduling the parent's resumption event is the one
+            # bit that still belongs here, since it needs @event_queue.
+            all_branches_completed = parent_req.complete_parallel_branch(req.branch_name, req, @current_time)
+            new_event(Event::ET_WORKFLOW_STEP_COMPLETED, parent_req, e.time, container) if all_branches_completed
+          elsif req.is_nested_call? && parent_req.nested_calls_active?
+            return_latency, = nested_return_latency(parent_req, req, @latency_manager)
+            resume_time = e.time + return_latency
 
-        # schedule generation of next request
-        # here we want also to cut the number of requests
-        # for fitting
-        # if @current_time < cooldown_treshold && stats.n < @num_reqs
-        #  req_attrs = rg.generate(@current_time)
-        #  new_event(Event::ET_REQUEST_GENERATION, req_attrs, req_attrs[:generation_time], nil)
-        # end
-
-        when Event::ET_HPA_CONTROL
-          hname, hpa = e.data
-          # is computed by taking the average of the given metric across
-          # all Pods in the HorizontalPodAutoscaler's scale target
-          # retrieve desired replica_set ...
-          # puts hname
-
-          s = @services[hpa.name]
-
-          raise "Impossible to retrieve s" if s.nil?
-
-          # improve this initialization
-          # right now it is terrible (okay for MVP)
-          service_time_rv = s.pods[s.selector].sample(random: @rng).container.service_time
-
-          # The desired/current metric math itself now lives in
-          # HorizontalPodAutoscaler#desired_metric / #average_processing_metric
-          # (pure, unit-tested in spec/kube_twin/horizontal_pod_autoscaler_spec.rb)
-          # -- KSimulation's job is just to pull the live RV and the
-          # per-pod (served_request, total_queue_processing_time) snapshot
-          # out of the real Pod/Container objects, and to reset each
-          # container's metrics as it does (a mutation, so it stays here).
-          desired_metric = hpa.desired_metric(service_time_rv)
-
-          pod_metrics = s.pods[hpa.name].map do |pod|
-            served_request = pod.container.served_request
-            total_queue_processing_time = pod.container.total_queue_processing_time
-            # reset container metric (calculated fresh each control period)
-            # -- only when there's something to reset, same as the
-            # original inline loop's `next if served_request.zero?` guard
-            pod.container.reset_metrics unless served_request.zero?
-            [served_request, total_queue_processing_time]
-          end
-          pods = pod_metrics.length
-          current_metric = hpa.average_processing_metric(pod_metrics)
-
-          puts "**** Horizontal Pod Autoscaling ****"
-          puts "#{hpa.name} pods: #{pods} average processing_time: #{current_metric} desired_metric: #{desired_metric}"
-          puts "************************************"
-
-          if pods == 0
-            puts "Ending the simulation!"
-            # break
-            # new_event(Event::ET_END_OF_SIMULATION, nil, now, nil)
-            next
-          end
-
-          # The scale-up/scale-down decision itself now lives in
-          # HorizontalPodAutoscaler#decide_scaling (pure, unit-tested in
-          # spec/kube_twin/horizontal_pod_autoscaler_spec.rb) -- everything
-          # below stays here because it needs KubeScheduler, Pod, and
-          # Service, which the decision doesn't.
-          decision = hpa.decide_scaling(pods, current_metric, desired_metric)
-          @logger.debug "pods: #{pods} decision: #{decision}"
-
-          case decision[:action]
-          when :scale_up
-            rs = @replica_sets[hname]
-            # NOTE: target_replicas is the *unclamped* desired replica
-            # count, even when to_scale (the number of pods actually
-            # created below) was clamped at hpa.max_replicas -- preserved
-            # verbatim from the original inline behavior, not changed here.
-            rs.set_replicas(decision[:target_replicas])
-
-            # then create the replicas
-            decision[:to_scale].times do
-              selector = rs.selector
-              sct = @microservice_types[selector]
-              reqs_c = sct[:resources_requirements_cpu]
-              reqs_m = sct[:resources_requirements_memory]
-
-              node_affinity = sct[:node_affinity]
-              node = @kube_scheduler.get_node(reqs_c, reqs_m, node_affinity)
-
-              break if node.nil? # check here --- what happens if no nodes are available
-
-              pod = Pod.new(pod_id, "#{selector}_#{pod_id}", node, selector, sct, stream_seeds: @stream_seeds)
-              pod.startUpPod
-              # assign resources for the pod
-              node.assign_resources(pod, reqs_c, reqs_m)
-              s.assignPod(pod)
-              pod_id += 1
-            end
-          when :scale_down
-            # we need to select some pods to terminate
-            # deal with requests currently being processed
-            # NOTE: unlike scale_up, nothing here updates the replica_set's
-            # recorded replica count -- the original code never did on this
-            # path either.
-            ppl = s.pods[hpa.name].sample(decision[:to_scale], random: @rng)
-            ppl.each do |p|
-              p.deactivate_pod
-              s.delete_pod(s.selector, p)
+            if parent_req.nested_calls_remaining?
+              next_call = parent_req.next_nested_call
+              trace_request(parent_req, "resuming after nested call #{req.branch_name}, next nested call #{next_call[:name]}")
+              raise "Cannot dispatch nested call for #{parent_req.rid}" unless dispatch_nested_call(parent_req,
+                next_call,
+                resume_time,
+                @latency_manager)
+            else
+              waiting_container = parent_req.finish_nested_calls
+              trace_request(parent_req, "all nested calls completed for #{current_component_name || req.branch_name}, resuming parent")
+              release_container_after_wait(waiting_container, resume_time)
+              new_event(Event::ET_WORKFLOW_STEP_COMPLETED, parent_req, resume_time, waiting_container)
             end
           end
+          return
+        end
 
-          # schedule next control
-          if @current_time + hpa.period_seconds < cooldown_treshold
-            new_event(Event::ET_HPA_CONTROL, [hname, hpa], @current_time + hpa.period_seconds, nil)
-          end
+        # calculate transmission time
+        transmission_time =
+          @latency_manager.sample_latency_between(
+            # data center location
+            @cluster_repository[req.data_center_id].location_id,
+            # customer location
+            @customer_repository.dig(req.customer_id, :location_id)
+          )
 
-        when Event::ET_END_OF_SIMULATION
-          # FOR NOW KEEP PROCESSING REQUEST
-          # puts "#{e.time}: end simulation"
-          e = @event_queue.shift until @event_queue.empty?
+        raise "Negative transmission time (#{transmission_time})!" unless transmission_time >= 0.0
 
-          # print some stats (useful to track simulation data)
-        when Event::ET_STATS_PRINT
+        # keep track of transmission time
+        req.update_transfer_time(transmission_time)
 
-          # calculate the number of pods
-          pods_n = ""
-          @services.each do |k, s|
-            pods_number = s.pods[s.selector].length
-            pods_n += "#{k}: #{pods_number} "
-            # @allocation_bench << "#{now},#{k},#{hpa_component_stats[k].received},#{hpa_component_stats[k].mean},#{pods_number}\n"
-            # puts "#{now},#{k},#{hpa_component_stats[k].received},#{hpa_component_stats[k].mean},#{pods_number}\n"
-            # just to print the allocation map
-          end
+        # schedule request closure
+        new_event(Event::ET_REQUEST_CLOSURE, req, e.time + transmission_time, nil)
+      end
+    end
 
-          # puts "++++++++++++++++\n"+
-          # "#{now}\n" +
-          # "#{stats.to_s}\n" +
-          # "workflow_stats: #{per_workflow_and_customer_stats.to_s}\n"+
-          # "component_stats: #{hpa_component_stats.to_s}\n"+
-          # ls"#{pods_n}"
+    def handle_request_closure(e)
+      # retrieve request and vm
+      req = e.data
 
-          # reset also comoponent statistics
+      # request is closed
+      req.finished_processing(e.time)
+      trace_request(req, "request closed; total_ttr=#{format("%.6f", req.ttr(@current_time))}")
+      # puts "#{req.arrival_time} #{now}"
+      if now >= @configuration.end_time
+        raise "Processing request after the simulation time current:#{now} end:#{@configuration.end_time}"
+      end
 
-          hpa_component_stats = @microservice_types.keys.map do |m_id|
-            [
-              m_id,
-              ComponentStatistics.new
-            ]
-          end.to_h
+      # update stats
+      if req.arrival_time > @warmup_threshold && now < @configuration.end_time
+        # decrease the number of requests being worked on
+        @requests_being_worked_on -= 1
 
-          next_event_time = @current_time + @stats_print_interval
+        # collect request statistics
+        @stats.record_request(req, @current_time)
 
-          if (next_event_time < cooldown_treshold) && !@stats_print_interval.nil? && !@stats_print_interval.nil?
-            new_event(Event::ET_STATS_PRINT, nil, @current_time + @stats_print_interval,
-              nil)
-          end
+        # collect request statistics in per_workflow_and_customer_stats
+        @per_workflow_and_customer_stats[req.workflow_type_id][req.customer_id].record_request(req, @current_time)
+        # @benchmark << "#{req.rid},#{req.ttr(@current_time)}\n"
+      end
+    end
 
-        when Event::ET_ALLOCATE_NODE
-          new_node, target_cluster = e.data
-          # target_cluster.node_number += 1
-          target_cluster.add_node(new_node)
-          puts "New Node Allocated: node_id: #{new_node.node_id} in cluster #{target_cluster.cluster_id} at time #{e.time}"
+    def handle_hpa_control(e)
+      hname, hpa = e.data
+      # is computed by taking the average of the given metric across
+      # all Pods in the HorizontalPodAutoscaler's scale target
+      # retrieve desired replica_set ...
+      # puts hname
 
-        when Event::ET_DEALLOCATE_NODE
-          new_node, target_cluster = e.data
-          # target_cluster.node_number += 1
-          target_cluster.remove_node(new_node)
-          puts "Node Deallocated: node_id: #{new_node.node_id} in cluster #{target_cluster.cluster_id} at time #{e.time}"
+      s = @services[hpa.name]
 
+      raise "Impossible to retrieve s" if s.nil?
+
+      # improve this initialization
+      # right now it is terrible (okay for MVP)
+      service_time_rv = s.pods[s.selector].sample(random: @rng).container.service_time
+
+      # The desired/current metric math itself now lives in
+      # HorizontalPodAutoscaler#desired_metric / #average_processing_metric
+      # (pure, unit-tested in spec/kube_twin/horizontal_pod_autoscaler_spec.rb)
+      # -- KSimulation's job is just to pull the live RV and the
+      # per-pod (served_request, total_queue_processing_time) snapshot
+      # out of the real Pod/Container objects, and to reset each
+      # container's metrics as it does (a mutation, so it stays here).
+      desired_metric = hpa.desired_metric(service_time_rv)
+
+      pod_metrics = s.pods[hpa.name].map do |pod|
+        served_request = pod.container.served_request
+        total_queue_processing_time = pod.container.total_queue_processing_time
+        # reset container metric (calculated fresh each control period)
+        # -- only when there's something to reset, same as the
+        # original inline loop's `next if served_request.zero?` guard
+        pod.container.reset_metrics unless served_request.zero?
+        [served_request, total_queue_processing_time]
+      end
+      pods = pod_metrics.length
+      current_metric = hpa.average_processing_metric(pod_metrics)
+
+      puts "**** Horizontal Pod Autoscaling ****"
+      puts "#{hpa.name} pods: #{pods} average processing_time: #{current_metric} desired_metric: #{desired_metric}"
+      puts "************************************"
+
+      if pods == 0
+        puts "Ending the simulation!"
+        # break
+        # new_event(Event::ET_END_OF_SIMULATION, nil, now, nil)
+        return
+      end
+
+      # The scale-up/scale-down decision itself now lives in
+      # HorizontalPodAutoscaler#decide_scaling (pure, unit-tested in
+      # spec/kube_twin/horizontal_pod_autoscaler_spec.rb) -- everything
+      # below stays here because it needs KubeScheduler, Pod, and
+      # Service, which the decision doesn't.
+      decision = hpa.decide_scaling(pods, current_metric, desired_metric)
+      @logger.debug "pods: #{pods} decision: #{decision}"
+
+      case decision[:action]
+      when :scale_up
+        rs = @replica_sets[hname]
+        # NOTE: target_replicas is the *unclamped* desired replica
+        # count, even when to_scale (the number of pods actually
+        # created below) was clamped at hpa.max_replicas -- preserved
+        # verbatim from the original inline behavior, not changed here.
+        rs.set_replicas(decision[:target_replicas])
+
+        # then create the replicas
+        decision[:to_scale].times do
+          selector = rs.selector
+          sct = @microservice_types[selector]
+          reqs_c = sct[:resources_requirements_cpu]
+          reqs_m = sct[:resources_requirements_memory]
+
+          node_affinity = sct[:node_affinity]
+          node = @kube_scheduler.get_node(reqs_c, reqs_m, node_affinity)
+
+          break if node.nil? # check here --- what happens if no nodes are available
+
+          pod = Pod.new(@next_pod_id, "#{selector}_#{@next_pod_id}", node, selector, sct, stream_seeds: @stream_seeds)
+          pod.startUpPod
+          # assign resources for the pod
+          node.assign_resources(pod, reqs_c, reqs_m)
+          s.assignPod(pod)
+          @next_pod_id += 1
+        end
+      when :scale_down
+        # we need to select some pods to terminate
+        # deal with requests currently being processed
+        # NOTE: unlike scale_up, nothing here updates the replica_set's
+        # recorded replica count -- the original code never did on this
+        # path either.
+        ppl = s.pods[hpa.name].sample(decision[:to_scale], random: @rng)
+        ppl.each do |p|
+          p.deactivate_pod
+          s.delete_pod(s.selector, p)
         end
       end
 
+      # schedule next control
+      if @current_time + hpa.period_seconds < @cooldown_threshold
+        new_event(Event::ET_HPA_CONTROL, [hname, hpa], @current_time + hpa.period_seconds, nil)
+      end
+    end
+
+    def handle_end_of_simulation(e)
+      # FOR NOW KEEP PROCESSING REQUEST
+      # puts "#{e.time}: end simulation"
+      @event_queue.shift until @event_queue.empty?
+    end
+
+    def handle_stats_print(e)
+      # calculate the number of pods
+      pods_n = ""
+      @services.each do |k, s|
+        pods_number = s.pods[s.selector].length
+        pods_n += "#{k}: #{pods_number} "
+        # @allocation_bench << "#{now},#{k},#{hpa_component_stats[k].received},#{hpa_component_stats[k].mean},#{pods_number}\n"
+        # puts "#{now},#{k},#{hpa_component_stats[k].received},#{hpa_component_stats[k].mean},#{pods_number}\n"
+        # just to print the allocation map
+      end
+
+      # puts "++++++++++++++++\n"+
+      # "#{now}\n" +
+      # "#{stats.to_s}\n" +
+      # "workflow_stats: #{per_workflow_and_customer_stats.to_s}\n"+
+      # "component_stats: #{hpa_component_stats.to_s}\n"+
+      # ls"#{pods_n}"
+
+      # reset also comoponent statistics
+
+      @hpa_component_stats = @microservice_types.keys.map do |m_id|
+        [
+          m_id,
+          ComponentStatistics.new
+        ]
+      end.to_h
+
+      next_event_time = @current_time + @stats_print_interval
+
+      if (next_event_time < @cooldown_threshold) && !@stats_print_interval.nil? && !@stats_print_interval.nil?
+        new_event(Event::ET_STATS_PRINT, nil, @current_time + @stats_print_interval,
+          nil)
+      end
+    end
+
+    def handle_allocate_node(e)
+      new_node, target_cluster = e.data
+      # target_cluster.node_number += 1
+      target_cluster.add_node(new_node)
+      puts "New Node Allocated: node_id: #{new_node.node_id} in cluster #{target_cluster.cluster_id} at time #{e.time}"
+    end
+
+    def handle_deallocate_node(e)
+      new_node, target_cluster = e.data
+      # target_cluster.node_number += 1
+      target_cluster.remove_node(new_node)
+      puts "Node Deallocated: node_id: #{new_node.node_id} in cluster #{target_cluster.cluster_id} at time #{e.time}"
+    end
+
+    # Summarizes the finished run: allocation, costs, spreading and policy
+    # penalties, combined into the weighted sum evaluate_allocation returns
+    # (negated).
+    def wind_down
       # puts "========== Simulation Finished =========="
       # puts "Finished after #{now - @configuration.end_time}"
 
@@ -1192,9 +1221,9 @@ module KUBETWIN
       # TODO: -- IMPLEMENT COST EVALUATION HERE
       # costs = @evaluator.evaluate_fixed_costs_cpu(vm_allocation)
       puts "====== Evaluating new allocation ======\n" \
-        "stats: #{stats}\n" +
+        "stats: #{@stats}\n" +
         # "per_workflow_and_customer_stats: #{per_workflow_and_customer_stats}\n" +
-        "component_stats: #{per_component_stats}\n" \
+        "component_stats: #{@per_component_stats}\n" \
         "allocation_map: #{allocation_map}\n" \
         "node_utilization: #{node_utilization}\n" \
         "costs: #{costs.round(2)} per day\n" \
@@ -1288,14 +1317,14 @@ module KUBETWIN
 
       File.write("final_allocation.json", JSON.pretty_generate(bmap))
 
-      mean_ttr = stats.mean
+      mean_ttr = @stats.mean
       # weighted_sum = mean_ttr + normalize_objective(replication_penalties, 0,
       #                                              mean_ttr) + normalize_objective(saturation_penalties, 0, mean_ttr)
       weighted_sum = mean_ttr + # normalize_objective(resource_gini, 0, mean_ttr) +
         normalize_objective(replica_spreading, 0, mean_ttr) # +
       # normalize_objective(saturation_penalties, 0, mean_ttr)
 
-      per_component_stats.each do |k, v|
+      @per_component_stats.each do |k, v|
         # misconfiguration from TOSCA
         next if v.closed == 0
 
@@ -1317,7 +1346,7 @@ module KUBETWIN
 
       # Let's do the same for the workflow and customer stats
       @logger.info "Calculating chain and customer stats"
-      per_chain_and_customer_stats.each do |wft_id, cust_stats|
+      @per_chain_and_customer_stats.each do |wft_id, cust_stats|
         @logger.info "  Workflow Type: #{wft_id}"
         cust_stats.each do |c_id, stats_wc|
           # @logger.debug "Looking for #{wft_id} #{c_id}"
@@ -1326,7 +1355,7 @@ module KUBETWIN
           chain_penalty = 0
           # @logger.debug "Calculating stats for workflow type #{wft_id} customer #{c_id} - #{per_workflow_and_customer_stats[wft_id][c_id]}"
           chain_penalty += stats_wc.longer_than.inject(0.0) do |sum, (key, value)|
-            @logger.info "Workflow Type: #{wft_id} Customer: #{c_id} Longer than #{key} s: #{value} closed: #{per_workflow_and_customer_stats[wft_id][c_id].closed} TTR: #{stats_wc.mean}"
+            @logger.info "Workflow Type: #{wft_id} Customer: #{c_id} Longer than #{key} s: #{value} closed: #{@per_workflow_and_customer_stats[wft_id][c_id].closed} TTR: #{stats_wc.mean}"
             # next if per_workflow_and_customer_stats[wft_id][c_id].closed.nil? || per_workflow_and_customer_stats[wft_id][c_id].closed.nil?
             penalty_value = (stats_wc.closed.to_f > 0) ? (value / stats_wc.closed.to_f) * 10 : 0
             @logger.info "penalty value: #{penalty_value}"
@@ -1338,9 +1367,9 @@ module KUBETWIN
       end
 
       ## Add the availability policy
-      if availability_policy
-        closed_percentage = (stats.closed.to_f / stats.received.to_f) # We scale penalty to 10 factor
-        availability_penalty = (closed_percentage < availability_policy) ? (closed_percentage - availability_policy) * 10 : 0
+      if @availability_policy
+        closed_percentage = (@stats.closed.to_f / @stats.received.to_f) # We scale penalty to 10 factor
+        availability_penalty = (closed_percentage < @availability_policy) ? (closed_percentage - @availability_policy) * 10 : 0
         puts "Availability penalty: #{availability_penalty} closed_percentage: #{closed_percentage} availability"
         weighted_sum += normalize_objective(availability_penalty, 0, mean_ttr)
       end
@@ -1352,6 +1381,8 @@ module KUBETWIN
       @last_bmap = Marshal.load(Marshal.dump(bmap)) # Deep copy of bmap for external access
       -weighted_sum
     end
+
+    public
 
     def retrieve_mdn_model(service_name, rps)
       return nil unless @microservice_mdn[service_name]
