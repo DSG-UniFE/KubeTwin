@@ -9,7 +9,8 @@ module KUBETWIN
 
     attr_reader :service_name,
       :selector,
-      :pods
+      :pods,
+      :cluster_weights
 
     # , :targetPort
 
@@ -35,10 +36,22 @@ module KUBETWIN
       @pods[pod_label] ||= []
       raise "Error! Pod is already present!" if @pods[pod_label].include? pod
 
+      @pods_by_cluster = nil
       @pods[pod.label] << pod if @selector == pod.label
     end
 
+    # Routes requests among clusters in proportion to `weights` (cluster id
+    # => non-negative number), then to a random pod within the chosen
+    # cluster. Clusters without a weight get none. If no cluster with a
+    # positive weight has pods, requests go to a random pod, as without
+    # weights. nil (or {}) restores the configured load balancing.
+    def cluster_weights=(weights)
+      @cluster_weights = (weights.nil? || weights.empty?) ? nil : weights.dup.freeze
+    end
+
     def get_pod(label)
+      return get_weighted_pod(label) if @cluster_weights
+
       if @load_balancing == :random
         pod = get_random_pod(label, random: @random)
       elsif (pod = get_pod_rr(label))
@@ -69,7 +82,24 @@ module KUBETWIN
 
     def delete_pod(label, pod)
       @rri = 0
+      @pods_by_cluster = nil
       @pods[label].delete pod
+    end
+
+    private
+
+    def get_weighted_pod(label)
+      pods = @pods[label]
+      return if pods.nil? || pods.empty?
+
+      @pods_by_cluster ||= pods.group_by { |pod| pod.node.cluster_id }
+      clusters = @pods_by_cluster.keys.select { |c| @cluster_weights.fetch(c, 0).positive? }
+      return get_random_pod(label, random: @random) if clusters.empty?
+
+      draw = (@random ? @random.rand : rand) * clusters.sum { |c| @cluster_weights[c] }
+      cluster = clusters.find { |c| (draw -= @cluster_weights[c]) < 0 } || clusters.last
+      candidates = @pods_by_cluster[cluster]
+      @random ? candidates.sample(random: @random) : candidates.sample
     end
   end
 end

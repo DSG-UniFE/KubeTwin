@@ -14,6 +14,7 @@ module KUBETWIN
   # A step can carry actions, applied at its start:
   #
   #   twin.step([KUBETWIN::Twin::ScaleReplicas.new(service: "reviews", cluster: "rome", replicas: 3)])
+  #   twin.step([KUBETWIN::Twin::Route.new(service: "reviews", weights: {"rome" => 3, "milan" => 1})])
   #   twin.last_rejected         # => [] or [[action, reason], ...]
   #
   # After each step, #observe summarizes it (see KSimulation#observation).
@@ -31,10 +32,16 @@ module KUBETWIN
     # configuration).
     ScaleReplicas = Data.define(:service, :cluster, :replicas)
 
+    # Route requests to `service` among clusters in proportion to `weights`
+    # ({cluster => weight}; clusters left out get none). {} restores the
+    # configured load balancing. See KSimulation#route.
+    Route = Data.define(:service, :weights)
+
     attr_reader :configuration, :decision_interval, :simulation
 
     # The actions the last #step rejected, as [action, reason] pairs (see
-    # KSimulation#scale_replicas_rejection for the reasons).
+    # KSimulation#scale_replicas_rejection and #route_rejection for the
+    # reasons; anything that isn't an action is :unknown_action).
     attr_reader :last_rejected
 
     # slos: workflow id => p95 response-time objective in ms, for the
@@ -101,6 +108,12 @@ module KUBETWIN
       rejection(action).nil?
     end
 
+    # The cluster weights `service`'s requests are routed with, or nil.
+    def routing(service)
+      ensure_reset!
+      @simulation.routing(service)
+    end
+
     # How many pods of `service` run in `cluster` now.
     def replicas(service, cluster)
       ensure_reset!
@@ -136,6 +149,7 @@ module KUBETWIN
     def apply(action)
       case action
       when ScaleReplicas then @simulation.scale_replicas(action.service, action.cluster, action.replicas)
+      when Route then @simulation.route(action.service, action.weights)
       else :unknown_action
       end
     end
@@ -143,6 +157,7 @@ module KUBETWIN
     def rejection(action)
       case action
       when ScaleReplicas then @simulation.scale_replicas_rejection(action.service, action.cluster, action.replicas)
+      when Route then @simulation.route_rejection(action.service, action.weights)
       else :unknown_action
       end
     end

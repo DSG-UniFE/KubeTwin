@@ -264,6 +264,44 @@ module KUBETWIN
       nil
     end
 
+    # The cluster weights requests to `service` are routed with ({cluster
+    # id => weight}), or nil when they follow the configured load
+    # balancing.
+    def routing(service)
+      s = find_service(service) or raise ArgumentError, "unknown service #{service.inspect}"
+      s.cluster_weights
+    end
+
+    # Why routing `service`'s requests with `weights` would be rejected, or
+    # nil when it can be applied: :unknown_service, :unknown_cluster, or
+    # :invalid_weights (not a Hash of finite non-negative numbers, or all
+    # zero).
+    def route_rejection(service, weights)
+      return :unknown_service unless find_service(service)
+      return nil if weights.nil?
+      return :invalid_weights unless weights.is_a?(Hash)
+      return :unknown_cluster unless weights.keys.all? { |c| find_cluster_key(c) }
+      return :invalid_weights unless weights.values.all? { |w| w.is_a?(Numeric) && w.finite? && w >= 0 }
+      return :invalid_weights if weights.any? && weights.values.none?(&:positive?)
+
+      nil
+    end
+
+    # Routes requests to `service` among clusters in proportion to
+    # `weights` (cluster => non-negative weight; clusters left out get
+    # none), from now on: each request picks a cluster by weight, then one
+    # of that cluster's pods at random. When no weighted cluster has pods,
+    # requests go to any pod at random. nil or {} restores the configured
+    # load balancing. Returns nil when applied, otherwise the rejection
+    # reason (see #route_rejection) and changes nothing.
+    def route(service, weights)
+      reason = route_rejection(service, weights)
+      return reason if reason
+
+      find_service(service).cluster_weights = weights&.to_h { |c, w| [find_cluster_key(c), w] }
+      nil
+    end
+
     # A snapshot of the simulation summarizing the last `duration` simulated
     # seconds (everything since the previous call), shaped like
     # continuum-twin's Continuum::Observation: {time:, locations:, links:,

@@ -241,6 +241,93 @@ describe KUBETWIN::Twin do
     end
   end
 
+  describe "Route" do
+    def bookinfo
+      KUBETWIN::Configuration.load_from_file(File.join(Characterization::ROOT, "examples", "bookinfo-3c-xr.conf"))
+    end
+
+    def reviews_arrivals(twin)
+      twin.observe[:placements].select { |p| p[:service] == "reviews" }
+        .to_h { |p| [p[:location], p[:features][:arrival_rate]] }
+    end
+
+    def route(weights)
+      KUBETWIN::Twin::Route.new(service: "reviews", weights:)
+    end
+
+    # reviews with 2 pods in cluster1 and 2 in cluster2edge.
+    def split_twin
+      twin = KUBETWIN::Twin.new(bookinfo, decision_interval: 30.0)
+      twin.reset
+      twin.step([
+        KUBETWIN::Twin::ScaleReplicas.new(service: "reviews", cluster: "cluster1", replicas: 2),
+        KUBETWIN::Twin::ScaleReplicas.new(service: "reviews", cluster: "cluster2edge", replicas: 2)
+      ])
+      _(twin.last_rejected).must_equal []
+      twin
+    end
+
+    it "sends requests to clusters in proportion to the weights" do
+      in_scratch_directory do
+        twin = split_twin
+        twin.step([route({"cluster2edge" => 1})])
+        _(twin.last_rejected).must_equal []
+        _(twin.routing("reviews")).must_equal({cluster2edge: 1})
+        arrivals = reviews_arrivals(twin)
+        _(arrivals[:cluster1]).must_equal 0.0
+        _(arrivals[:cluster2edge]).must_be :>, 0
+
+        twin.step([route({cluster1: 1, cluster2edge: 3})])
+        arrivals = reviews_arrivals(twin)
+        _(arrivals[:cluster2edge] / (arrivals[:cluster1] + arrivals[:cluster2edge])).must_be_within_delta 0.75, 0.05
+      end
+    end
+
+    it "restores the configured load balancing with empty weights" do
+      in_scratch_directory do
+        twin = split_twin
+        twin.step([route({cluster1: 1})])
+        twin.step([route({})])
+        _(twin.routing("reviews")).must_be_nil
+        arrivals = reviews_arrivals(twin)
+        _(arrivals[:cluster1]).must_be :>, 0
+        _(arrivals[:cluster2edge]).must_be :>, 0
+      end
+    end
+
+    it "falls back to any pod when no weighted cluster has pods" do
+      in_scratch_directory do
+        twin = split_twin
+        twin.step([route({cluster3edge: 1})])
+        arrivals = reviews_arrivals(twin)
+        _(arrivals[:cluster1]).must_be :>, 0
+        _(arrivals[:cluster2edge]).must_be :>, 0
+        _(arrivals[:cluster3edge]).must_equal 0.0
+      end
+    end
+
+    it "rejects routes it can't apply, and changes nothing for them" do
+      in_scratch_directory do
+        twin = KUBETWIN::Twin.new(bookinfo, decision_interval: 30.0)
+        twin.reset
+        actions = [
+          KUBETWIN::Twin::Route.new(service: "nonexistent", weights: {cluster1: 1}),
+          route({nowhere: 1}),
+          route({cluster1: -1}),
+          route({cluster1: 0, cluster2edge: 0}),
+          route({cluster1: Float::NAN}),
+          route({cluster1: "1"}),
+          route([[:cluster1, 1]])
+        ]
+        _(actions.map { |a| twin.feasible?(a) }.uniq).must_equal [false]
+        twin.step(actions)
+        _(twin.last_rejected.map(&:last)).must_equal %i[unknown_service unknown_cluster invalid_weights
+          invalid_weights invalid_weights invalid_weights invalid_weights]
+        _(twin.routing("reviews")).must_be_nil
+      end
+    end
+  end
+
   it "needs a reset before stepping, and a positive decision interval" do
     _ { KUBETWIN::Twin.new(configuration).step }.must_raise RuntimeError
     _ { KUBETWIN::Twin.new(configuration, decision_interval: 0) }.must_raise ArgumentError
