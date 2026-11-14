@@ -74,13 +74,18 @@ compreso).
 
 ### Come le lancia Bologna (ragbench, tracce dai log)
 
+Il file e le istruzioni complete per Bologna sono nel repo ragbench (commit
+0d67ed7): `allocations/kubetwin_3c_4rps.json` e la sezione del README
+"Multi-cluster runs: optimizer allocations" (setup Liqo, controlli,
+run). In sintesi:
+
 ```
 cp clusters.example.json clusters.json      # cluster-id Liqo veri
 python -m ragbench.calibrate                # + --cluster cluster2edge/3edge --out ...
 export RAGBENCH_TARGET=http://<nodo cluster1>:30090/api/v1
 python -m ragbench.run vector_remote 1,2 --request-fraction 0.5
 for s in 39 46 8 48 1; do
-  python -m ragbench.run solution_$s 4 --allocation allocations_bologna_rps4.json --request-fraction 0.5
+  python -m ragbench.run solution_$s 4 --allocation kubetwin_3c_4rps.json --request-fraction 0.5
 done
 ```
 
