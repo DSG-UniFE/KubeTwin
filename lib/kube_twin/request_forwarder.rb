@@ -38,7 +38,9 @@ module KUBETWIN
     # service registered for it, or no pod currently assigned to it (the
     # two "can't route this" cases the original inline code handled by
     # returning false).
-    def route(component_name, source_location_id, latency_manager, base_time)
+    # `messaging` answers #message_delay(source, destination, time:,
+    # bytes:) (KSimulation passes its Messaging).
+    def route(component_name, source_location_id, messaging, base_time, bytes: 0)
       service = @kube_dns.lookup(component_name)
       return nil if service.nil?
 
@@ -46,7 +48,7 @@ module KUBETWIN
       return nil if pod.nil?
 
       cluster = @cluster_repository[pod.node.cluster_id]
-      transmission_time = latency_manager.sample_latency_between(source_location_id, cluster.location_id)
+      transmission_time = messaging.message_delay(source_location_id, cluster.location_id, time: base_time, bytes:)
 
       Route.new(pod, cluster, transmission_time, base_time + transmission_time)
     end

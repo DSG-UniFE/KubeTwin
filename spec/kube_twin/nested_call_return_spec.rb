@@ -57,10 +57,10 @@ describe KUBETWIN::NestedCallReturn do
 
       cluster_repository = {cluster_child.cluster_id => cluster_child, cluster_parent.cluster_id => cluster_parent}
       resolver = KUBETWIN::NestedCallReturn.new(cluster_repository: cluster_repository)
-      latency_manager = Object.new
-      latency_manager.define_singleton_method(:sample_latency_between) { |_src, _dst| 0.042 }
+      messaging = Object.new
+      messaging.define_singleton_method(:message_delay) { |_src, _dst, time:, bytes:| 0.042 }
 
-      result = resolver.resolve(parent_container, cluster_child.cluster_id, latency_manager)
+      result = resolver.resolve(parent_container, cluster_child.cluster_id, messaging)
 
       _(result).wont_be_nil
       _(result.latency).must_equal 0.042
@@ -80,13 +80,13 @@ describe KUBETWIN::NestedCallReturn do
 
       seen_args = nil
       spy = Object.new
-      spy.define_singleton_method(:sample_latency_between) do |src, dst|
-        seen_args = [src, dst]
+      spy.define_singleton_method(:message_delay) do |src, dst, time:, bytes:|
+        seen_args = [src, dst, time, bytes]
         0.1
       end
 
-      resolver.resolve(parent_container, cluster_child.cluster_id, spy)
-      _(seen_args).must_equal [11, 22]
+      resolver.resolve(parent_container, cluster_child.cluster_id, spy, time: 4.0, bytes: 64)
+      _(seen_args).must_equal [11, 22, 4.0, 64]
     end
   end
 end

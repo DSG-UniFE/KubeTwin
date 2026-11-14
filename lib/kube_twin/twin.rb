@@ -45,15 +45,19 @@ module KUBETWIN
     attr_reader :last_rejected
 
     # slos: workflow id => p95 response-time objective in ms, for the
-    # observation's slo_violation_rate.
+    # observation's slo_violation_rate. network, retransmission: as for
+    # KSimulation (a network model, or something that builds one per
+    # #reset; Messaging's {timeout:, max_attempts:}).
     def initialize(configuration, decision_interval: DEFAULT_DECISION_INTERVAL, logger: Logger.new(File::NULL),
-      slos: {})
+      slos: {}, network: nil, retransmission: {})
       raise ArgumentError, "decision_interval must be positive" unless decision_interval.positive?
 
       @configuration = configuration
       @decision_interval = decision_interval.to_f
       @logger = logger
       @slos = slos
+      @network = network
+      @retransmission = retransmission
       @last_rejected = []
     end
 
@@ -61,7 +65,7 @@ module KUBETWIN
     # warm-up. Returns #now (0.0).
     def reset
       @simulation = KSimulation.new(configuration: @configuration, evaluator: Evaluator.new(@configuration),
-        logger: @logger, observe: true)
+        logger: @logger, observe: true, network: @network, retransmission: @retransmission)
       raise UnfeasibleAllocation, "the initial pods can't all be placed" if @simulation.reset
 
       @origin = @simulation.warmup_threshold

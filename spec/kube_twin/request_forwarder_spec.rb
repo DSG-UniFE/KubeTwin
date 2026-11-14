@@ -62,7 +62,7 @@ describe KUBETWIN::RequestForwarder do
 
   describe "#route" do
     it "returns nil when no service is registered for the component name" do
-      # a bare Object.new as the latency_manager (no sample_latency_between
+      # a bare Object.new as the messaging (no message_delay
       # defined) doubles as proof that this path returns before ever
       # touching it -- calling it would raise NoMethodError
       kube_dns = KUBETWIN::KubeDns.new
@@ -90,11 +90,11 @@ describe KUBETWIN::RequestForwarder do
 
       cluster_repository = {cluster_b.cluster_id => cluster_b}
       forwarder = KUBETWIN::RequestForwarder.new(kube_dns: kube_dns, cluster_repository: cluster_repository)
-      latency_manager = Object.new
-      latency_manager.define_singleton_method(:sample_latency_between) { |_src, _dst| 0.025 }
+      messaging = Object.new
+      messaging.define_singleton_method(:message_delay) { |_src, _dst, time:, bytes:| 0.025 }
 
       source_location_id = 0
-      result = forwarder.route("reviews", source_location_id, latency_manager, 100.0)
+      result = forwarder.route("reviews", source_location_id, messaging, 100.0)
 
       _(result).wont_be_nil
       _(result.pod).must_be_same_as pod
@@ -111,17 +111,17 @@ describe KUBETWIN::RequestForwarder do
 
       cluster_repository = {cluster_a.cluster_id => cluster_a}
       forwarder = KUBETWIN::RequestForwarder.new(kube_dns: kube_dns, cluster_repository: cluster_repository)
-      latency_manager = Object.new
-      latency_manager.define_singleton_method(:sample_latency_between) { |_src, _dst| 0.0 }
+      messaging = Object.new
+      messaging.define_singleton_method(:message_delay) { |_src, _dst, time:, bytes:| 0.0 }
 
       # source_location_id here is an arbitrary id (e.g. a different
       # cluster's, or a customer's) that has nothing to do with cluster_a --
       # result.cluster must still be cluster_a, where the pod actually lives
-      result = forwarder.route("checkout", 999, latency_manager, 0.0)
+      result = forwarder.route("checkout", 999, messaging, 0.0)
       _(result.cluster).must_be_same_as cluster_a
     end
 
-    it "passes source_location_id straight through as the sample_latency_between source (no cluster indirection)" do
+    it "passes source_location_id straight through as the message_delay source (no cluster indirection)" do
       kube_dns = KUBETWIN::KubeDns.new
       cluster_b = build_cluster(:b, location_id: 9)
       node_b = build_node(cluster_b, "b-1")
@@ -130,16 +130,16 @@ describe KUBETWIN::RequestForwarder do
 
       seen_args = nil
       spy = Object.new
-      spy.define_singleton_method(:sample_latency_between) do |src, dst|
-        seen_args = [src, dst]
+      spy.define_singleton_method(:message_delay) do |src, dst, time:, bytes:|
+        seen_args = [src, dst, time, bytes]
         0.5
       end
 
       cluster_repository = {cluster_b.cluster_id => cluster_b}
       forwarder = KUBETWIN::RequestForwarder.new(kube_dns: kube_dns, cluster_repository: cluster_repository)
-      forwarder.route("reviews", 7, spy, 0.0)
+      forwarder.route("reviews", 7, spy, 3.0, bytes: 512)
 
-      _(seen_args).must_equal [7, 9]
+      _(seen_args).must_equal [7, 9, 3.0, 512]
     end
 
     it "works with a customer's location_id as the source, not just a cluster's (the ET_REQUEST_GENERATION case)" do
@@ -151,11 +151,11 @@ describe KUBETWIN::RequestForwarder do
 
       cluster_repository = {cluster_b.cluster_id => cluster_b}
       forwarder = KUBETWIN::RequestForwarder.new(kube_dns: kube_dns, cluster_repository: cluster_repository)
-      latency_manager = Object.new
-      latency_manager.define_singleton_method(:sample_latency_between) { |_src, _dst| 0.008 }
+      messaging = Object.new
+      messaging.define_singleton_method(:message_delay) { |_src, _dst, time:, bytes:| 0.008 }
 
       customer_location_id = 42 # no Cluster object behind this at all
-      result = forwarder.route("productpage", customer_location_id, latency_manager, 5.0)
+      result = forwarder.route("productpage", customer_location_id, messaging, 5.0)
 
       _(result.pod).must_be_same_as pod
       _(result.forwarding_time).must_equal 5.008

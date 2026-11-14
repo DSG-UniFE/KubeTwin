@@ -40,6 +40,12 @@ module KUBETWIN
       # Whether to collect per-step statistics for #observation (Twin turns
       # this on; a plain evaluate_allocation run doesn't need them).
       @observe = opts[:observe] == true
+      # The network messages cross: a network model (see LegacyNetwork), or
+      # something that builds one when called, so each run starts afresh.
+      # Default: the configured latency models.
+      @network_option = opts[:network]
+      # Messaging's retransmission settings: {timeout:, max_attempts:}.
+      @retransmission = opts[:retransmission] || {}
     end
 
     def new_event(type, data, time, destination)
@@ -81,9 +87,10 @@ module KUBETWIN
     # here because it mutates simulation state RequestForwarder has no
     # business touching: the request itself, the forwarded counter, the
     # trace log, and the event queue.
-    def schedule_request_forward(req, component_name, source_cluster, base_time, latency_manager,
+    def schedule_request_forward(req, component_name, source_cluster, base_time, messaging,
       waiting_container: nil)
-      route = @request_forwarder.route(component_name, source_cluster.location_id, latency_manager, base_time)
+      route = @request_forwarder.route(component_name, source_cluster.location_id, messaging, base_time,
+        bytes: request_bytes(req.workflow_type_id))
       return false if route.nil?
 
       req.update_transfer_time(route.transmission_time)
@@ -96,7 +103,7 @@ module KUBETWIN
       true
     end
 
-    def dispatch_nested_call(parent_req, call, current_time, latency_manager)
+    def dispatch_nested_call(parent_req, call, current_time, messaging)
       parent_container = parent_req.nested_waiting_container
       return false if parent_container.nil?
 
@@ -106,7 +113,7 @@ module KUBETWIN
       source_cluster = @cluster_repository[parent_container.instance_variable_get(:@node).cluster_id]
       parent_req.data_center_id = source_cluster.cluster_id
 
-      schedule_request_forward(child_req, component_name, source_cluster, current_time, latency_manager)
+      schedule_request_forward(child_req, component_name, source_cluster, current_time, messaging)
     end
 
     # The cluster/latency resolution now lives in NestedCallReturn (pure
@@ -116,8 +123,9 @@ module KUBETWIN
     # fallback, and returning parent_cluster even though the one call site
     # in the event loop only destructures the latency) so nothing at that
     # call site needs to change.
-    def nested_return_latency(parent_req, child_req, latency_manager)
-      resolution = @nested_call_return.resolve(parent_req.nested_waiting_container, child_req.data_center_id, latency_manager)
+    def nested_return_latency(parent_req, child_req, messaging, time)
+      resolution = @nested_call_return.resolve(parent_req.nested_waiting_container, child_req.data_center_id, messaging,
+        time:, bytes: response_bytes(parent_req.workflow_type_id))
       return [0.0, nil] if resolution.nil?
 
       parent_req.update_transfer_time(resolution.latency)
@@ -194,6 +202,7 @@ module KUBETWIN
     def run_until(time)
       process_event(@event_queue.shift) while !@event_queue.empty? && @event_queue.first.time <= time
       @current_time = time if time.finite? && time > @current_time
+      @messaging.network.advance(to: @current_time) if @messaging.network.respond_to?(:advance)
     end
 
     # Whether every scheduled event has been processed.
@@ -304,6 +313,10 @@ module KUBETWIN
       nil
     end
 
+    # How messages travel (see Messaging): its network model, and counts of
+    # retransmissions and undelivered messages.
+    attr_reader :messaging
+
     # A snapshot of the simulation summarizing the last `duration` simulated
     # seconds (everything since the previous call), shaped like
     # continuum-twin's Continuum::Observation: {time:, locations:, links:,
@@ -395,6 +408,23 @@ module KUBETWIN
         busy_nodes = cluster.nodes.values.count { |n| n.pod_id_list.any? }
         (cluster.fixed_hourly_cost_cpu || 0.100) * busy_nodes * duration / 3600.0
       end
+    end
+
+    # The messaging layer over the network option, or over the configured
+    # latency models.
+    def build_network
+      network = @network_option.respond_to?(:call) ? @network_option.call : @network_option
+      @messaging = Messaging.new(network || LegacyNetwork.new(@latency_manager), **@retransmission)
+    end
+
+    # Message sizes (bytes) of a workflow's requests and responses, from its
+    # optional request_bytes and response_bytes (0 when not given).
+    def request_bytes(workflow_type_id)
+      @workflow_type_repository.dig(workflow_type_id, :request_bytes) || 0
+    end
+
+    def response_bytes(workflow_type_id)
+      @workflow_type_repository.dig(workflow_type_id, :response_bytes) || 0
     end
 
     def mean(values)
@@ -490,6 +520,7 @@ module KUBETWIN
 
       build_clusters
       build_latency_manager(lm)
+      build_network
       load_microservice_types(mtt)
       build_statistics
       apply_policies
@@ -1080,7 +1111,8 @@ module KUBETWIN
       # first_component_name already crashed here with a bare
       # NoMethodError, just one call deeper, on service.get_pod);
       # preserved rather than silently hardened.
-      initial_route = @request_forwarder.route(first_component_name, customer_location_id, @latency_manager, @current_time)
+      initial_route = @request_forwarder.route(first_component_name, customer_location_id, @messaging, @current_time,
+        bytes: request_bytes(req_attrs[:workflow_type_id]))
       pod = initial_route.pod
       cluster_id = initial_route.cluster.cluster_id
 
@@ -1188,7 +1220,7 @@ module KUBETWIN
         next_call = req.next_nested_call
         trace_request(req) { "opening nested calls from #{current_component_name}: #{current_component_step[:calls].map { |c| c[:name] }.join(" -> ")}" }
         raise "Cannot dispatch nested call for #{req.rid}" unless dispatch_nested_call(req, next_call, e.time,
-          @latency_manager)
+          @messaging)
 
         return
       end
@@ -1245,7 +1277,7 @@ module KUBETWIN
               branch_component_name,
               current_cluster,
               e.time,
-              @latency_manager)
+              @messaging)
           end
 
           # Move to next step after parallel block (use step_completed)
@@ -1264,7 +1296,7 @@ module KUBETWIN
           next_component_name,
           current_cluster,
           e.time,
-          @latency_manager,
+          @messaging,
           waiting_container: container)
 
       else # workflow or branch sequence is finished
@@ -1280,7 +1312,7 @@ module KUBETWIN
             all_branches_completed = parent_req.complete_parallel_branch(req.branch_name, req, @current_time)
             new_event(Event::ET_WORKFLOW_STEP_COMPLETED, parent_req, e.time, container) if all_branches_completed
           elsif req.is_nested_call? && parent_req.nested_calls_active?
-            return_latency, = nested_return_latency(parent_req, req, @latency_manager)
+            return_latency, = nested_return_latency(parent_req, req, @messaging, e.time)
             resume_time = e.time + return_latency
 
             if parent_req.nested_calls_remaining?
@@ -1289,7 +1321,7 @@ module KUBETWIN
               raise "Cannot dispatch nested call for #{parent_req.rid}" unless dispatch_nested_call(parent_req,
                 next_call,
                 resume_time,
-                @latency_manager)
+                @messaging)
             else
               waiting_container = parent_req.finish_nested_calls
               trace_request(parent_req) { "all nested calls completed for #{current_component_name || req.branch_name}, resuming parent" }
@@ -1301,13 +1333,10 @@ module KUBETWIN
         end
 
         # calculate transmission time
-        transmission_time =
-          @latency_manager.sample_latency_between(
-            # data center location
-            @cluster_repository[req.data_center_id].location_id,
-            # customer location
-            @customer_repository.dig(req.customer_id, :location_id)
-          )
+        # the response travels from the data center back to the customer
+        transmission_time = @messaging.message_delay(@cluster_repository[req.data_center_id].location_id,
+          @customer_repository.dig(req.customer_id, :location_id), time: e.time,
+          bytes: response_bytes(req.workflow_type_id))
 
         raise "Negative transmission time (#{transmission_time})!" unless transmission_time >= 0.0
 
