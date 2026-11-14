@@ -61,6 +61,14 @@ describe KUBETWIN::Messaging do
     _(network.sends.size).must_equal 3
     _(messaging.undelivered).must_equal 1
   end
+
+  it "gives the network times since its origin" do
+    network = MessagingSpecNetwork.new(losses: 1)
+    messaging = KUBETWIN::Messaging.new(network, timeout: 0.5, origin: 1_000.0)
+
+    _(messaging.message_delay(1, 2, time: 1_010.0)).must_be_within_epsilon 0.5 + 0.01, 1e-12
+    _(network.sends.map(&:last)).must_equal [10.0, 10.5]
+  end
 end
 
 describe "KSimulation over a lossy network" do

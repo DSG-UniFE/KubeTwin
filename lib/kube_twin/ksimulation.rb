@@ -202,7 +202,7 @@ module KUBETWIN
     def run_until(time)
       process_event(@event_queue.shift) while !@event_queue.empty? && @event_queue.first.time <= time
       @current_time = time if time.finite? && time > @current_time
-      @messaging.network.advance(to: @current_time) if @messaging.network.respond_to?(:advance)
+      @messaging.network.advance(to: @current_time - @start_time) if @messaging.network.respond_to?(:advance)
     end
 
     # Whether every scheduled event has been processed.
@@ -411,10 +411,10 @@ module KUBETWIN
     end
 
     # The messaging layer over the network option, or over the configured
-    # latency models.
+    # latency models. The network's clock starts at the simulation's start.
     def build_network
       network = @network_option.respond_to?(:call) ? @network_option.call : @network_option
-      @messaging = Messaging.new(network || LegacyNetwork.new(@latency_manager), **@retransmission)
+      @messaging = Messaging.new(network || LegacyNetwork.new(@latency_manager), origin: @start_time, **@retransmission)
     end
 
     # Message sizes (bytes) of a workflow's requests and responses, from its
@@ -520,7 +520,6 @@ module KUBETWIN
 
       build_clusters
       build_latency_manager(lm)
-      build_network
       load_microservice_types(mtt)
       build_statistics
       apply_policies
@@ -529,6 +528,8 @@ module KUBETWIN
       return unfeasible if unfeasible
 
       schedule_initial_events
+      # after the first events: they can move the start time
+      build_network
       nil
     end
 
