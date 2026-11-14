@@ -27,23 +27,22 @@ module Characterization
   end
   KUBETWIN::Statistics.prepend(RecordingStatistics)
 
-  # Counts the events one simulation schedules, by type.
+  # Counts the events simulations schedule, by type, while a run records.
   module CountingEvents
     def new_event(type, data, time, destination)
-      @characterization_events[type] += 1
+      Characterization.events[type] += 1 if Characterization.events
       super
     end
   end
+  KUBETWIN::KSimulation.prepend(CountingEvents)
 
   class << self
-    attr_reader :recorded
+    attr_reader :recorded, :events
 
-    def fingerprint(example)
+    # Runs `example` with KSimulation#evaluate_allocation, or, given
+    # `step` (seconds), with a KUBETWIN::Twin advanced one step at a time.
+    def fingerprint(example, step: nil)
       conf = KUBETWIN::Configuration.load_from_file(File.join(ROOT, "examples", "#{example}.conf"))
-      sim = KUBETWIN::KSimulation.new(configuration: conf, evaluator: KUBETWIN::Evaluator.new(conf),
-        logger: Logger.new(File::NULL))
-      sim.instance_variable_set(:@characterization_events, Hash.new(0))
-      sim.singleton_class.prepend(CountingEvents)
 
       Dir.mktmpdir do |dir|
         # The run writes final_allocation.* into the current directory, and
@@ -51,20 +50,35 @@ module Characterization
         File.symlink(File.join(ROOT, "mdn_models"), File.join(dir, "mdn_models"))
         Dir.chdir(dir) do
           @recorded = []
-          result = quietly { sim.evaluate_allocation }
+          @events = Hash.new(0)
+          result, sim = quietly { step ? run_in_steps(conf, step) : run_whole(conf) }
           {
             "result" => result.to_f,
             "mean_ttr" => sim.instance_variable_get(:@last_mean_ttr).to_f,
             "replica_spreading" => sim.instance_variable_get(:@last_replica_spreading).to_f,
             "allocation" => JSON.parse(File.read("final_allocation.json")),
-            "events" => sim.instance_variable_get(:@characterization_events).sort.to_h.transform_keys(&:to_s),
+            "events" => @events.sort.to_h.transform_keys(&:to_s),
             "completions" => @recorded.size,
             "completions_digest" => Digest::SHA256.hexdigest(@recorded.join("\n"))
           }
         ensure
           @recorded = nil
+          @events = nil
         end
       end
+    end
+
+    def run_whole(conf)
+      sim = KUBETWIN::KSimulation.new(configuration: conf, evaluator: KUBETWIN::Evaluator.new(conf),
+        logger: Logger.new(File::NULL))
+      [sim.evaluate_allocation, sim]
+    end
+
+    def run_in_steps(conf, step)
+      twin = KUBETWIN::Twin.new(conf, decision_interval: step)
+      twin.reset
+      twin.step until twin.done?
+      [twin.result, twin.simulation]
     end
 
     def quietly

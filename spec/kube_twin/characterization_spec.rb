@@ -11,9 +11,10 @@ require "characterization_helper"
 describe "characterization" do
   expected = JSON.parse(File.read(Characterization::FIXTURE))
 
-  Characterization::EXAMPLES.each do |example|
-    it "#{example} behaves as recorded" do
-      actual = Characterization.fingerprint(example)
+  # Stepping through a run with KUBETWIN::Twin must not change it either.
+  Characterization::EXAMPLES.product([nil, 30.0]).each do |example, step|
+    it "#{example} behaves as recorded#{" when run in #{step.to_i} s steps" if step}" do
+      actual = Characterization.fingerprint(example, step: step)
       wanted = expected.fetch(example)
 
       %w[result mean_ttr replica_spreading].each do |metric|

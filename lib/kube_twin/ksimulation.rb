@@ -164,12 +164,43 @@ module KUBETWIN
     # rss is replica set
     # css is service configuration
     def evaluate_allocation(rss = nil, css = nil, mtt = nil, lm = nil, mapping = nil, replicas_mapping = nil)
-      unfeasible = setup(rss, css, mtt, lm, mapping, replicas_mapping)
+      unfeasible = reset(rss, css, mtt, lm, mapping, replicas_mapping)
       return unfeasible if unfeasible
 
-      run_events
+      run_until(Float::INFINITY)
+      finish
+    end
+
+    # Running in steps (see Twin): evaluate_allocation is reset, then
+    # run_until the end, then finish.
+
+    # Builds the world and schedules the first events, without processing
+    # any. Returns nil, or -1000 when the initial pods can't all be placed.
+    def reset(rss = nil, css = nil, mtt = nil, lm = nil, mapping = nil, replicas_mapping = nil)
+      setup(rss, css, mtt, lm, mapping, replicas_mapping)
+    end
+
+    # Processes every event due at or before `time`, including events that
+    # processing them schedules at or before `time`, in the same order a
+    # single uninterrupted run would; then moves the clock to `time`.
+    def run_until(time)
+      process_event(@event_queue.shift) while !@event_queue.empty? && @event_queue.first.time <= time
+      @current_time = time if time.finite? && time > @current_time
+    end
+
+    # Whether every scheduled event has been processed.
+    def done?
+      @event_queue.empty?
+    end
+
+    # Summarizes the run and returns what evaluate_allocation returns.
+    def finish
       wind_down
     end
+
+    # Simulated time when warm-up ends and when cool-down starts (both in
+    # the same units as #now).
+    attr_reader :warmup_threshold, :cooldown_threshold
 
     private
 
@@ -727,11 +758,6 @@ module KUBETWIN
       @req_in_sec = 0
 
       # @allocation_bench << "Time,Component,Request,TTP,Pods\n"
-    end
-
-    # Processes events in time order until the queue is empty.
-    def run_events
-      process_event(@event_queue.shift) until @event_queue.empty?
     end
 
     HANDLERS = {
