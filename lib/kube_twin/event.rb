@@ -24,6 +24,7 @@ module KUBETWIN
     ET_NODES_DOWN = 17 # nodes fail (one node, or a whole cluster)
     ET_NODES_UP = 18 # failed nodes come back
     ET_SHARED_COMPLETION = 19 # a request on a shared CPU may have finished
+    ET_FEDERATION_RECONCILE = 20 # the federation sets replicas per cluster from its policies
     ET_END_OF_SIMULATION = 100
 
     # let the comparable mixin provide the < and > operators for us

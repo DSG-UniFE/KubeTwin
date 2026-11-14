@@ -32,6 +32,11 @@ module KUBETWIN
     # configuration).
     ScaleReplicas = Data.define(:service, :cluster, :replicas)
 
+    # Run `total` replicas of `service`, divided among clusters by `weights`
+    # ({cluster => weight}; clusters left out get none), kept so through
+    # cluster failures. See KSimulation#divide_replicas.
+    DivideReplicas = Data.define(:service, :total, :weights)
+
     # Route requests to `service` among clusters in proportion to `weights`
     # ({cluster => weight}; clusters left out get none). {} restores the
     # configured load balancing. See KSimulation#route.
@@ -48,9 +53,10 @@ module KUBETWIN
     # observation's slo_violation_rate. network, retransmission: as for
     # KSimulation (a network model, or something that builds one per
     # #reset; Messaging's {timeout:, max_attempts:}); failures: failure
-    # processes (see KSimulation#schedule_failures).
+    # processes (see KSimulation#schedule_failures); federation: policies
+    # (see KSimulation#build_federation_policies).
     def initialize(configuration, decision_interval: DEFAULT_DECISION_INTERVAL, logger: Logger.new(File::NULL),
-      slos: {}, network: nil, retransmission: {}, failures: nil)
+      slos: {}, network: nil, retransmission: {}, failures: nil, federation: nil)
       raise ArgumentError, "decision_interval must be positive" unless decision_interval.positive?
 
       @configuration = configuration
@@ -60,6 +66,7 @@ module KUBETWIN
       @network = network
       @retransmission = retransmission
       @failures = failures
+      @federation = federation
       @last_rejected = []
     end
 
@@ -67,7 +74,8 @@ module KUBETWIN
     # warm-up. Returns #now (0.0).
     def reset
       @simulation = KSimulation.new(configuration: @configuration, evaluator: Evaluator.new(@configuration),
-        logger: @logger, observe: true, network: @network, retransmission: @retransmission, failures: @failures)
+        logger: @logger, observe: true, network: @network, retransmission: @retransmission, failures: @failures,
+        federation: @federation)
       raise UnfeasibleAllocation, "the initial pods can't all be placed" if @simulation.reset
 
       @origin = @simulation.warmup_threshold
@@ -169,6 +177,7 @@ module KUBETWIN
       case action
       when ScaleReplicas then @simulation.scale_replicas(action.service, action.cluster, action.replicas)
       when Route then @simulation.route(action.service, action.weights)
+      when DivideReplicas then @simulation.divide_replicas(action.service, action.total, action.weights)
       else :unknown_action
       end
     end
@@ -177,6 +186,7 @@ module KUBETWIN
       case action
       when ScaleReplicas then @simulation.scale_replicas_rejection(action.service, action.cluster, action.replicas)
       when Route then @simulation.route_rejection(action.service, action.weights)
+      when DivideReplicas then @simulation.divide_replicas_rejection(action.service, action.total, action.weights)
       else :unknown_action
       end
     end

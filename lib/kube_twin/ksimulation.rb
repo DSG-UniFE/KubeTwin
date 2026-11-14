@@ -52,6 +52,8 @@ module KUBETWIN
       # Seconds a request waits before trying again when its next service
       # has no pod ready (as a client retries a service without endpoints).
       @route_retry_interval = opts[:route_retry_interval] || 1.0
+      # Federation policies (see #build_federation_policies), or nil.
+      @federation_option = opts[:federation]
     end
 
     def new_event(type, data, time, destination)
@@ -218,6 +220,56 @@ module KUBETWIN
       @messaging.network.advance(to: @current_time - @start_time) if @messaging.network.respond_to?(:advance)
     end
 
+    # A federation policy (after Karmada's propagation policies) for one
+    # service: :divided splits `replicas` among `clusters` by `weights`;
+    # :duplicated runs `replicas` in each of `clusters`. min_clusters and
+    # max_clusters limit the spread of a divided service.
+    FederationPolicy = Data.define(:mode, :replicas, :clusters, :weights, :min_clusters, :max_clusters)
+
+    # The federation policy managing `service`, or nil.
+    def federation_policy(service)
+      s = find_service(service) or raise ArgumentError, "unknown service #{service.inspect}"
+      @federation_policies[s.selector]
+    end
+
+    # Replicas the last reconciliation of `service` couldn't place anywhere.
+    def unschedulable(service)
+      s = find_service(service) or raise ArgumentError, "unknown service #{service.inspect}"
+      @unschedulable.fetch(s.selector, 0)
+    end
+
+    # Why dividing `total` replicas of `service` by `weights` would be
+    # rejected, or nil: :unknown_service, :unknown_cluster,
+    # :invalid_replicas (not a positive integer), :invalid_weights (not a
+    # Hash of finite non-negative numbers, some positive).
+    def divide_replicas_rejection(service, total, weights)
+      return :unknown_service unless find_service(service)
+      return :invalid_replicas unless total.is_a?(Integer) && total.positive?
+      return :invalid_weights unless weights.is_a?(Hash) && !weights.empty?
+      return :unknown_cluster unless weights.keys.all? { |c| find_cluster_key(c) }
+      return :invalid_weights unless weights.values.all? { |w| w.is_a?(Numeric) && w.finite? && w >= 0 }
+      return :invalid_weights if weights.values.none?(&:positive?)
+
+      nil
+    end
+
+    # Puts `service` under a divided federation policy: `total` replicas
+    # split by `weights` among the clusters with a positive weight,
+    # reconciled at once and again whenever a cluster fails or recovers.
+    # Returns nil when applied, otherwise the rejection reason.
+    def divide_replicas(service, total, weights)
+      reason = divide_replicas_rejection(service, total, weights)
+      return reason if reason
+
+      s = find_service(service)
+      weights = weights.to_h { |c, w| [find_cluster_key(c), w] }.select { |_, w| w.positive? }
+      previous = @federation_policies[s.selector]
+      @federation_policies[s.selector] = FederationPolicy.new(mode: :divided, replicas: total, clusters: weights.keys,
+        weights:, min_clusters: previous&.min_clusters, max_clusters: previous&.max_clusters)
+      reconcile(s)
+      nil
+    end
+
     # Whether every scheduled event has been processed.
     def done?
       @event_queue.empty?
@@ -244,8 +296,10 @@ module KUBETWIN
     # Why setting `service`'s pods in `cluster` to `count` would be
     # rejected, or nil when it can be applied: :unknown_service,
     # :unknown_cluster, :invalid_replicas (not a non-negative integer),
-    # :no_replicas_left (the service would have no pods anywhere) or
-    # :insufficient_resources (the cluster's nodes can't host the new pods).
+    # :no_replicas_left (the service would have no pods anywhere),
+    # :insufficient_resources (the cluster's nodes can't host the new pods)
+    # or :managed_by_federation (a propagation policy sets its replicas;
+    # see #divide_replicas).
     def scale_replicas_rejection(service, cluster, count)
       s = find_service(service)
       return :unknown_service unless s
@@ -253,6 +307,7 @@ module KUBETWIN
       cluster_key = find_cluster_key(cluster)
       return :unknown_cluster unless cluster_key
       return :invalid_replicas unless count.is_a?(Integer) && count >= 0
+      return :managed_by_federation if @federation_policies&.key?(s.selector)
 
       ready = pods_in_cluster(s, cluster_key).length
       current = ready + starting_in_cluster(s, cluster_key).length
@@ -273,8 +328,12 @@ module KUBETWIN
       reason = scale_replicas_rejection(service, cluster, count)
       return reason if reason
 
-      s = find_service(service)
-      cluster_key = find_cluster_key(cluster)
+      set_cluster_replicas(find_service(service), find_cluster_key(cluster), count)
+      nil
+    end
+
+    # (Unchecked: the caller made sure the cluster has room.)
+    def set_cluster_replicas(s, cluster_key, count)
       ready = pods_in_cluster(s, cluster_key)
       starting = starting_in_cluster(s, cluster_key)
       excess = ready.length + starting.length - count
@@ -628,6 +687,7 @@ module KUBETWIN
       # after the first events: they can move the start time
       build_network
       schedule_failures
+      build_federation_policies
       nil
     end
 
@@ -1161,7 +1221,8 @@ module KUBETWIN
       Event::ET_POD_FAILURE => :handle_pod_failure,
       Event::ET_NODES_DOWN => :handle_nodes_down,
       Event::ET_NODES_UP => :handle_nodes_up,
-      Event::ET_SHARED_COMPLETION => :handle_shared_completion
+      Event::ET_SHARED_COMPLETION => :handle_shared_completion,
+      Event::ET_FEDERATION_RECONCILE => :handle_federation_reconcile
     }.freeze
 
     def process_event(e)
@@ -1707,6 +1768,7 @@ module KUBETWIN
         end
       end
       new_event(Event::ET_NODES_UP, [nodes, process], until_time, nil)
+      cluster_health_changed
     end
 
     def handle_shared_completion(e)
@@ -1717,6 +1779,86 @@ module KUBETWIN
       nodes, process = e.data
       nodes.each(&:recover!)
       schedule_nodes_down(nodes, process) if process
+      cluster_health_changed
+    end
+
+    # Federation policies from the federation: option:
+    #
+    #   policies: {service => {mode: :divided (default) or :duplicated,
+    #              replicas:, clusters: (default: all), weights: (default:
+    #              equal), min_clusters:, max_clusters:}}
+    #   failover_toleration: seconds a cluster may be down before its
+    #              replicas move elsewhere (default 30)
+    #
+    # A cluster is down when none of its nodes is up.
+    def build_federation_policies
+      @federation_policies = {}
+      @unschedulable = {}
+      @cluster_down_since = {}
+      @failover_toleration = (@federation_option&.dig(:failover_toleration) || 30.0).to_f
+      (@federation_option&.dig(:policies) || {}).each do |service, spec|
+        s = find_service(service) or raise ArgumentError, "unknown service #{service.inspect} in federation policies"
+        clusters = (spec[:clusters] || @cluster_repository.keys).map do |c|
+          find_cluster_key(c) or raise ArgumentError, "unknown cluster #{c.inspect} in federation policies"
+        end
+        weights = (spec[:weights] || clusters.to_h { |c| [c, 1] }).to_h { |c, w| [find_cluster_key(c), w] }
+        @federation_policies[s.selector] = FederationPolicy.new(mode: (spec[:mode] || :divided).to_sym,
+          replicas: spec.fetch(:replicas), clusters:, weights:, min_clusters: spec[:min_clusters], max_clusters: spec[:max_clusters])
+      end
+      new_event(Event::ET_FEDERATION_RECONCILE, nil, @current_time, nil) unless @federation_policies.empty?
+    end
+
+    def cluster_down?(cluster_key) = @cluster_repository[cluster_key].nodes.values.none?(&:up?)
+
+    # Notes clusters that went down or came back; replicas move off a
+    # failed cluster after the failover toleration, and back at once.
+    def cluster_health_changed
+      return if @federation_policies.empty?
+
+      @cluster_repository.each_key do |key|
+        if cluster_down?(key)
+          next if @cluster_down_since.key?(key)
+
+          @cluster_down_since[key] = @current_time
+          new_event(Event::ET_FEDERATION_RECONCILE, nil, @current_time + @failover_toleration, nil)
+        elsif @cluster_down_since.delete(key)
+          new_event(Event::ET_FEDERATION_RECONCILE, nil, @current_time, nil)
+        end
+      end
+    end
+
+    def handle_federation_reconcile(_e)
+      @federation_policies.each_key { |selector| reconcile(@services[selector]) }
+    end
+
+    # Sets each cluster's replicas of `service` to what its policy asks,
+    # among the clusters that are up (or down for less than the failover
+    # toleration): scale-ups first, so the service keeps serving.
+    def reconcile(service)
+      policy = @federation_policies[service.selector]
+      eligible = policy.clusters.select do |key|
+        since = @cluster_down_since[key]
+        since.nil? || @current_time - since < @failover_toleration
+      end
+      capacity = eligible.to_h do |key|
+        [key, pods_in_cluster(service, key).length + starting_in_cluster(service, key).length +
+          pod_capacity(key, service.selector)]
+      end
+
+      counts = if policy.mode == :duplicated
+        eligible.to_h { |key| [key, [policy.replicas, capacity[key]].min] }
+      else
+        division = ReplicaDivision.divide(policy.replicas, policy.weights.slice(*eligible), capacity:,
+          min_clusters: policy.min_clusters, max_clusters: policy.max_clusters)
+        division.counts
+      end
+      wanted = @cluster_repository.keys.to_h { |key| [key, counts.fetch(key, 0)] }
+      @unschedulable[service.selector] = (policy.mode == :duplicated) ? 0 : division.unschedulable
+
+      current = ->(key) { pods_in_cluster(service, key).length + starting_in_cluster(service, key).length }
+      ups, downs = wanted.partition { |key, n| n >= current.call(key) }
+      (ups + downs).each { |key, n| set_cluster_replicas(service, key, n) unless n == current.call(key) }
+      update_replica_set(service)
     end
 
     # [service, pod] for every pod placed on `node`, serving or starting.
