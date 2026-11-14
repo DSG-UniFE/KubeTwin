@@ -1,0 +1,2102 @@
+[
+  {
+    "solution_id": 0,
+    "objectives": {
+      "mean_ttr": 0.7301655950148902,
+      "overall_spreading": 0.0,
+      "total_replicas": 19
+    },
+    "microservice_allocation": {
+      "gateway": {
+        "cluster1": 2,
+        "cluster2edge": 1,
+        "cluster3edge": 2
+      },
+      "embedder": {
+        "cluster1": 2,
+        "cluster2edge": 1,
+        "cluster3edge": 1
+      },
+      "vector-search": {
+        "cluster1": 1,
+        "cluster2edge": 1,
+        "cluster3edge": 2
+      },
+      "reranker": {
+        "cluster1": 1,
+        "cluster2edge": 1,
+        "cluster3edge": 1
+      },
+      "llm-generate": {
+        "cluster1": 1,
+        "cluster2edge": 1,
+        "cluster3edge": 1
+      }
+    }
+  },
+  {
+    "solution_id": 1,
+    "objectives": {
+      "mean_ttr": 0.6026822441816333,
+      "overall_spreading": 0.93,
+      "total_replicas": 15
+    },
+    "microservice_allocation": {
+      "gateway": {
+        "cluster1": 3,
+        "cluster2edge": 0,
+        "cluster3edge": 0
+      },
+      "embedder": {
+        "cluster1": 3,
+        "cluster2edge": 0,
+        "cluster3edge": 0
+      },
+      "vector-search": {
+        "cluster1": 2,
+        "cluster2edge": 1,
+        "cluster3edge": 0
+      },
+      "reranker": {
+        "cluster1": 3,
+        "cluster2edge": 0,
+        "cluster3edge": 0
+      },
+      "llm-generate": {
+        "cluster1": 3,
+        "cluster2edge": 0,
+        "cluster3edge": 0
+      }
+    }
+  },
+  {
+    "solution_id": 2,
+    "objectives": {
+      "mean_ttr": 0.5308162210384995,
+      "overall_spreading": 0.68,
+      "total_replicas": 20
+    },
+    "microservice_allocation": {
+      "gateway": {
+        "cluster1": 6,
+        "cluster2edge": 2,
+        "cluster3edge": 0
+      },
+      "embedder": {
+        "cluster1": 2,
+        "cluster2edge": 1,
+        "cluster3edge": 0
+      },
+      "vector-search": {
+        "cluster1": 1,
+        "cluster2edge": 2,
+        "cluster3edge": 0
+      },
+      "reranker": {
+        "cluster1": 2,
+        "cluster2edge": 1,
+        "cluster3edge": 0
+      },
+      "llm-generate": {
+        "cluster1": 2,
+        "cluster2edge": 1,
+        "cluster3edge": 0
+      }
+    }
+  },
+  {
+    "solution_id": 3,
+    "objectives": {
+      "mean_ttr": 0.5986922732988983,
+      "overall_spreading": 0.18,
+      "total_replicas": 28
+    },
+    "microservice_allocation": {
+      "gateway": {
+        "cluster1": 4,
+        "cluster2edge": 5,
+        "cluster3edge": 0
+      },
+      "embedder": {
+        "cluster1": 1,
+        "cluster2edge": 2,
+        "cluster3edge": 1
+      },
+      "vector-search": {
+        "cluster1": 2,
+        "cluster2edge": 1,
+        "cluster3edge": 1
+      },
+      "reranker": {
+        "cluster1": 2,
+        "cluster2edge": 3,
+        "cluster3edge": 1
+      },
+      "llm-generate": {
+        "cluster1": 2,
+        "cluster2edge": 2,
+        "cluster3edge": 1
+      }
+    }
+  },
+  {
+    "solution_id": 4,
+    "objectives": {
+      "mean_ttr": 1.0959606254100789,
+      "overall_spreading": 0.13,
+      "total_replicas": 15
+    },
+    "microservice_allocation": {
+      "gateway": {
+        "cluster1": 1,
+        "cluster2edge": 1,
+        "cluster3edge": 1
+      },
+      "embedder": {
+        "cluster1": 1,
+        "cluster2edge": 1,
+        "cluster3edge": 1
+      },
+      "vector-search": {
+        "cluster1": 1,
+        "cluster2edge": 1,
+        "cluster3edge": 1
+      },
+      "reranker": {
+        "cluster1": 2,
+        "cluster2edge": 1,
+        "cluster3edge": 0
+      },
+      "llm-generate": {
+        "cluster1": 1,
+        "cluster2edge": 1,
+        "cluster3edge": 1
+      }
+    }
+  },
+  {
+    "solution_id": 5,
+    "objectives": {
+      "mean_ttr": 0.8293653364976247,
+      "overall_spreading": 0.4,
+      "total_replicas": 15
+    },
+    "microservice_allocation": {
+      "gateway": {
+        "cluster1": 2,
+        "cluster2edge": 1,
+        "cluster3edge": 0
+      },
+      "embedder": {
+        "cluster1": 2,
+        "cluster2edge": 1,
+        "cluster3edge": 0
+      },
+      "vector-search": {
+        "cluster1": 1,
+        "cluster2edge": 1,
+        "cluster3edge": 1
+      },
+      "reranker": {
+        "cluster1": 2,
+        "cluster2edge": 1,
+        "cluster3edge": 0
+      },
+      "llm-generate": {
+        "cluster1": 1,
+        "cluster2edge": 1,
+        "cluster3edge": 1
+      }
+    }
+  },
+  {
+    "solution_id": 6,
+    "objectives": {
+      "mean_ttr": 0.9185125190019611,
+      "overall_spreading": 0.27,
+      "total_replicas": 15
+    },
+    "microservice_allocation": {
+      "gateway": {
+        "cluster1": 2,
+        "cluster2edge": 1,
+        "cluster3edge": 0
+      },
+      "embedder": {
+        "cluster1": 1,
+        "cluster2edge": 2,
+        "cluster3edge": 0
+      },
+      "vector-search": {
+        "cluster1": 1,
+        "cluster2edge": 1,
+        "cluster3edge": 1
+      },
+      "reranker": {
+        "cluster1": 1,
+        "cluster2edge": 1,
+        "cluster3edge": 1
+      },
+      "llm-generate": {
+        "cluster1": 1,
+        "cluster2edge": 1,
+        "cluster3edge": 1
+      }
+    }
+  },
+  {
+    "solution_id": 7,
+    "objectives": {
+      "mean_ttr": 0.9185125190019611,
+      "overall_spreading": 0.27,
+      "total_replicas": 15
+    },
+    "microservice_allocation": {
+      "gateway": {
+        "cluster1": 2,
+        "cluster2edge": 1,
+        "cluster3edge": 0
+      },
+      "embedder": {
+        "cluster1": 1,
+        "cluster2edge": 2,
+        "cluster3edge": 0
+      },
+      "vector-search": {
+        "cluster1": 1,
+        "cluster2edge": 1,
+        "cluster3edge": 1
+      },
+      "reranker": {
+        "cluster1": 1,
+        "cluster2edge": 1,
+        "cluster3edge": 1
+      },
+      "llm-generate": {
+        "cluster1": 1,
+        "cluster2edge": 1,
+        "cluster3edge": 1
+      }
+    }
+  },
+  {
+    "solution_id": 8,
+    "objectives": {
+      "mean_ttr": 0.6326897140343986,
+      "overall_spreading": 0.23,
+      "total_replicas": 18
+    },
+    "microservice_allocation": {
+      "gateway": {
+        "cluster1": 3,
+        "cluster2edge": 3,
+        "cluster3edge": 0
+      },
+      "embedder": {
+        "cluster1": 1,
+        "cluster2edge": 2,
+        "cluster3edge": 0
+      },
+      "vector-search": {
+        "cluster1": 1,
+        "cluster2edge": 1,
+        "cluster3edge": 1
+      },
+      "reranker": {
+        "cluster1": 1,
+        "cluster2edge": 1,
+        "cluster3edge": 1
+      },
+      "llm-generate": {
+        "cluster1": 1,
+        "cluster2edge": 1,
+        "cluster3edge": 1
+      }
+    }
+  },
+  {
+    "solution_id": 9,
+    "objectives": {
+      "mean_ttr": 0.8696937867005669,
+      "overall_spreading": 0.33,
+      "total_replicas": 15
+    },
+    "microservice_allocation": {
+      "gateway": {
+        "cluster1": 3,
+        "cluster2edge": 0,
+        "cluster3edge": 0
+      },
+      "embedder": {
+        "cluster1": 2,
+        "cluster2edge": 1,
+        "cluster3edge": 0
+      },
+      "vector-search": {
+        "cluster1": 1,
+        "cluster2edge": 1,
+        "cluster3edge": 1
+      },
+      "reranker": {
+        "cluster1": 1,
+        "cluster2edge": 1,
+        "cluster3edge": 1
+      },
+      "llm-generate": {
+        "cluster1": 1,
+        "cluster2edge": 1,
+        "cluster3edge": 1
+      }
+    }
+  },
+  {
+    "solution_id": 10,
+    "objectives": {
+      "mean_ttr": 0.8293653364976247,
+      "overall_spreading": 0.4,
+      "total_replicas": 15
+    },
+    "microservice_allocation": {
+      "gateway": {
+        "cluster1": 2,
+        "cluster2edge": 1,
+        "cluster3edge": 0
+      },
+      "embedder": {
+        "cluster1": 2,
+        "cluster2edge": 1,
+        "cluster3edge": 0
+      },
+      "vector-search": {
+        "cluster1": 1,
+        "cluster2edge": 1,
+        "cluster3edge": 1
+      },
+      "reranker": {
+        "cluster1": 2,
+        "cluster2edge": 1,
+        "cluster3edge": 0
+      },
+      "llm-generate": {
+        "cluster1": 1,
+        "cluster2edge": 1,
+        "cluster3edge": 1
+      }
+    }
+  },
+  {
+    "solution_id": 11,
+    "objectives": {
+      "mean_ttr": 0.8696937867005669,
+      "overall_spreading": 0.33,
+      "total_replicas": 15
+    },
+    "microservice_allocation": {
+      "gateway": {
+        "cluster1": 3,
+        "cluster2edge": 0,
+        "cluster3edge": 0
+      },
+      "embedder": {
+        "cluster1": 2,
+        "cluster2edge": 1,
+        "cluster3edge": 0
+      },
+      "vector-search": {
+        "cluster1": 1,
+        "cluster2edge": 1,
+        "cluster3edge": 1
+      },
+      "reranker": {
+        "cluster1": 1,
+        "cluster2edge": 1,
+        "cluster3edge": 1
+      },
+      "llm-generate": {
+        "cluster1": 1,
+        "cluster2edge": 1,
+        "cluster3edge": 1
+      }
+    }
+  },
+  {
+    "solution_id": 12,
+    "objectives": {
+      "mean_ttr": 0.7771450142065683,
+      "overall_spreading": 0.47,
+      "total_replicas": 15
+    },
+    "microservice_allocation": {
+      "gateway": {
+        "cluster1": 3,
+        "cluster2edge": 0,
+        "cluster3edge": 0
+      },
+      "embedder": {
+        "cluster1": 2,
+        "cluster2edge": 1,
+        "cluster3edge": 0
+      },
+      "vector-search": {
+        "cluster1": 1,
+        "cluster2edge": 1,
+        "cluster3edge": 1
+      },
+      "reranker": {
+        "cluster1": 1,
+        "cluster2edge": 1,
+        "cluster3edge": 1
+      },
+      "llm-generate": {
+        "cluster1": 1,
+        "cluster2edge": 2,
+        "cluster3edge": 0
+      }
+    }
+  },
+  {
+    "solution_id": 13,
+    "objectives": {
+      "mean_ttr": 0.6444969479242953,
+      "overall_spreading": 0.87,
+      "total_replicas": 15
+    },
+    "microservice_allocation": {
+      "gateway": {
+        "cluster1": 3,
+        "cluster2edge": 0,
+        "cluster3edge": 0
+      },
+      "embedder": {
+        "cluster1": 3,
+        "cluster2edge": 0,
+        "cluster3edge": 0
+      },
+      "vector-search": {
+        "cluster1": 2,
+        "cluster2edge": 1,
+        "cluster3edge": 0
+      },
+      "reranker": {
+        "cluster1": 3,
+        "cluster2edge": 0,
+        "cluster3edge": 0
+      },
+      "llm-generate": {
+        "cluster1": 2,
+        "cluster2edge": 1,
+        "cluster3edge": 0
+      }
+    }
+  },
+  {
+    "solution_id": 14,
+    "objectives": {
+      "mean_ttr": 0.8149538058042528,
+      "overall_spreading": 0.07,
+      "total_replicas": 17
+    },
+    "microservice_allocation": {
+      "gateway": {
+        "cluster1": 2,
+        "cluster2edge": 2,
+        "cluster3edge": 0
+      },
+      "embedder": {
+        "cluster1": 1,
+        "cluster2edge": 1,
+        "cluster3edge": 1
+      },
+      "vector-search": {
+        "cluster1": 2,
+        "cluster2edge": 1,
+        "cluster3edge": 1
+      },
+      "reranker": {
+        "cluster1": 1,
+        "cluster2edge": 1,
+        "cluster3edge": 1
+      },
+      "llm-generate": {
+        "cluster1": 1,
+        "cluster2edge": 1,
+        "cluster3edge": 1
+      }
+    }
+  },
+  {
+    "solution_id": 15,
+    "objectives": {
+      "mean_ttr": 0.6599029688040421,
+      "overall_spreading": 0.8,
+      "total_replicas": 15
+    },
+    "microservice_allocation": {
+      "gateway": {
+        "cluster1": 3,
+        "cluster2edge": 0,
+        "cluster3edge": 0
+      },
+      "embedder": {
+        "cluster1": 3,
+        "cluster2edge": 0,
+        "cluster3edge": 0
+      },
+      "vector-search": {
+        "cluster1": 2,
+        "cluster2edge": 1,
+        "cluster3edge": 0
+      },
+      "reranker": {
+        "cluster1": 2,
+        "cluster2edge": 1,
+        "cluster3edge": 0
+      },
+      "llm-generate": {
+        "cluster1": 2,
+        "cluster2edge": 1,
+        "cluster3edge": 0
+      }
+    }
+  },
+  {
+    "solution_id": 16,
+    "objectives": {
+      "mean_ttr": 0.6444969479242953,
+      "overall_spreading": 0.87,
+      "total_replicas": 15
+    },
+    "microservice_allocation": {
+      "gateway": {
+        "cluster1": 3,
+        "cluster2edge": 0,
+        "cluster3edge": 0
+      },
+      "embedder": {
+        "cluster1": 3,
+        "cluster2edge": 0,
+        "cluster3edge": 0
+      },
+      "vector-search": {
+        "cluster1": 2,
+        "cluster2edge": 1,
+        "cluster3edge": 0
+      },
+      "reranker": {
+        "cluster1": 3,
+        "cluster2edge": 0,
+        "cluster3edge": 0
+      },
+      "llm-generate": {
+        "cluster1": 2,
+        "cluster2edge": 1,
+        "cluster3edge": 0
+      }
+    }
+  },
+  {
+    "solution_id": 17,
+    "objectives": {
+      "mean_ttr": 0.7771450142065683,
+      "overall_spreading": 0.47,
+      "total_replicas": 15
+    },
+    "microservice_allocation": {
+      "gateway": {
+        "cluster1": 3,
+        "cluster2edge": 0,
+        "cluster3edge": 0
+      },
+      "embedder": {
+        "cluster1": 2,
+        "cluster2edge": 1,
+        "cluster3edge": 0
+      },
+      "vector-search": {
+        "cluster1": 1,
+        "cluster2edge": 1,
+        "cluster3edge": 1
+      },
+      "reranker": {
+        "cluster1": 1,
+        "cluster2edge": 1,
+        "cluster3edge": 1
+      },
+      "llm-generate": {
+        "cluster1": 1,
+        "cluster2edge": 2,
+        "cluster3edge": 0
+      }
+    }
+  },
+  {
+    "solution_id": 18,
+    "objectives": {
+      "mean_ttr": 0.5511759376525888,
+      "overall_spreading": 0.44,
+      "total_replicas": 23
+    },
+    "microservice_allocation": {
+      "gateway": {
+        "cluster1": 6,
+        "cluster2edge": 2,
+        "cluster3edge": 0
+      },
+      "embedder": {
+        "cluster1": 2,
+        "cluster2edge": 1,
+        "cluster3edge": 0
+      },
+      "vector-search": {
+        "cluster1": 3,
+        "cluster2edge": 2,
+        "cluster3edge": 0
+      },
+      "reranker": {
+        "cluster1": 2,
+        "cluster2edge": 2,
+        "cluster3edge": 0
+      },
+      "llm-generate": {
+        "cluster1": 1,
+        "cluster2edge": 1,
+        "cluster3edge": 1
+      }
+    }
+  },
+  {
+    "solution_id": 19,
+    "objectives": {
+      "mean_ttr": 0.7127286809682846,
+      "overall_spreading": 0.1,
+      "total_replicas": 18
+    },
+    "microservice_allocation": {
+      "gateway": {
+        "cluster1": 3,
+        "cluster2edge": 2,
+        "cluster3edge": 0
+      },
+      "embedder": {
+        "cluster1": 1,
+        "cluster2edge": 1,
+        "cluster3edge": 1
+      },
+      "vector-search": {
+        "cluster1": 2,
+        "cluster2edge": 1,
+        "cluster3edge": 1
+      },
+      "reranker": {
+        "cluster1": 1,
+        "cluster2edge": 1,
+        "cluster3edge": 1
+      },
+      "llm-generate": {
+        "cluster1": 1,
+        "cluster2edge": 1,
+        "cluster3edge": 1
+      }
+    }
+  },
+  {
+    "solution_id": 20,
+    "objectives": {
+      "mean_ttr": 0.6380544716119757,
+      "overall_spreading": 0.03,
+      "total_replicas": 22
+    },
+    "microservice_allocation": {
+      "gateway": {
+        "cluster1": 4,
+        "cluster2edge": 2,
+        "cluster3edge": 2
+      },
+      "embedder": {
+        "cluster1": 1,
+        "cluster2edge": 1,
+        "cluster3edge": 1
+      },
+      "vector-search": {
+        "cluster1": 1,
+        "cluster2edge": 1,
+        "cluster3edge": 2
+      },
+      "reranker": {
+        "cluster1": 1,
+        "cluster2edge": 1,
+        "cluster3edge": 1
+      },
+      "llm-generate": {
+        "cluster1": 2,
+        "cluster2edge": 1,
+        "cluster3edge": 1
+      }
+    }
+  },
+  {
+    "solution_id": 21,
+    "objectives": {
+      "mean_ttr": 0.6928256102403004,
+      "overall_spreading": 0.18,
+      "total_replicas": 18
+    },
+    "microservice_allocation": {
+      "gateway": {
+        "cluster1": 3,
+        "cluster2edge": 1,
+        "cluster3edge": 1
+      },
+      "embedder": {
+        "cluster1": 1,
+        "cluster2edge": 1,
+        "cluster3edge": 1
+      },
+      "vector-search": {
+        "cluster1": 2,
+        "cluster2edge": 1,
+        "cluster3edge": 1
+      },
+      "reranker": {
+        "cluster1": 1,
+        "cluster2edge": 1,
+        "cluster3edge": 1
+      },
+      "llm-generate": {
+        "cluster1": 2,
+        "cluster2edge": 0,
+        "cluster3edge": 1
+      }
+    }
+  },
+  {
+    "solution_id": 22,
+    "objectives": {
+      "mean_ttr": 0.6751290959119802,
+      "overall_spreading": 0.73,
+      "total_replicas": 15
+    },
+    "microservice_allocation": {
+      "gateway": {
+        "cluster1": 3,
+        "cluster2edge": 0,
+        "cluster3edge": 0
+      },
+      "embedder": {
+        "cluster1": 2,
+        "cluster2edge": 1,
+        "cluster3edge": 0
+      },
+      "vector-search": {
+        "cluster1": 2,
+        "cluster2edge": 1,
+        "cluster3edge": 0
+      },
+      "reranker": {
+        "cluster1": 2,
+        "cluster2edge": 1,
+        "cluster3edge": 0
+      },
+      "llm-generate": {
+        "cluster1": 2,
+        "cluster2edge": 1,
+        "cluster3edge": 0
+      }
+    }
+  },
+  {
+    "solution_id": 23,
+    "objectives": {
+      "mean_ttr": 0.6075962616999937,
+      "overall_spreading": 0.15,
+      "total_replicas": 24
+    },
+    "microservice_allocation": {
+      "gateway": {
+        "cluster1": 4,
+        "cluster2edge": 4,
+        "cluster3edge": 0
+      },
+      "embedder": {
+        "cluster1": 2,
+        "cluster2edge": 2,
+        "cluster3edge": 1
+      },
+      "vector-search": {
+        "cluster1": 2,
+        "cluster2edge": 2,
+        "cluster3edge": 0
+      },
+      "reranker": {
+        "cluster1": 2,
+        "cluster2edge": 1,
+        "cluster3edge": 1
+      },
+      "llm-generate": {
+        "cluster1": 1,
+        "cluster2edge": 1,
+        "cluster3edge": 1
+      }
+    }
+  },
+  {
+    "solution_id": 24,
+    "objectives": {
+      "mean_ttr": 0.6295512157678603,
+      "overall_spreading": 0.55,
+      "total_replicas": 17
+    },
+    "microservice_allocation": {
+      "gateway": {
+        "cluster1": 4,
+        "cluster2edge": 1,
+        "cluster3edge": 0
+      },
+      "embedder": {
+        "cluster1": 2,
+        "cluster2edge": 1,
+        "cluster3edge": 0
+      },
+      "vector-search": {
+        "cluster1": 1,
+        "cluster2edge": 2,
+        "cluster3edge": 0
+      },
+      "reranker": {
+        "cluster1": 2,
+        "cluster2edge": 0,
+        "cluster3edge": 1
+      },
+      "llm-generate": {
+        "cluster1": 1,
+        "cluster2edge": 1,
+        "cluster3edge": 1
+      }
+    }
+  },
+  {
+    "solution_id": 25,
+    "objectives": {
+      "mean_ttr": 0.5508442382017777,
+      "overall_spreading": 0.63,
+      "total_replicas": 19
+    },
+    "microservice_allocation": {
+      "gateway": {
+        "cluster1": 5,
+        "cluster2edge": 1,
+        "cluster3edge": 0
+      },
+      "embedder": {
+        "cluster1": 2,
+        "cluster2edge": 1,
+        "cluster3edge": 0
+      },
+      "vector-search": {
+        "cluster1": 2,
+        "cluster2edge": 2,
+        "cluster3edge": 0
+      },
+      "reranker": {
+        "cluster1": 2,
+        "cluster2edge": 1,
+        "cluster3edge": 0
+      },
+      "llm-generate": {
+        "cluster1": 2,
+        "cluster2edge": 1,
+        "cluster3edge": 0
+      }
+    }
+  },
+  {
+    "solution_id": 26,
+    "objectives": {
+      "mean_ttr": 0.5888513080279025,
+      "overall_spreading": 0.35,
+      "total_replicas": 20
+    },
+    "microservice_allocation": {
+      "gateway": {
+        "cluster1": 4,
+        "cluster2edge": 4,
+        "cluster3edge": 0
+      },
+      "embedder": {
+        "cluster1": 2,
+        "cluster2edge": 1,
+        "cluster3edge": 0
+      },
+      "vector-search": {
+        "cluster1": 2,
+        "cluster2edge": 0,
+        "cluster3edge": 1
+      },
+      "reranker": {
+        "cluster1": 1,
+        "cluster2edge": 1,
+        "cluster3edge": 1
+      },
+      "llm-generate": {
+        "cluster1": 1,
+        "cluster2edge": 1,
+        "cluster3edge": 1
+      }
+    }
+  },
+  {
+    "solution_id": 27,
+    "objectives": {
+      "mean_ttr": 0.6026822441816333,
+      "overall_spreading": 0.93,
+      "total_replicas": 15
+    },
+    "microservice_allocation": {
+      "gateway": {
+        "cluster1": 3,
+        "cluster2edge": 0,
+        "cluster3edge": 0
+      },
+      "embedder": {
+        "cluster1": 3,
+        "cluster2edge": 0,
+        "cluster3edge": 0
+      },
+      "vector-search": {
+        "cluster1": 2,
+        "cluster2edge": 1,
+        "cluster3edge": 0
+      },
+      "reranker": {
+        "cluster1": 3,
+        "cluster2edge": 0,
+        "cluster3edge": 0
+      },
+      "llm-generate": {
+        "cluster1": 3,
+        "cluster2edge": 0,
+        "cluster3edge": 0
+      }
+    }
+  },
+  {
+    "solution_id": 28,
+    "objectives": {
+      "mean_ttr": 0.5907059051593141,
+      "overall_spreading": 0.57,
+      "total_replicas": 17
+    },
+    "microservice_allocation": {
+      "gateway": {
+        "cluster1": 3,
+        "cluster2edge": 2,
+        "cluster3edge": 0
+      },
+      "embedder": {
+        "cluster1": 3,
+        "cluster2edge": 0,
+        "cluster3edge": 0
+      },
+      "vector-search": {
+        "cluster1": 2,
+        "cluster2edge": 1,
+        "cluster3edge": 0
+      },
+      "reranker": {
+        "cluster1": 2,
+        "cluster2edge": 1,
+        "cluster3edge": 0
+      },
+      "llm-generate": {
+        "cluster1": 1,
+        "cluster2edge": 1,
+        "cluster3edge": 1
+      }
+    }
+  },
+  {
+    "solution_id": 29,
+    "objectives": {
+      "mean_ttr": 0.6599029688040421,
+      "overall_spreading": 0.8,
+      "total_replicas": 15
+    },
+    "microservice_allocation": {
+      "gateway": {
+        "cluster1": 3,
+        "cluster2edge": 0,
+        "cluster3edge": 0
+      },
+      "embedder": {
+        "cluster1": 3,
+        "cluster2edge": 0,
+        "cluster3edge": 0
+      },
+      "vector-search": {
+        "cluster1": 2,
+        "cluster2edge": 1,
+        "cluster3edge": 0
+      },
+      "reranker": {
+        "cluster1": 2,
+        "cluster2edge": 1,
+        "cluster3edge": 0
+      },
+      "llm-generate": {
+        "cluster1": 2,
+        "cluster2edge": 1,
+        "cluster3edge": 0
+      }
+    }
+  },
+  {
+    "solution_id": 30,
+    "objectives": {
+      "mean_ttr": 0.7243683926264449,
+      "overall_spreading": 0.67,
+      "total_replicas": 15
+    },
+    "microservice_allocation": {
+      "gateway": {
+        "cluster1": 3,
+        "cluster2edge": 0,
+        "cluster3edge": 0
+      },
+      "embedder": {
+        "cluster1": 2,
+        "cluster2edge": 1,
+        "cluster3edge": 0
+      },
+      "vector-search": {
+        "cluster1": 2,
+        "cluster2edge": 1,
+        "cluster3edge": 0
+      },
+      "reranker": {
+        "cluster1": 3,
+        "cluster2edge": 0,
+        "cluster3edge": 0
+      },
+      "llm-generate": {
+        "cluster1": 1,
+        "cluster2edge": 1,
+        "cluster3edge": 1
+      }
+    }
+  },
+  {
+    "solution_id": 31,
+    "objectives": {
+      "mean_ttr": 0.7535251450538641,
+      "overall_spreading": 0.6,
+      "total_replicas": 15
+    },
+    "microservice_allocation": {
+      "gateway": {
+        "cluster1": 2,
+        "cluster2edge": 1,
+        "cluster3edge": 0
+      },
+      "embedder": {
+        "cluster1": 2,
+        "cluster2edge": 1,
+        "cluster3edge": 0
+      },
+      "vector-search": {
+        "cluster1": 2,
+        "cluster2edge": 1,
+        "cluster3edge": 0
+      },
+      "reranker": {
+        "cluster1": 3,
+        "cluster2edge": 0,
+        "cluster3edge": 0
+      },
+      "llm-generate": {
+        "cluster1": 1,
+        "cluster2edge": 1,
+        "cluster3edge": 1
+      }
+    }
+  },
+  {
+    "solution_id": 32,
+    "objectives": {
+      "mean_ttr": 0.5589813693364454,
+      "overall_spreading": 0.51,
+      "total_replicas": 20
+    },
+    "microservice_allocation": {
+      "gateway": {
+        "cluster1": 5,
+        "cluster2edge": 3,
+        "cluster3edge": 0
+      },
+      "embedder": {
+        "cluster1": 2,
+        "cluster2edge": 1,
+        "cluster3edge": 0
+      },
+      "vector-search": {
+        "cluster1": 2,
+        "cluster2edge": 1,
+        "cluster3edge": 0
+      },
+      "reranker": {
+        "cluster1": 1,
+        "cluster2edge": 1,
+        "cluster3edge": 1
+      },
+      "llm-generate": {
+        "cluster1": 1,
+        "cluster2edge": 2,
+        "cluster3edge": 0
+      }
+    }
+  },
+  {
+    "solution_id": 33,
+    "objectives": {
+      "mean_ttr": 0.5557480370998368,
+      "overall_spreading": 0.41,
+      "total_replicas": 22
+    },
+    "microservice_allocation": {
+      "gateway": {
+        "cluster1": 6,
+        "cluster2edge": 2,
+        "cluster3edge": 0
+      },
+      "embedder": {
+        "cluster1": 2,
+        "cluster2edge": 1,
+        "cluster3edge": 0
+      },
+      "vector-search": {
+        "cluster1": 3,
+        "cluster2edge": 1,
+        "cluster3edge": 0
+      },
+      "reranker": {
+        "cluster1": 2,
+        "cluster2edge": 1,
+        "cluster3edge": 1
+      },
+      "llm-generate": {
+        "cluster1": 1,
+        "cluster2edge": 1,
+        "cluster3edge": 1
+      }
+    }
+  },
+  {
+    "solution_id": 34,
+    "objectives": {
+      "mean_ttr": 0.7535251450538641,
+      "overall_spreading": 0.6,
+      "total_replicas": 15
+    },
+    "microservice_allocation": {
+      "gateway": {
+        "cluster1": 2,
+        "cluster2edge": 1,
+        "cluster3edge": 0
+      },
+      "embedder": {
+        "cluster1": 2,
+        "cluster2edge": 1,
+        "cluster3edge": 0
+      },
+      "vector-search": {
+        "cluster1": 2,
+        "cluster2edge": 1,
+        "cluster3edge": 0
+      },
+      "reranker": {
+        "cluster1": 3,
+        "cluster2edge": 0,
+        "cluster3edge": 0
+      },
+      "llm-generate": {
+        "cluster1": 1,
+        "cluster2edge": 1,
+        "cluster3edge": 1
+      }
+    }
+  },
+  {
+    "solution_id": 35,
+    "objectives": {
+      "mean_ttr": 0.5391792400677994,
+      "overall_spreading": 0.7,
+      "total_replicas": 19
+    },
+    "microservice_allocation": {
+      "gateway": {
+        "cluster1": 5,
+        "cluster2edge": 1,
+        "cluster3edge": 0
+      },
+      "embedder": {
+        "cluster1": 2,
+        "cluster2edge": 1,
+        "cluster3edge": 0
+      },
+      "vector-search": {
+        "cluster1": 2,
+        "cluster2edge": 2,
+        "cluster3edge": 0
+      },
+      "reranker": {
+        "cluster1": 2,
+        "cluster2edge": 1,
+        "cluster3edge": 0
+      },
+      "llm-generate": {
+        "cluster1": 3,
+        "cluster2edge": 0,
+        "cluster3edge": 0
+      }
+    }
+  },
+  {
+    "solution_id": 36,
+    "objectives": {
+      "mean_ttr": 0.6503091804186508,
+      "overall_spreading": 0.37,
+      "total_replicas": 17
+    },
+    "microservice_allocation": {
+      "gateway": {
+        "cluster1": 3,
+        "cluster2edge": 2,
+        "cluster3edge": 0
+      },
+      "embedder": {
+        "cluster1": 2,
+        "cluster2edge": 1,
+        "cluster3edge": 0
+      },
+      "vector-search": {
+        "cluster1": 1,
+        "cluster2edge": 1,
+        "cluster3edge": 1
+      },
+      "reranker": {
+        "cluster1": 2,
+        "cluster2edge": 0,
+        "cluster3edge": 1
+      },
+      "llm-generate": {
+        "cluster1": 1,
+        "cluster2edge": 1,
+        "cluster3edge": 1
+      }
+    }
+  },
+  {
+    "solution_id": 37,
+    "objectives": {
+      "mean_ttr": 0.7315195278326659,
+      "overall_spreading": 0.07,
+      "total_replicas": 18
+    },
+    "microservice_allocation": {
+      "gateway": {
+        "cluster1": 2,
+        "cluster2edge": 2,
+        "cluster3edge": 0
+      },
+      "embedder": {
+        "cluster1": 2,
+        "cluster2edge": 1,
+        "cluster3edge": 1
+      },
+      "vector-search": {
+        "cluster1": 1,
+        "cluster2edge": 1,
+        "cluster3edge": 2
+      },
+      "reranker": {
+        "cluster1": 1,
+        "cluster2edge": 1,
+        "cluster3edge": 1
+      },
+      "llm-generate": {
+        "cluster1": 1,
+        "cluster2edge": 1,
+        "cluster3edge": 1
+      }
+    }
+  },
+  {
+    "solution_id": 38,
+    "objectives": {
+      "mean_ttr": 0.5934197531143816,
+      "overall_spreading": 0.29,
+      "total_replicas": 22
+    },
+    "microservice_allocation": {
+      "gateway": {
+        "cluster1": 5,
+        "cluster2edge": 2,
+        "cluster3edge": 1
+      },
+      "embedder": {
+        "cluster1": 2,
+        "cluster2edge": 1,
+        "cluster3edge": 0
+      },
+      "vector-search": {
+        "cluster1": 2,
+        "cluster2edge": 1,
+        "cluster3edge": 1
+      },
+      "reranker": {
+        "cluster1": 1,
+        "cluster2edge": 1,
+        "cluster3edge": 1
+      },
+      "llm-generate": {
+        "cluster1": 2,
+        "cluster2edge": 2,
+        "cluster3edge": 0
+      }
+    }
+  },
+  {
+    "solution_id": 39,
+    "objectives": {
+      "mean_ttr": 0.5339695743719732,
+      "overall_spreading": 0.77,
+      "total_replicas": 18
+    },
+    "microservice_allocation": {
+      "gateway": {
+        "cluster1": 5,
+        "cluster2edge": 1,
+        "cluster3edge": 0
+      },
+      "embedder": {
+        "cluster1": 3,
+        "cluster2edge": 0,
+        "cluster3edge": 0
+      },
+      "vector-search": {
+        "cluster1": 2,
+        "cluster2edge": 1,
+        "cluster3edge": 0
+      },
+      "reranker": {
+        "cluster1": 2,
+        "cluster2edge": 1,
+        "cluster3edge": 0
+      },
+      "llm-generate": {
+        "cluster1": 2,
+        "cluster2edge": 1,
+        "cluster3edge": 0
+      }
+    }
+  },
+  {
+    "solution_id": 40,
+    "objectives": {
+      "mean_ttr": 0.5603976426521932,
+      "overall_spreading": 0.31,
+      "total_replicas": 27
+    },
+    "microservice_allocation": {
+      "gateway": {
+        "cluster1": 5,
+        "cluster2edge": 4,
+        "cluster3edge": 0
+      },
+      "embedder": {
+        "cluster1": 2,
+        "cluster2edge": 2,
+        "cluster3edge": 0
+      },
+      "vector-search": {
+        "cluster1": 2,
+        "cluster2edge": 1,
+        "cluster3edge": 1
+      },
+      "reranker": {
+        "cluster1": 3,
+        "cluster2edge": 2,
+        "cluster3edge": 1
+      },
+      "llm-generate": {
+        "cluster1": 2,
+        "cluster2edge": 2,
+        "cluster3edge": 0
+      }
+    }
+  },
+  {
+    "solution_id": 41,
+    "objectives": {
+      "mean_ttr": 0.7301655950148902,
+      "overall_spreading": 0.0,
+      "total_replicas": 19
+    },
+    "microservice_allocation": {
+      "gateway": {
+        "cluster1": 2,
+        "cluster2edge": 1,
+        "cluster3edge": 2
+      },
+      "embedder": {
+        "cluster1": 2,
+        "cluster2edge": 1,
+        "cluster3edge": 1
+      },
+      "vector-search": {
+        "cluster1": 1,
+        "cluster2edge": 1,
+        "cluster3edge": 2
+      },
+      "reranker": {
+        "cluster1": 1,
+        "cluster2edge": 1,
+        "cluster3edge": 1
+      },
+      "llm-generate": {
+        "cluster1": 1,
+        "cluster2edge": 1,
+        "cluster3edge": 1
+      }
+    }
+  },
+  {
+    "solution_id": 42,
+    "objectives": {
+      "mean_ttr": 0.5497049572070435,
+      "overall_spreading": 0.5,
+      "total_replicas": 21
+    },
+    "microservice_allocation": {
+      "gateway": {
+        "cluster1": 7,
+        "cluster2edge": 1,
+        "cluster3edge": 0
+      },
+      "embedder": {
+        "cluster1": 2,
+        "cluster2edge": 1,
+        "cluster3edge": 0
+      },
+      "vector-search": {
+        "cluster1": 2,
+        "cluster2edge": 1,
+        "cluster3edge": 0
+      },
+      "reranker": {
+        "cluster1": 2,
+        "cluster2edge": 2,
+        "cluster3edge": 0
+      },
+      "llm-generate": {
+        "cluster1": 1,
+        "cluster2edge": 1,
+        "cluster3edge": 1
+      }
+    }
+  },
+  {
+    "solution_id": 43,
+    "objectives": {
+      "mean_ttr": 0.6159875454505281,
+      "overall_spreading": 0.12,
+      "total_replicas": 21
+    },
+    "microservice_allocation": {
+      "gateway": {
+        "cluster1": 4,
+        "cluster2edge": 3,
+        "cluster3edge": 1
+      },
+      "embedder": {
+        "cluster1": 2,
+        "cluster2edge": 2,
+        "cluster3edge": 0
+      },
+      "vector-search": {
+        "cluster1": 1,
+        "cluster2edge": 1,
+        "cluster3edge": 1
+      },
+      "reranker": {
+        "cluster1": 1,
+        "cluster2edge": 1,
+        "cluster3edge": 1
+      },
+      "llm-generate": {
+        "cluster1": 1,
+        "cluster2edge": 1,
+        "cluster3edge": 1
+      }
+    }
+  },
+  {
+    "solution_id": 44,
+    "objectives": {
+      "mean_ttr": 0.577416994571686,
+      "overall_spreading": 0.38,
+      "total_replicas": 20
+    },
+    "microservice_allocation": {
+      "gateway": {
+        "cluster1": 5,
+        "cluster2edge": 3,
+        "cluster3edge": 0
+      },
+      "embedder": {
+        "cluster1": 2,
+        "cluster2edge": 1,
+        "cluster3edge": 0
+      },
+      "vector-search": {
+        "cluster1": 2,
+        "cluster2edge": 1,
+        "cluster3edge": 0
+      },
+      "reranker": {
+        "cluster1": 1,
+        "cluster2edge": 1,
+        "cluster3edge": 1
+      },
+      "llm-generate": {
+        "cluster1": 1,
+        "cluster2edge": 1,
+        "cluster3edge": 1
+      }
+    }
+  },
+  {
+    "solution_id": 45,
+    "objectives": {
+      "mean_ttr": 0.5386337238550191,
+      "overall_spreading": 0.49,
+      "total_replicas": 22
+    },
+    "microservice_allocation": {
+      "gateway": {
+        "cluster1": 4,
+        "cluster2edge": 4,
+        "cluster3edge": 0
+      },
+      "embedder": {
+        "cluster1": 2,
+        "cluster2edge": 1,
+        "cluster3edge": 0
+      },
+      "vector-search": {
+        "cluster1": 2,
+        "cluster2edge": 2,
+        "cluster3edge": 0
+      },
+      "reranker": {
+        "cluster1": 2,
+        "cluster2edge": 2,
+        "cluster3edge": 0
+      },
+      "llm-generate": {
+        "cluster1": 2,
+        "cluster2edge": 1,
+        "cluster3edge": 0
+      }
+    }
+  },
+  {
+    "solution_id": 46,
+    "objectives": {
+      "mean_ttr": 0.571582571864127,
+      "overall_spreading": 0.7,
+      "total_replicas": 17
+    },
+    "microservice_allocation": {
+      "gateway": {
+        "cluster1": 3,
+        "cluster2edge": 2,
+        "cluster3edge": 0
+      },
+      "embedder": {
+        "cluster1": 3,
+        "cluster2edge": 0,
+        "cluster3edge": 0
+      },
+      "vector-search": {
+        "cluster1": 2,
+        "cluster2edge": 1,
+        "cluster3edge": 0
+      },
+      "reranker": {
+        "cluster1": 2,
+        "cluster2edge": 1,
+        "cluster3edge": 0
+      },
+      "llm-generate": {
+        "cluster1": 2,
+        "cluster2edge": 1,
+        "cluster3edge": 0
+      }
+    }
+  },
+  {
+    "solution_id": 47,
+    "objectives": {
+      "mean_ttr": 0.5339695743719732,
+      "overall_spreading": 0.77,
+      "total_replicas": 18
+    },
+    "microservice_allocation": {
+      "gateway": {
+        "cluster1": 5,
+        "cluster2edge": 1,
+        "cluster3edge": 0
+      },
+      "embedder": {
+        "cluster1": 3,
+        "cluster2edge": 0,
+        "cluster3edge": 0
+      },
+      "vector-search": {
+        "cluster1": 2,
+        "cluster2edge": 1,
+        "cluster3edge": 0
+      },
+      "reranker": {
+        "cluster1": 2,
+        "cluster2edge": 1,
+        "cluster3edge": 0
+      },
+      "llm-generate": {
+        "cluster1": 2,
+        "cluster2edge": 1,
+        "cluster3edge": 0
+      }
+    }
+  },
+  {
+    "solution_id": 48,
+    "objectives": {
+      "mean_ttr": 0.73894758383433,
+      "overall_spreading": 0.0,
+      "total_replicas": 18
+    },
+    "microservice_allocation": {
+      "gateway": {
+        "cluster1": 2,
+        "cluster2edge": 2,
+        "cluster3edge": 1
+      },
+      "embedder": {
+        "cluster1": 1,
+        "cluster2edge": 1,
+        "cluster3edge": 1
+      },
+      "vector-search": {
+        "cluster1": 2,
+        "cluster2edge": 1,
+        "cluster3edge": 1
+      },
+      "reranker": {
+        "cluster1": 1,
+        "cluster2edge": 1,
+        "cluster3edge": 1
+      },
+      "llm-generate": {
+        "cluster1": 1,
+        "cluster2edge": 1,
+        "cluster3edge": 1
+      }
+    }
+  },
+  {
+    "solution_id": 49,
+    "objectives": {
+      "mean_ttr": 0.5582305071751285,
+      "overall_spreading": 0.73,
+      "total_replicas": 18
+    },
+    "microservice_allocation": {
+      "gateway": {
+        "cluster1": 4,
+        "cluster2edge": 2,
+        "cluster3edge": 0
+      },
+      "embedder": {
+        "cluster1": 2,
+        "cluster2edge": 1,
+        "cluster3edge": 0
+      },
+      "vector-search": {
+        "cluster1": 1,
+        "cluster2edge": 2,
+        "cluster3edge": 0
+      },
+      "reranker": {
+        "cluster1": 3,
+        "cluster2edge": 0,
+        "cluster3edge": 0
+      },
+      "llm-generate": {
+        "cluster1": 2,
+        "cluster2edge": 1,
+        "cluster3edge": 0
+      }
+    }
+  },
+  {
+    "solution_id": 50,
+    "objectives": {
+      "mean_ttr": 0.7049928923447927,
+      "overall_spreading": 0.05,
+      "total_replicas": 19
+    },
+    "microservice_allocation": {
+      "gateway": {
+        "cluster1": 3,
+        "cluster2edge": 1,
+        "cluster3edge": 1
+      },
+      "embedder": {
+        "cluster1": 2,
+        "cluster2edge": 1,
+        "cluster3edge": 1
+      },
+      "vector-search": {
+        "cluster1": 2,
+        "cluster2edge": 1,
+        "cluster3edge": 1
+      },
+      "reranker": {
+        "cluster1": 1,
+        "cluster2edge": 1,
+        "cluster3edge": 1
+      },
+      "llm-generate": {
+        "cluster1": 1,
+        "cluster2edge": 1,
+        "cluster3edge": 1
+      }
+    }
+  },
+  {
+    "solution_id": 51,
+    "objectives": {
+      "mean_ttr": 0.7215321308374412,
+      "overall_spreading": 0.13,
+      "total_replicas": 17
+    },
+    "microservice_allocation": {
+      "gateway": {
+        "cluster1": 2,
+        "cluster2edge": 1,
+        "cluster3edge": 2
+      },
+      "embedder": {
+        "cluster1": 2,
+        "cluster2edge": 0,
+        "cluster3edge": 1
+      },
+      "vector-search": {
+        "cluster1": 1,
+        "cluster2edge": 1,
+        "cluster3edge": 1
+      },
+      "reranker": {
+        "cluster1": 1,
+        "cluster2edge": 1,
+        "cluster3edge": 1
+      },
+      "llm-generate": {
+        "cluster1": 1,
+        "cluster2edge": 1,
+        "cluster3edge": 1
+      }
+    }
+  },
+  {
+    "solution_id": 52,
+    "objectives": {
+      "mean_ttr": 0.6751290959119802,
+      "overall_spreading": 0.73,
+      "total_replicas": 15
+    },
+    "microservice_allocation": {
+      "gateway": {
+        "cluster1": 3,
+        "cluster2edge": 0,
+        "cluster3edge": 0
+      },
+      "embedder": {
+        "cluster1": 2,
+        "cluster2edge": 1,
+        "cluster3edge": 0
+      },
+      "vector-search": {
+        "cluster1": 2,
+        "cluster2edge": 1,
+        "cluster3edge": 0
+      },
+      "reranker": {
+        "cluster1": 2,
+        "cluster2edge": 1,
+        "cluster3edge": 0
+      },
+      "llm-generate": {
+        "cluster1": 2,
+        "cluster2edge": 1,
+        "cluster3edge": 0
+      }
+    }
+  },
+  {
+    "solution_id": 53,
+    "objectives": {
+      "mean_ttr": 0.6350897264480602,
+      "overall_spreading": 0.06,
+      "total_replicas": 21
+    },
+    "microservice_allocation": {
+      "gateway": {
+        "cluster1": 3,
+        "cluster2edge": 4,
+        "cluster3edge": 1
+      },
+      "embedder": {
+        "cluster1": 1,
+        "cluster2edge": 1,
+        "cluster3edge": 1
+      },
+      "vector-search": {
+        "cluster1": 1,
+        "cluster2edge": 1,
+        "cluster3edge": 1
+      },
+      "reranker": {
+        "cluster1": 1,
+        "cluster2edge": 1,
+        "cluster3edge": 1
+      },
+      "llm-generate": {
+        "cluster1": 1,
+        "cluster2edge": 2,
+        "cluster3edge": 1
+      }
+    }
+  },
+  {
+    "solution_id": 54,
+    "objectives": {
+      "mean_ttr": 0.6071434940894436,
+      "overall_spreading": 0.32,
+      "total_replicas": 21
+    },
+    "microservice_allocation": {
+      "gateway": {
+        "cluster1": 4,
+        "cluster2edge": 3,
+        "cluster3edge": 1
+      },
+      "embedder": {
+        "cluster1": 2,
+        "cluster2edge": 1,
+        "cluster3edge": 0
+      },
+      "vector-search": {
+        "cluster1": 1,
+        "cluster2edge": 1,
+        "cluster3edge": 2
+      },
+      "reranker": {
+        "cluster1": 2,
+        "cluster2edge": 1,
+        "cluster3edge": 0
+      },
+      "llm-generate": {
+        "cluster1": 1,
+        "cluster2edge": 1,
+        "cluster3edge": 1
+      }
+    }
+  },
+  {
+    "solution_id": 55,
+    "objectives": {
+      "mean_ttr": 0.6304246433575945,
+      "overall_spreading": 0.11,
+      "total_replicas": 23
+    },
+    "microservice_allocation": {
+      "gateway": {
+        "cluster1": 4,
+        "cluster2edge": 5,
+        "cluster3edge": 0
+      },
+      "embedder": {
+        "cluster1": 2,
+        "cluster2edge": 1,
+        "cluster3edge": 1
+      },
+      "vector-search": {
+        "cluster1": 1,
+        "cluster2edge": 1,
+        "cluster3edge": 2
+      },
+      "reranker": {
+        "cluster1": 1,
+        "cluster2edge": 1,
+        "cluster3edge": 1
+      },
+      "llm-generate": {
+        "cluster1": 1,
+        "cluster2edge": 1,
+        "cluster3edge": 1
+      }
+    }
+  },
+  {
+    "solution_id": 56,
+    "objectives": {
+      "mean_ttr": 0.7049928923447927,
+      "overall_spreading": 0.05,
+      "total_replicas": 19
+    },
+    "microservice_allocation": {
+      "gateway": {
+        "cluster1": 3,
+        "cluster2edge": 1,
+        "cluster3edge": 1
+      },
+      "embedder": {
+        "cluster1": 2,
+        "cluster2edge": 1,
+        "cluster3edge": 1
+      },
+      "vector-search": {
+        "cluster1": 2,
+        "cluster2edge": 1,
+        "cluster3edge": 1
+      },
+      "reranker": {
+        "cluster1": 1,
+        "cluster2edge": 1,
+        "cluster3edge": 1
+      },
+      "llm-generate": {
+        "cluster1": 1,
+        "cluster2edge": 1,
+        "cluster3edge": 1
+      }
+    }
+  },
+  {
+    "solution_id": 57,
+    "objectives": {
+      "mean_ttr": 0.8293653364976247,
+      "overall_spreading": 0.4,
+      "total_replicas": 15
+    },
+    "microservice_allocation": {
+      "gateway": {
+        "cluster1": 2,
+        "cluster2edge": 1,
+        "cluster3edge": 0
+      },
+      "embedder": {
+        "cluster1": 2,
+        "cluster2edge": 1,
+        "cluster3edge": 0
+      },
+      "vector-search": {
+        "cluster1": 1,
+        "cluster2edge": 1,
+        "cluster3edge": 1
+      },
+      "reranker": {
+        "cluster1": 2,
+        "cluster2edge": 1,
+        "cluster3edge": 0
+      },
+      "llm-generate": {
+        "cluster1": 1,
+        "cluster2edge": 1,
+        "cluster3edge": 1
+      }
+    }
+  },
+  {
+    "solution_id": 58,
+    "objectives": {
+      "mean_ttr": 0.8149538058042528,
+      "overall_spreading": 0.07,
+      "total_replicas": 17
+    },
+    "microservice_allocation": {
+      "gateway": {
+        "cluster1": 2,
+        "cluster2edge": 2,
+        "cluster3edge": 0
+      },
+      "embedder": {
+        "cluster1": 1,
+        "cluster2edge": 1,
+        "cluster3edge": 1
+      },
+      "vector-search": {
+        "cluster1": 2,
+        "cluster2edge": 1,
+        "cluster3edge": 1
+      },
+      "reranker": {
+        "cluster1": 1,
+        "cluster2edge": 1,
+        "cluster3edge": 1
+      },
+      "llm-generate": {
+        "cluster1": 1,
+        "cluster2edge": 1,
+        "cluster3edge": 1
+      }
+    }
+  },
+  {
+    "solution_id": 59,
+    "objectives": {
+      "mean_ttr": 0.532278855045636,
+      "overall_spreading": 0.61,
+      "total_replicas": 21
+    },
+    "microservice_allocation": {
+      "gateway": {
+        "cluster1": 6,
+        "cluster2edge": 2,
+        "cluster3edge": 0
+      },
+      "embedder": {
+        "cluster1": 2,
+        "cluster2edge": 1,
+        "cluster3edge": 0
+      },
+      "vector-search": {
+        "cluster1": 2,
+        "cluster2edge": 2,
+        "cluster3edge": 0
+      },
+      "reranker": {
+        "cluster1": 2,
+        "cluster2edge": 1,
+        "cluster3edge": 0
+      },
+      "llm-generate": {
+        "cluster1": 2,
+        "cluster2edge": 1,
+        "cluster3edge": 0
+      }
+    }
+  }
+]
