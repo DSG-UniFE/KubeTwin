@@ -1159,7 +1159,8 @@ module KUBETWIN
       Event::ET_NEW_REQUEST_RETRY => :handle_new_request_retry,
       Event::ET_POD_FAILURE => :handle_pod_failure,
       Event::ET_NODES_DOWN => :handle_nodes_down,
-      Event::ET_NODES_UP => :handle_nodes_up
+      Event::ET_NODES_UP => :handle_nodes_up,
+      Event::ET_SHARED_COMPLETION => :handle_shared_completion
     }.freeze
 
     def process_event(e)
@@ -1705,6 +1706,10 @@ module KUBETWIN
         end
       end
       new_event(Event::ET_NODES_UP, [nodes, process], until_time, nil)
+    end
+
+    def handle_shared_completion(e)
+      e.destination.shared_completion(self, e.time, e.data)
     end
 
     def handle_nodes_up(e)

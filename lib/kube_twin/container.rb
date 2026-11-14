@@ -84,6 +84,38 @@ module KUBETWIN
       @arrival_window_head = 0
       @arrival_retention_head = 0
       @max_concurrent_processes_used = 0
+
+      # CPU sharing: with `cores` set, the requests in service share that
+      # many cores (processor sharing): each runs at full speed while there
+      # are no more of them than cores, at cores / n otherwise. Without it,
+      # every request in service runs at full speed.
+      @cores = opts[:img_info][:cores]&.to_f
+      raise ArgumentError, "cores must be positive" if @cores && !@cores.positive?
+
+      @in_service = {} # request => remaining service time at full speed
+      @shared_since = 0.0
+      @shared_token = 0
+    end
+
+    attr_reader :cores
+
+    # A shared-CPU completion is due (see #reschedule_shared): finishes the
+    # requests whose work is done, as a workflow-step completion each.
+    def shared_completion(sim, time, token)
+      return unless token == @shared_token # superseded by a later arrival or departure
+
+      advance_shared(time)
+      # This event was scheduled for the request with the least work left:
+      # it's done, whatever rounding left over (on a clock of ~1e9 s, a few
+      # nanoseconds of work can't move time forward at all), and so is any
+      # request within SHARED_EPSILON of it.
+      least = @in_service.values.min
+      done = @in_service.select { |_, remaining| remaining <= least + SHARED_EPSILON }.keys
+      done.each do |req|
+        @in_service.delete(req)
+        sim.new_event(Event::ET_WORKFLOW_STEP_COMPLETED, req, time, self)
+      end
+      reschedule_shared(sim, time)
     end
 
     def current_rps
@@ -259,7 +291,39 @@ module KUBETWIN
       @total_queue_processing_time += ri.service_time + (time - ri.arrival_time)
       # schedule completion of workflow step
       # puts "Finished #{time + ri.service_time} #{@request_queue.length}"
-      sim.new_event(Event::ET_WORKFLOW_STEP_COMPLETED, req, time + ri.service_time, self)
+      if @cores
+        advance_shared(time)
+        @in_service[req] = ri.service_time
+        reschedule_shared(sim, time)
+      else
+        sim.new_event(Event::ET_WORKFLOW_STEP_COMPLETED, req, time + ri.service_time, self)
+      end
+    end
+
+    SHARED_EPSILON = 1e-9 # seconds of work: requests this close finish together
+
+    # Each request in service runs at this fraction of full speed.
+    def shared_rate
+      n = @in_service.size
+      (n <= @cores) ? 1.0 : @cores / n
+    end
+
+    # Brings every request's remaining work up to `time`.
+    def advance_shared(time)
+      unless @in_service.empty?
+        progress = (time - @shared_since) * shared_rate
+        @in_service.transform_values! { |remaining| remaining - progress }
+      end
+      @shared_since = time
+    end
+
+    # Schedules the next completion at the current rate; any earlier
+    # schedule becomes stale.
+    def reschedule_shared(sim, time)
+      @shared_token += 1
+      return if @in_service.empty?
+
+      sim.new_event(Event::ET_SHARED_COMPLETION, @shared_token, time + [@in_service.values.min, 0.0].max / shared_rate, self)
     end
 
     def request_resources(more_cpu)
