@@ -124,6 +124,19 @@ module KUBETWIN
       @simulation.replicas(service, cluster)
     end
 
+    # An independent copy of this twin in its current state, random streams
+    # included: given the same actions, it steps through the same future
+    # (observations, rejections, result) as this one. Use it to try actions
+    # out (what-if rollouts) without disturbing the original.
+    def fork
+      ensure_reset!
+      copy = dup
+      copy.instance_variable_set(:@simulation, @simulation.fork)
+      copy.instance_variable_set(:@observation, Marshal.load(Marshal.dump(@observation)))
+      copy.instance_variable_set(:@last_rejected, @last_rejected.dup)
+      copy
+    end
+
     # Simulated seconds since the end of the warm-up.
     def now
       ensure_reset!

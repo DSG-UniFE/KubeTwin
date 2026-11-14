@@ -39,6 +39,20 @@ module KUBETWIN
       @link_ids = Hash.new { |h, a| h[a] = Hash.new { |g, b| g[b] = self.class.link_id(a, b) } }
     end
 
+    # Marshal (KSimulation#fork) can't copy hashes with default blocks:
+    # dump their contents, and rebuild the defaults on load.
+    def marshal_dump
+      [@placements.to_a, @link_latencies.to_a, @workflow_arrivals, @workflow_responses.to_a]
+    end
+
+    def marshal_load(data)
+      initialize
+      placements, link_latencies, @workflow_arrivals, workflow_responses = data
+      @placements.update(placements.to_h)
+      @link_latencies.update(link_latencies.to_h)
+      @workflow_responses.update(workflow_responses.to_h)
+    end
+
     # The counters for `service`'s pods in `cluster_id`.
     def placement(service, cluster_id)
       @placements[[service, cluster_id]]

@@ -49,12 +49,25 @@ module KUBETWIN
     end
 
     # A cache/dedup key for "this request's current step within this
-    # particular component_sequence" -- component_sequence.object_id
-    # (rather than its content) is deliberate: two requests can be walking
+    # particular component_sequence". Sequences are compared by identity
+    # (rather than content), deliberately: two requests can be walking
     # equal-looking but distinct sequence arrays (e.g. two parallel
     # branches with the same shape) and must not collide.
+    #
+    # The key holds the sequence itself, not its object_id: a copied
+    # simulation (KSimulation#fork) has copied sequences with new ids, and
+    # its keys must still find them. Hashes holding keys are rebuilt when
+    # Marshal loads them, so their lookups keep working.
+    StepKey = Struct.new(:sequence, :step) do
+      def eql?(other) = other.is_a?(StepKey) && sequence.equal?(other.sequence) && step == other.step
+
+      alias_method :==, :eql?
+
+      def hash = [sequence.__id__, step].hash
+    end
+
     def self.request_step_key(req, component_sequence)
-      [component_sequence.object_id, req.worked_step]
+      StepKey.new(component_sequence, req.worked_step)
     end
 
     # The name of the component req is about to work on next within

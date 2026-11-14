@@ -127,7 +127,7 @@ describe KUBETWIN::WorkflowSequence do
       req.step_completed(1.0) # worked_step: 0 -> 1, next_step: 1 -> 2
       key_after = KUBETWIN::WorkflowSequence.request_step_key(req, sequence)
 
-      _(key_before[0]).must_equal sequence.object_id
+      _(key_before.sequence).must_be_same_as sequence
       _(key_before).wont_equal key_after
     end
 
@@ -139,6 +139,17 @@ describe KUBETWIN::WorkflowSequence do
       key_a = KUBETWIN::WorkflowSequence.request_step_key(req, seq_a)
       key_b = KUBETWIN::WorkflowSequence.request_step_key(req, seq_b)
       _(key_a).wont_equal key_b
+      _({key_a => true}.key?(key_b)).must_equal false
+    end
+
+    it "keeps finding copied sequences in copied hashes (KSimulation#fork)" do
+      req = build_request
+      sequence = [{name: "x"}]
+      done = {KUBETWIN::WorkflowSequence.request_step_key(req, sequence) => true}
+
+      copied_done, copied_sequence = Marshal.load(Marshal.dump([done, sequence]))
+      _(copied_done[KUBETWIN::WorkflowSequence.request_step_key(req, copied_sequence)]).must_equal true
+      _(copied_done[KUBETWIN::WorkflowSequence.request_step_key(req, sequence)]).must_be_nil
     end
   end
 end

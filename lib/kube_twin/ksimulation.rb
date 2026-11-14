@@ -317,6 +317,33 @@ module KUBETWIN
     # retransmissions and undelivered messages.
     attr_reader :messaging
 
+    # Read-only after setup, or not copyable: a fork shares these with its
+    # parent instead of copying them.
+    FORK_SHARED = %i[@configuration @evaluator @logger @network_option].freeze
+
+    # An independent copy of this simulation in its current state, random
+    # generators included: given the same actions, it runs the same future
+    # as this one, and nothing done to either affects the other.
+    #
+    # Everything is deep-copied except FORK_SHARED and the MDN models
+    # (Torch networks, only read), which the copy shares.
+    def fork
+      shared = FORK_SHARED.to_h { |name| [name, instance_variable_get(name)] }
+      models = @microservice_mdn.transform_values { |entry| entry.delete(:model) }
+      shared.each_key { |name| instance_variable_set(name, nil) }
+      copy = Marshal.load(Marshal.dump(self))
+      [self, copy].each do |simulation|
+        shared.each { |name, value| simulation.instance_variable_set(name, value) }
+        simulation.instance_variable_get(:@microservice_mdn).each { |service, entry| entry[:model] = models[service] }
+      end
+      copy
+    ensure
+      if shared && instance_variable_get(:@configuration).nil?
+        shared.each { |name, value| instance_variable_set(name, value) }
+        @microservice_mdn.each { |service, entry| entry[:model] ||= models[service] }
+      end
+    end
+
     # A snapshot of the simulation summarizing the last `duration` simulated
     # seconds (everything since the previous call), shaped like
     # continuum-twin's Continuum::Observation: {time:, locations:, links:,
