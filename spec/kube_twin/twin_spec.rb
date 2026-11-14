@@ -328,6 +328,83 @@ describe KUBETWIN::Twin do
     end
   end
 
+  describe "cold starts" do
+    def cold_configuration(startup_time)
+      configuration.tap { |c| c.microservice_types["reviews"][:startup_time] = startup_time }
+    end
+
+    def scale(replicas) = KUBETWIN::Twin::ScaleReplicas.new(service: "reviews", cluster: "europe-cloud-control-plane", replicas:)
+
+    def reviews(twin)
+      twin.observe[:placements].find { |p| p[:service] == "reviews" }[:features].slice(:replicas_ready, :replicas_starting)
+    end
+
+    it "brings new pods in after their startup time" do
+      twin = KUBETWIN::Twin.new(cold_configuration(4.5), decision_interval: 1.0)
+
+      in_scratch_directory do
+        twin.reset
+        node = twin.simulation.instance_variable_get(:@cluster_repository).values.first.nodes.values.first
+        free_cpu = node.available_resources_cpu
+
+        twin.step([scale(4)])
+        _(twin.replicas("reviews", "europe-cloud-control-plane")).must_equal 4
+        _(reviews(twin)).must_equal({replicas_ready: 2, replicas_starting: 2})
+        _(node.available_resources_cpu).must_equal free_cpu - 2 * 400 # reserved while starting
+
+        3.times { twin.step } # t = 4 s: still starting (ready at 4.5 s)
+        _(reviews(twin)).must_equal({replicas_ready: 2, replicas_starting: 2})
+        twin.step
+        _(reviews(twin)).must_equal({replicas_ready: 4, replicas_starting: 0})
+      end
+    end
+
+    it "cancels starting pods first when scaling down" do
+      twin = KUBETWIN::Twin.new(cold_configuration(10.0), decision_interval: 1.0)
+
+      in_scratch_directory do
+        twin.reset
+        node = twin.simulation.instance_variable_get(:@cluster_repository).values.first.nodes.values.first
+        free_cpu = node.available_resources_cpu
+        twin.step([scale(4)])
+        twin.step([scale(3)])
+        _(reviews(twin)).must_equal({replicas_ready: 2, replicas_starting: 1})
+        twin.step([scale(1)])
+        _(reviews(twin)).must_equal({replicas_ready: 1, replicas_starting: 0})
+        _(node.available_resources_cpu).must_equal free_cpu + 400
+        12.times { twin.step }
+        _(reviews(twin)).must_equal({replicas_ready: 1, replicas_starting: 0})
+      end
+    end
+
+    it "draws startup times from a distribution, reproducibly" do
+      ready_after = 2.times.map do
+        twin = KUBETWIN::Twin.new(cold_configuration({distribution: :exponential, args: {rate: 0.2}}), decision_interval: 0.5)
+        in_scratch_directory do
+          twin.reset
+          twin.step([scale(6)])
+          Array.new(80) { twin.step && reviews(twin)[:replicas_ready] }
+        end
+      end
+
+      _(ready_after[0]).must_equal ready_after[1]
+      _(ready_after[0].uniq.size).must_be :>, 2 # pods became ready at different times
+      _(ready_after[0].last).must_equal 6
+    end
+
+    it "forks with pods still starting" do
+      twin = KUBETWIN::Twin.new(cold_configuration(3.0), decision_interval: 1.0)
+
+      in_scratch_directory do
+        twin.reset
+        twin.step([scale(5)])
+        fork = twin.fork
+        trace = ->(t) { Array.new(6) { t.step && reviews(t) } }
+        _(trace.call(fork)).must_equal trace.call(twin)
+      end
+    end
+  end
+
   it "needs a reset before stepping, and a positive decision interval" do
     _ { KUBETWIN::Twin.new(configuration).step }.must_raise RuntimeError
     _ { KUBETWIN::Twin.new(configuration, decision_interval: 0) }.must_raise ArgumentError

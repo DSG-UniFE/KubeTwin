@@ -17,6 +17,7 @@ module KUBETWIN
     ET_PARALLEL_BRANCH_COMPLETED = 10   # One parallel branch finished
     ET_PARALLEL_SYNC_REACHED = 11   # All parallel branches completed
     ET_PARALLEL_DISPATCH = 12   # Dispatch parallel requests
+    ET_POD_READY = 13 # a starting pod begins serving
     ET_END_OF_SIMULATION = 100
 
     # let the comparable mixin provide the < and > operators for us

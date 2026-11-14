@@ -219,13 +219,13 @@ module KUBETWIN
     # the same units as #now).
     attr_reader :warmup_threshold, :cooldown_threshold
 
-    # How many pods of `service` run in `cluster` (both as named in the
-    # configuration).
+    # How many pods of `service` run or are starting in `cluster` (both as
+    # named in the configuration).
     def replicas(service, cluster)
       s = find_service(service) or raise ArgumentError, "unknown service #{service.inspect}"
       cluster_key = find_cluster_key(cluster) or raise ArgumentError, "unknown cluster #{cluster.inspect}"
 
-      pods_in_cluster(s, cluster_key).length
+      pods_in_cluster(s, cluster_key).length + starting_in_cluster(s, cluster_key).length
     end
 
     # Why setting `service`'s pods in `cluster` to `count` would be
@@ -241,8 +241,9 @@ module KUBETWIN
       return :unknown_cluster unless cluster_key
       return :invalid_replicas unless count.is_a?(Integer) && count >= 0
 
-      current = pods_in_cluster(s, cluster_key).length
-      return :no_replicas_left if count.zero? && current == s.pods[s.selector].to_a.length
+      ready = pods_in_cluster(s, cluster_key).length
+      current = ready + starting_in_cluster(s, cluster_key).length
+      return :no_replicas_left if count.zero? && ready == s.pods[s.selector].to_a.length
       return :insufficient_resources if count - current > pod_capacity(cluster_key, s.selector)
 
       nil
@@ -250,9 +251,10 @@ module KUBETWIN
 
     # Sets how many pods of `service` run in `cluster`, at the current
     # simulated time. New pods go on the cluster's least-loaded nodes and
-    # start serving at once; removed pods are drawn at random, stop
-    # receiving requests and free their resources (requests already queued
-    # on them still complete). Returns nil when applied, otherwise the
+    # serve once started (see the microservice type's startup_time; at once
+    # without one). Removal cancels starting pods first, newest first, then
+    # draws running ones at random: they stop receiving requests and free
+    # their resources (requests already queued on them still complete). Returns nil when applied, otherwise the
     # rejection reason (see #scale_replicas_rejection) and changes nothing.
     def scale_replicas(service, cluster, count)
       reason = scale_replicas_rejection(service, cluster, count)
@@ -260,18 +262,21 @@ module KUBETWIN
 
       s = find_service(service)
       cluster_key = find_cluster_key(cluster)
-      current = pods_in_cluster(s, cluster_key)
-      if count > current.length
-        (count - current.length).times { start_pod(s, cluster_key) }
+      ready = pods_in_cluster(s, cluster_key)
+      starting = starting_in_cluster(s, cluster_key)
+      excess = ready.length + starting.length - count
+      if excess.negative?
+        (-excess).times { start_pod(s, cluster_key) }
       else
-        current.sample(current.length - count, random: @rng).each do |pod|
+        cancelled = starting.last(excess)
+        cancelled.each { |pod| cancel_starting_pod(s, pod) }
+        ready.sample(excess - cancelled.length, random: @rng).each do |pod|
           pod.deactivate_pod
           s.delete_pod(s.selector, pod)
         end
       end
 
-      replica_set = @replica_sets.values.find { |rs| rs.selector == s.selector }
-      replica_set&.set_replicas(s.pods[s.selector].length)
+      update_replica_set(s)
       nil
     end
 
@@ -398,7 +403,8 @@ module KUBETWIN
         @cluster_repository.keys.map do |key|
           c = counters[[service.selector, key]] || StepObserver::PlacementCounters.new
           {service: service.service_name, location: key,
-           features: {replicas_ready: pods_in_cluster(service, key).length, replicas_starting: 0,
+           features: {replicas_ready: pods_in_cluster(service, key).length,
+                      replicas_starting: starting_in_cluster(service, key).length,
                       queue_length_mean: rate.call(c.queue_time),
                       arrival_rate: rate.call(c.arrivals),
                       service_time_mean: c.started.positive? ? c.service_time / c.started * 1000.0 : 0.0}}
@@ -481,6 +487,34 @@ module KUBETWIN
       service.pods[service.selector].to_a.select { |pod| pod.node.cluster_id == cluster_key }
     end
 
+    # Pods created but not serving yet, oldest first.
+    def starting_in_cluster(service, cluster_key)
+      @starting_pods.fetch(service.selector, []).select { |pod| pod.node.cluster_id == cluster_key }
+    end
+
+    def cancel_starting_pod(service, pod)
+      @starting_pods[service.selector].delete(pod)
+      pod.deactivate_pod
+    end
+
+    # The replica set's count follows the pods running and starting.
+    def update_replica_set(service)
+      replica_set = @replica_sets.values.find { |rs| rs.selector == service.selector }
+      replica_set&.set_replicas(service.pods[service.selector].to_a.length + @starting_pods.fetch(service.selector, []).length)
+    end
+
+    # Seconds a new pod of `selector` takes to start: its microservice
+    # type's startup_time (seconds, or an ERV distribution drawn from its
+    # own stream), 0 without one.
+    def startup_delay(selector)
+      spec = @microservice_types[selector][:startup_time]
+      return 0.0 if spec.nil?
+      return spec.to_f if spec.is_a?(Numeric)
+
+      @startup_times[selector] ||= IndependentStreams.distribution(spec, @stream_seeds)
+      [@startup_times[selector].sample, 0.0].max
+    end
+
     # How many more pods of `selector` fit on the cluster's nodes.
     def pod_capacity(cluster_key, selector)
       sct = @microservice_types[selector]
@@ -503,20 +537,28 @@ module KUBETWIN
         .select { |n| n.available_resources_cpu >= cpu && n.available_resources_memory >= mem }
         .min_by { |n| n.pod_id_list.length }
 
-      launch_pod(service, node)
+      launch_pod(service, node, cold: true)
     end
 
     # Creates and starts a pod of `service` on `node`, reserving its
-    # resources and registering it with the service.
-    def launch_pod(service, node)
+    # resources at once. It joins the service (and gets requests) at once,
+    # or, with `cold` and a startup_time for its type, when a pod-ready
+    # event fires after the startup delay.
+    def launch_pod(service, node, cold: false)
       selector = service.selector
       sct = @microservice_types[selector]
       pod = Pod.new(@next_pod_id, "#{selector}_#{@next_pod_id}", node, selector, sct, stream_seeds: @stream_seeds)
       pod.container.placement_counters = @step_observer&.placement(selector, node.cluster_id)
       pod.startUpPod
       node.assign_resources(pod, sct[:resources_requirements_cpu], sct[:resources_requirements_memory])
-      service.assignPod(pod)
       @next_pod_id += 1
+      delay = cold ? startup_delay(selector) : 0.0
+      if delay.positive?
+        (@starting_pods[selector] ||= []) << pod
+        new_event(Event::ET_POD_READY, pod, @current_time + delay, service)
+      else
+        service.assignPod(pod)
+      end
       pod
     end
 
@@ -926,6 +968,8 @@ module KUBETWIN
     # Creates every replica set's pods. Returns -1000 when some can't be placed, nil otherwise.
     def place_initial_pods
       @next_pod_id = 0
+      @starting_pods = {}
+      @startup_times = {}
       ms_id = 0
       saturation_penalties = 0
       @replica_sets.each do |_k, rs|
@@ -1079,7 +1123,8 @@ module KUBETWIN
       Event::ET_END_OF_SIMULATION => :handle_end_of_simulation,
       Event::ET_STATS_PRINT => :handle_stats_print,
       Event::ET_ALLOCATE_NODE => :handle_allocate_node,
-      Event::ET_DEALLOCATE_NODE => :handle_deallocate_node
+      Event::ET_DEALLOCATE_NODE => :handle_deallocate_node,
+      Event::ET_POD_READY => :handle_pod_ready
     }.freeze
 
     def process_event(e)
@@ -1479,7 +1524,7 @@ module KUBETWIN
 
           break if node.nil? # check here --- what happens if no nodes are available
 
-          launch_pod(s, node)
+          launch_pod(s, node, cold: true)
         end
       when :scale_down
         # we need to select some pods to terminate
@@ -1498,6 +1543,17 @@ module KUBETWIN
       if @current_time + hpa.period_seconds < @cooldown_threshold
         new_event(Event::ET_HPA_CONTROL, [hname, hpa], @current_time + hpa.period_seconds, nil)
       end
+    end
+
+    # A starting pod finished starting: it joins its service, unless it was
+    # cancelled meanwhile.
+    def handle_pod_ready(e)
+      pod = e.data
+      service = e.destination
+      return unless @starting_pods.fetch(service.selector, []).delete(pod)
+
+      service.assignPod(pod)
+      update_replica_set(service)
     end
 
     def handle_end_of_simulation(e)
