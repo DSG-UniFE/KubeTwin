@@ -179,8 +179,6 @@ module KUBETWIN
     # evaluate_allocation reports) when a replica set's pods can't all be
     # placed, nil otherwise.
     def setup(rss, css, mtt, lm, mapping, replicas_mapping)
-      # seeds
-      latency_seed = @configuration.seeds[:communication_latencies]
       # Every random choice the simulation makes itself draws from @rng, so
       # a configuration always produces the same results. (These choices
       # used to draw from Ruby's global generator, unseeded, so results
@@ -199,6 +197,22 @@ module KUBETWIN
       # setup simulation start and current time
       @current_time = @start_time = @configuration.start_time
 
+      build_clusters
+      build_latency_manager(lm)
+      load_microservice_types(mtt)
+      build_statistics
+      apply_policies
+      build_kubernetes_objects(rss, css)
+      unfeasible = place_initial_pods
+      return unfeasible if unfeasible
+
+      schedule_initial_events
+      nil
+    end
+
+    # Clusters (from `clusters`, or from a Liqo-style `federation`) and their nodes;
+    # converts an optimizer's cluster mapping from indices to names.
+    def build_clusters
       # here need to retrieve configuration cost also
       evaluation_cost = {}
 
@@ -210,7 +224,7 @@ module KUBETWIN
       # Let's check if the configuration file contains the description of the
       # Liqo federation
 
-      federation = nil
+      @federation = nil
       if @configuration.federation.nil?
         cid = -1
         # create clusters and relative nodes and store them in a repository
@@ -232,17 +246,17 @@ module KUBETWIN
         #  "latencies": [["src": "rome", "dst": "milan", "value": 6]]
         # }
         # Convert the @configuration.federation json object into a ruby hash
-        federation = JSON.parse(@configuration.federation, symbolize_names: true)
+        @federation = JSON.parse(@configuration.federation, symbolize_names: true)
         # puts "Federation resources: #{federation[:resources]}
         cid = -1
         @clusters_mapping = {}
-        federation[:resources].each_key do |k|
+        @federation[:resources].each_key do |k|
           cid += 1
           @clusters_mapping[cid] = k
         end
 
         cid = -1
-        @cluster_repository = federation[:resources].map do |k, v|
+        @cluster_repository = @federation[:resources].map do |k, v|
           # puts "k: #{k} v: #{v}"
           node_number = v[:nodes].length if v[:nodes]
           node_number ||= v[:cpu].to_i / DEFAULT_CPU_PER_NODE
@@ -290,6 +304,11 @@ module KUBETWIN
         end
         @mapping[i] = cluster.to_sym
       end
+    end
+
+    # The latency model between locations.
+    def build_latency_manager(lm)
+      latency_seed = @configuration.seeds[:communication_latencies]
 
       # create latency manager, check if we should use the simplified latency model
       # given by the federation or if we can use the provided map
@@ -306,7 +325,7 @@ module KUBETWIN
         # here is very simple, we can assume simmetric latencies
         # from source to destination and vicersa
         # we assume that the latencies are in milliseconds
-        latency_models = federation[:latencies]
+        latency_models = @federation[:latencies]
         # change cluster name to cluster id
         latency_models = latency_models.map do |lm|
           src = @cluster_repository[lm[:src].to_sym]
@@ -317,7 +336,10 @@ module KUBETWIN
         end
         @latency_manager = LatencyManagerFederation.new(latency_models, seed: latency_seed)
       end
+    end
 
+    # Microservice types, and their MDN service-time models.
+    def load_microservice_types(mtt)
       # information regarding microservices
       @microservice_types = mtt.nil? ? @configuration.microservice_types : mtt
       @logger.debug "#{@microservice_types} #{@microservice_types.nil?}"
@@ -332,7 +354,10 @@ module KUBETWIN
       end
 
       # @logger.debug "init mdns #{@microservice_mdn}"
+    end
 
+    # Repositories and statistics collectors.
+    def build_statistics
       # information regarding customers
       @customer_repository = @configuration.customers
       @workflow_type_repository = @configuration.workflow_types
@@ -377,7 +402,10 @@ module KUBETWIN
       #    [wft_id, Hash[customer_repository.keys.map { |c_id| [c_id, 0] }]]
       #  end
       # ]
+    end
 
+    # SLO, availability and service-chain policies: custom KPIs and chain statistics.
+    def apply_policies
       # Read policies from configuration
       policies = @configuration.policies || {}
       @availability_policy = nil
@@ -462,7 +490,10 @@ module KUBETWIN
       @logger.debug "per_chain_and_customer_stats: #{@per_chain_and_customer_stats}"
 
       # abort
+    end
 
+    # KubeDNS, replica sets, autoscalers, services and the scheduler.
+    def build_kubernetes_objects(rss, css)
       # Initialize Kubernetes internal objects/services
 
       @kube_dns = KubeDns.new
@@ -540,7 +571,10 @@ module KUBETWIN
       # the KubeScheduler decides on which nodes schedule
       # the pods
       @kube_scheduler = KubeScheduler.new(@cluster_repository)
+    end
 
+    # Creates every replica set's pods. Returns -1000 when some can't be placed, nil otherwise.
+    def place_initial_pods
       @next_pod_id = 0
       ms_id = 0
       saturation_penalties = 0
@@ -605,6 +639,12 @@ module KUBETWIN
         ms_id += 1
       end
 
+      nil
+    end
+
+    # The event queue, the first request generations, autoscaler controls,
+    # end of simulation and statistics prints; warm-up and cool-down thresholds.
+    def schedule_initial_events
       # here null check before sending event
       @stats_print_interval = @configuration.stats_print_interval
 
@@ -687,8 +727,6 @@ module KUBETWIN
       @req_in_sec = 0
 
       # @allocation_bench << "Time,Component,Request,TTP,Pods\n"
-
-      nil
     end
 
     # Processes events in time order until the queue is empty.
