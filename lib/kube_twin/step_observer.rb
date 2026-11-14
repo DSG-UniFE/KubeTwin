@@ -35,6 +35,8 @@ module KUBETWIN
       @link_latencies = Hash.new { |h, k| h[k] = [] }
       @workflow_arrivals = Hash.new(0)
       @workflow_responses = Hash.new { |h, k| h[k] = [] }
+      # cluster => cluster => link id, so recording a latency allocates nothing
+      @link_ids = Hash.new { |h, a| h[a] = Hash.new { |g, b| g[b] = self.class.link_id(a, b) } }
     end
 
     # The counters for `service`'s pods in `cluster_id`.
@@ -47,7 +49,7 @@ module KUBETWIN
     def link_latency(cluster_a, cluster_b, latency)
       return if cluster_a == cluster_b
 
-      @link_latencies[self.class.link_id(cluster_a, cluster_b)] << latency
+      @link_latencies[@link_ids[cluster_a][cluster_b]] << latency
     end
 
     def workflow_arrival(workflow)

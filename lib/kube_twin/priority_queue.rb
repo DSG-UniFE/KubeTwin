@@ -29,8 +29,10 @@ module KUBETWIN
     alias_method :push, :<<
     alias_method :unshift, :<<
 
-    def insert(*args)
-      item = (args.length == 1) ? args[0] : args[1]
+    # insert(item), or insert(index, item) like Array's (the index is
+    # ignored). Not a splat: that would allocate an array per event.
+    def insert(index_or_item, item = nil)
+      item = index_or_item if item.nil?
       item.sequence_id = @next_sequence_id
       @next_sequence_id += 1
 
