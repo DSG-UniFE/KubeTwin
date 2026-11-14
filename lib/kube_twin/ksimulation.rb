@@ -368,7 +368,8 @@ module KUBETWIN
     # placements:, workflows:, global:}, each entity a Hash with its id and
     # a :features Hash (units as in Continuum::Observation::UNITS).
     #
-    # Locations are clusters; links are every pair of distinct clusters;
+    # Locations are clusters (with their :kind); links are every pair of
+    # distinct clusters (with their :endpoints, the pair itself);
     # placements are every (service, cluster) pair; workflows are the
     # configured workflow types. The sets don't change during a run.
     # `time` is reported as given; `slos` maps workflow ids to response
@@ -410,8 +411,8 @@ module KUBETWIN
           @last_link_latencies[id] = [mean(samples) * 1000.0, percentile(samples, 0.95) * 1000.0]
         end
         latency_mean, latency_p95 = @last_link_latencies[id] || [0.0, 0.0]
-        {id:, features: {up: 1.0, latency_mean:, latency_p95:, loss_rate: 0.0, bandwidth_capacity: 0.0,
-                         bandwidth_utilization: 0.0}}
+        {id:, endpoints: id, features: {up: 1.0, latency_mean:, latency_p95:, loss_rate: 0.0, bandwidth_capacity: 0.0,
+                                        bandwidth_utilization: 0.0}}
       end
 
       placements = @services.values.flat_map do |service|

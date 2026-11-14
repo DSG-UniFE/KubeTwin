@@ -222,6 +222,7 @@ describe KUBETWIN::Twin do
           KUBETWIN::Twin::ScaleReplicas.new(service: "reviews", cluster: "cluster1", replicas: 0)
         ])
         _(twin.last_rejected).must_equal []
+        _(twin.observe[:links].map { |l| l[:endpoints] }).must_equal twin.observe[:links].map { |l| l[:id] }
         link = features(twin.observe[:links])[[:cluster1, :cluster2edge]]
         _(link[:latency_mean]).must_be :>, 0
         _(link[:latency_p95]).must_be :>=, link[:latency_mean] * 0.5
