@@ -39,6 +39,20 @@ module KUBETWIN
       @pod_id_list.delete(pod.pod_id)
     end
 
+    # Whether the node is up. Failures can overlap (the node itself, its
+    # whole cluster), so it counts them: up once every one has ended.
+    def up?
+      @failures.nil? || @failures.zero?
+    end
+
+    def fail!
+      @failures = (@failures || 0) + 1
+    end
+
+    def recover!
+      @failures -= 1
+    end
+
     def available_resources_cpu
       @resources_cpu - @requested_resources[:cpu]
     end

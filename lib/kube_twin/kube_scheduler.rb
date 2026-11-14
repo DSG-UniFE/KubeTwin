@@ -62,6 +62,8 @@ module KUBETWIN
         raise "Ranking nodes from a nil cluster" if c.nil?
 
         c.nodes.values.each do |node|
+          next unless node.up?
+
           # debug node information here
           # filter only those nodes capable to execute the pods
           available_resources_cpu = node.available_resources_cpu

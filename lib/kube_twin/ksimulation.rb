@@ -21,6 +21,7 @@ module KUBETWIN
     # Mixed into the base seed to seed the service-time stream generator,
     # when the configuration sets no seeds[:service_times].
     STREAM_SEED_SALT = 0x5EED_CAFE
+    FAILURE_SEED_SALT = 0xFA11_ED
     CONNECT_TIME = 0.00148205
     DEFAULT_CPU_PER_NODE = 4000.0 # in mCPU
     SEED = 123
@@ -46,6 +47,11 @@ module KUBETWIN
       @network_option = opts[:network]
       # Messaging's retransmission settings: {timeout:, max_attempts:}.
       @retransmission = opts[:retransmission] || {}
+      # Failure processes (see #schedule_failures), or nil for none.
+      @failures = opts[:failures]
+      # Seconds a request waits before trying again when its next service
+      # has no pod ready (as a client retries a service without endpoints).
+      @route_retry_interval = opts[:route_retry_interval] || 1.0
     end
 
     def new_event(type, data, time, destination)
@@ -91,7 +97,14 @@ module KUBETWIN
       waiting_container: nil)
       route = @request_forwarder.route(component_name, source_cluster.location_id, messaging, base_time,
         bytes: request_bytes(req.workflow_type_id))
-      return false if route.nil?
+      if route.nil?
+        return false unless @kube_dns.lookup(component_name)
+
+        # the service exists but has no pod ready: try again later
+        new_event(Event::ET_ROUTE_RETRY, [req, component_name, source_cluster, waiting_container],
+          base_time + @route_retry_interval, nil)
+        return true
+      end
 
       req.update_transfer_time(route.transmission_time)
       req.data_center_id = route.cluster.cluster_id
@@ -362,10 +375,12 @@ module KUBETWIN
     # time objectives in ms (workflows without one report a violation
     # rate of 0).
     #
-    # Not modelled by KubeTwin, so reported as constants: up (1), energy,
-    # loss_rate, bandwidth_capacity, bandwidth_utilization,
-    # replicas_starting and dropped (0). A link no message crossed in the
-    # window repeats its last latencies (0 before the first message).
+    # A location's up is the share of its nodes up at the end of the step;
+    # replicas_starting counts pods starting or restarting. Not modelled by
+    # KubeTwin, so reported as constants: a link's up (1), energy,
+    # loss_rate, bandwidth_capacity, bandwidth_utilization and dropped (0).
+    # A link no message crossed in the window repeats its last latencies
+    # (0 before the first message).
     #
     # Needs the simulation created with `observe: true` (Twin does so).
     def observation(duration, time:, slos: {})
@@ -382,7 +397,7 @@ module KUBETWIN
         busy_cpu = counters.sum { |(service, cid), c| (cid == key) ? c.service_time * cpu_per_process(service) : 0.0 }
         utilization = (duration.positive? && cpu_capacity.positive?) ? [busy_cpu / (cpu_capacity * duration), 1.0].min : 0.0
         {id: key, kind: (cluster.type == :cloud) ? :cloud : :edge,
-         features: {up: 1.0, cpu_capacity:, cpu_requested: nodes.sum { |n| n.requested_resources[:cpu] }.to_f,
+         features: {up: nodes.empty? ? 1.0 : nodes.count(&:up?) / nodes.size.to_f, cpu_capacity:, cpu_requested: nodes.sum { |n| n.requested_resources[:cpu] }.to_f,
                     memory_capacity: nodes.sum(&:resources_memory).to_f,
                     memory_requested: nodes.sum { |n| n.requested_resources[:memory] }.to_f,
                     cpu_utilization: utilization, energy: 0.0}}
@@ -494,6 +509,7 @@ module KUBETWIN
 
     def cancel_starting_pod(service, pod)
       @starting_pods[service.selector].delete(pod)
+      @ready_at.delete(pod)
       pod.deactivate_pod
     end
 
@@ -521,7 +537,7 @@ module KUBETWIN
       cpu = sct[:resources_requirements_cpu]
       mem = sct[:resources_requirements_memory]
       fits = ->(available, needed) { needed.positive? ? [(available / needed.to_f).floor, 0].max : Float::INFINITY }
-      @cluster_repository[cluster_key].nodes.values.sum do |node|
+      @cluster_repository[cluster_key].nodes.values.select(&:up?).sum do |node|
         [fits.call(node.available_resources_cpu, cpu), fits.call(node.available_resources_memory, mem)].min
       end
     end
@@ -534,7 +550,7 @@ module KUBETWIN
       cpu = sct[:resources_requirements_cpu]
       mem = sct[:resources_requirements_memory]
       node = @cluster_repository[cluster_key].nodes.values
-        .select { |n| n.available_resources_cpu >= cpu && n.available_resources_memory >= mem }
+        .select { |n| n.up? && n.available_resources_cpu >= cpu && n.available_resources_memory >= mem }
         .min_by { |n| n.pod_id_list.length }
 
       launch_pod(service, node, cold: true)
@@ -554,12 +570,23 @@ module KUBETWIN
       @next_pod_id += 1
       delay = cold ? startup_delay(selector) : 0.0
       if delay.positive?
-        (@starting_pods[selector] ||= []) << pod
-        new_event(Event::ET_POD_READY, pod, @current_time + delay, service)
+        hold_pod(service, pod, until_time: @current_time + delay)
       else
         service.assignPod(pod)
+        schedule_pod_failure(pod, service)
       end
       pod
+    end
+
+    # Keeps `pod` out of its service (starting, or restarting after a
+    # failure) until `until_time`, when a pod-ready event brings it in.
+    # A later hold replaces an earlier one.
+    def hold_pod(service, pod, until_time:)
+      service.delete_pod(service.selector, pod) if service.pods[service.selector]&.include?(pod)
+      starting = (@starting_pods[service.selector] ||= [])
+      starting << pod unless starting.include?(pod)
+      @ready_at[pod] = until_time
+      new_event(Event::ET_POD_READY, pod, until_time, service)
     end
 
     # Builds the simulated world: clusters, nodes, latency model, MDN models,
@@ -599,6 +626,7 @@ module KUBETWIN
       schedule_initial_events
       # after the first events: they can move the start time
       build_network
+      schedule_failures
       nil
     end
 
@@ -970,6 +998,8 @@ module KUBETWIN
       @next_pod_id = 0
       @starting_pods = {}
       @startup_times = {}
+      @ready_at = {}
+      @failure_due = {}
       ms_id = 0
       saturation_penalties = 0
       @replica_sets.each do |_k, rs|
@@ -1124,7 +1154,12 @@ module KUBETWIN
       Event::ET_STATS_PRINT => :handle_stats_print,
       Event::ET_ALLOCATE_NODE => :handle_allocate_node,
       Event::ET_DEALLOCATE_NODE => :handle_deallocate_node,
-      Event::ET_POD_READY => :handle_pod_ready
+      Event::ET_POD_READY => :handle_pod_ready,
+      Event::ET_ROUTE_RETRY => :handle_route_retry,
+      Event::ET_NEW_REQUEST_RETRY => :handle_new_request_retry,
+      Event::ET_POD_FAILURE => :handle_pod_failure,
+      Event::ET_NODES_DOWN => :handle_nodes_down,
+      Event::ET_NODES_UP => :handle_nodes_up
     }.freeze
 
     def process_event(e)
@@ -1184,8 +1219,30 @@ module KUBETWIN
       # first_component_name already crashed here with a bare
       # NoMethodError, just one call deeper, on service.get_pod);
       # preserved rather than silently hardened.
+      route_new_request(req_attrs, customer_location_id, first_component_name)
+
+      # schedule generation of next request
+      if @current_time < @cooldown_threshold && @generated < @to_generate # warmup_threshold
+        rg = e.destination
+        req_attrs = rg.generate(@current_time)
+        new_event(Event::ET_REQUEST_GENERATION, req_attrs, req_attrs[:generation_time], rg) if req_attrs
+      end
+    end
+
+    # Sends a new request to its first component: from the customer's
+    # location to a pod of that service. With no pod ready, tries again
+    # later.
+    def route_new_request(req_attrs, customer_location_id, first_component_name)
       initial_route = @request_forwarder.route(first_component_name, customer_location_id, @messaging, @current_time,
         bytes: request_bytes(req_attrs[:workflow_type_id]))
+      if initial_route.nil?
+        raise "No service for component #{first_component_name}" unless @kube_dns.lookup(first_component_name)
+
+        new_event(Event::ET_NEW_REQUEST_RETRY, [req_attrs, customer_location_id, first_component_name],
+          @current_time + @route_retry_interval, nil)
+        return
+      end
+
       pod = initial_route.pod
       cluster_id = initial_route.cluster.cluster_id
 
@@ -1199,13 +1256,15 @@ module KUBETWIN
 
       # schedule arrival of current request
       new_event(Event::ET_REQUEST_ARRIVAL, [new_req, pod], arrival_time, nil)
+    end
 
-      # schedule generation of next request
-      if @current_time < @cooldown_threshold && @generated < @to_generate # warmup_threshold
-        rg = e.destination
-        req_attrs = rg.generate(@current_time)
-        new_event(Event::ET_REQUEST_GENERATION, req_attrs, req_attrs[:generation_time], rg) if req_attrs
-      end
+    def handle_new_request_retry(e)
+      route_new_request(*e.data)
+    end
+
+    def handle_route_retry(e)
+      req, component_name, source_cluster, waiting_container = e.data
+      schedule_request_forward(req, component_name, source_cluster, e.time, @messaging, waiting_container:)
     end
 
     def handle_request_arrival(e)
@@ -1550,10 +1609,116 @@ module KUBETWIN
     def handle_pod_ready(e)
       pod = e.data
       service = e.destination
+      return unless @ready_at[pod] == e.time # cancelled, or held again since
       return unless @starting_pods.fetch(service.selector, []).delete(pod)
 
+      @ready_at.delete(pod)
       service.assignPod(pod)
       update_replica_set(service)
+      schedule_pod_failure(pod, service)
+    end
+
+    # Failure processes, from the failures: option (all optional; times in
+    # seconds, outage times since the simulation's start):
+    #
+    #   pods:     {mtbf:, restart_time:}  each running pod crashes after an
+    #             exponential time with mean mtbf, and restarts in place
+    #   nodes:    {mtbf:, mttr:}          each node fails, for an exponential
+    #             time with mean mttr
+    #   clusters: {mtbf:, mttr:}          as nodes, for all of a cluster's nodes
+    #   outages:  [{cluster: or node:, at:, duration:}]  scheduled failures
+    #   seed:     the failure processes' random stream
+    #
+    # Pods on a failed node leave their services until it recovers, then
+    # restart (taking their type's startup_time). Nothing new is placed on a
+    # failed node. Requests already queued on a failed pod still complete
+    # (KubeTwin can't abort them yet); requests finding no pod ready wait
+    # and retry (route_retry_interval).
+    def schedule_failures
+      return unless @failures
+
+      @failure_random = Random.new(@failures[:seed] || (@rng.seed ^ FAILURE_SEED_SALT))
+      @services.each_value do |service|
+        service.pods[service.selector].to_a.each { |pod| schedule_pod_failure(pod, service) }
+      end
+      if (nodes = @failures[:nodes])
+        @cluster_repository.each_value do |cluster|
+          cluster.nodes.each_value { |node| schedule_nodes_down([node], nodes) }
+        end
+      end
+      if (clusters = @failures[:clusters])
+        @cluster_repository.each_value { |cluster| schedule_nodes_down(cluster.nodes.values, clusters) }
+      end
+      Array(@failures[:outages]).each do |outage|
+        nodes = if outage[:cluster]
+          key = find_cluster_key(outage[:cluster]) or raise ArgumentError, "unknown cluster #{outage[:cluster].inspect}"
+          @cluster_repository[key].nodes.values
+        else
+          [all_nodes.find { |n| n.node_id == outage[:node] } || raise(ArgumentError, "unknown node #{outage[:node].inspect}")]
+        end
+        new_event(Event::ET_NODES_DOWN, [nodes, outage[:duration].to_f, nil], @start_time + outage[:at].to_f, nil)
+      end
+    end
+
+    def all_nodes
+      @cluster_repository.values.flat_map { |cluster| cluster.nodes.values }
+    end
+
+    def exponential(mean)
+      -mean * Math.log(1.0 - @failure_random.rand)
+    end
+
+    # The next failure of `nodes`, under process `process` ({mtbf:, mttr:}).
+    def schedule_nodes_down(nodes, process, after: @current_time)
+      new_event(Event::ET_NODES_DOWN, [nodes, nil, process], after + exponential(process[:mtbf]), nil)
+    end
+
+    def schedule_pod_failure(pod, service)
+      process = @failures&.dig(:pods)
+      return unless process && @failure_random # initial pods: see schedule_failures
+
+      due = @current_time + exponential(process[:mtbf])
+      @failure_due[pod] = due
+      new_event(Event::ET_POD_FAILURE, pod, due, service)
+    end
+
+    def handle_pod_failure(e)
+      pod = e.data
+      service = e.destination
+      return unless @failure_due[pod] == e.time # superseded
+      return unless service.pods[service.selector]&.include?(pod) # removed, or not serving
+
+      @failure_due.delete(pod)
+      hold_pod(service, pod, until_time: @current_time + @failures[:pods].fetch(:restart_time, 0.0).to_f)
+    end
+
+    # data: [nodes, duration (or nil: drawn from the process), process (or
+    # nil: a scheduled outage)]
+    def handle_nodes_down(e)
+      nodes, duration, process = e.data
+      duration ||= exponential(process[:mttr])
+      until_time = @current_time + duration
+      nodes.each do |node|
+        node.fail!
+        pods_on(node).each do |service, pod|
+          hold_pod(service, pod, until_time: until_time + startup_delay(service.selector))
+        end
+      end
+      new_event(Event::ET_NODES_UP, [nodes, process], until_time, nil)
+    end
+
+    def handle_nodes_up(e)
+      nodes, process = e.data
+      nodes.each(&:recover!)
+      schedule_nodes_down(nodes, process) if process
+    end
+
+    # [service, pod] for every pod placed on `node`, serving or starting.
+    def pods_on(node)
+      @services.values.flat_map do |service|
+        (service.pods[service.selector].to_a + @starting_pods.fetch(service.selector, []))
+          .select { |pod| pod.node.equal?(node) }.map { |pod| [service, pod] }
+      end
     end
 
     def handle_end_of_simulation(e)

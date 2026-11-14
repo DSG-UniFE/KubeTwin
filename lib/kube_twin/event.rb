@@ -18,6 +18,11 @@ module KUBETWIN
     ET_PARALLEL_SYNC_REACHED = 11   # All parallel branches completed
     ET_PARALLEL_DISPATCH = 12   # Dispatch parallel requests
     ET_POD_READY = 13 # a starting pod begins serving
+    ET_ROUTE_RETRY = 14 # a request found no pod for its next component, and tries again
+    ET_NEW_REQUEST_RETRY = 15 # a new request found no pod for its first component, and tries again
+    ET_POD_FAILURE = 16 # a pod crashes
+    ET_NODES_DOWN = 17 # nodes fail (one node, or a whole cluster)
+    ET_NODES_UP = 18 # failed nodes come back
     ET_END_OF_SIMULATION = 100
 
     # let the comparable mixin provide the < and > operators for us
