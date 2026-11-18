@@ -99,7 +99,7 @@ OpenTelemetry e YAML scritti a mano sono stati scartati: si tengono ragbench e i
 
 ## Punti aperti
 
-1. **Parametri da confermare con Bologna**: core per cluster, RTT tra cluster, ingresso del carico da cluster1. Se cambiano, si aggiorna `ragbench_3c.conf` e si rilancia l'ottimizzazione con la rivalutazione.
+1. **Parametri del multi-cluster**: Bologna (Elisa) configura i cluster come in `ragbench_3c.conf` (RTT 30/50 ms, edge↔edge via cluster1, 7 core per edge e almeno 7.5 su cluster1 per il guardrail, che il modello non include). Se i valori misurati si discostano, si aggiorna la conf e si rilancia ottimizzazione + rivalutazione.
 2. **Minimo di repliche per servizio**: oggi è `n_clusters` = 3 (scelta di Mattia, c71bcaa5c). Se torna a 1, il Gini va portato alla definizione di tracesim (G/Gmax).
 3. **Seeding da migliorare** (non ancora fatto):
    - le latenze di federazione usano `seeds[:communication_latencies]` e non `random_seed`;
