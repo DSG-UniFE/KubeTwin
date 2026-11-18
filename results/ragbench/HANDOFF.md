@@ -81,7 +81,7 @@ run). In sintesi:
 
 ```
 cp clusters.example.json clusters.json      # cluster-id Liqo veri
-python -m ragbench.calibrate                # + --cluster cluster2edge/3edge --out ...
+                                            # calibration.json: riusare quella della campagna su un cluster (non ricalibrare cluster1); sugli edge solo come misura se la CPU è diversa
 export RAGBENCH_TARGET=http://<nodo cluster1>:30090/api/v1
 python -m ragbench.run vector_remote 1,2 --request-fraction 0.5
 for s in 39 46 8 48 1; do
