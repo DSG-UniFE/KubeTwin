@@ -15,6 +15,7 @@ It ends with a critical assessment: a prioritized list of the architecture's wea
 - [Requests and workflows](#requests-and-workflows)
 - [Statistics and evaluation](#statistics-and-evaluation)
 - [The event loop](#the-event-loop)
+- [Stepping, observing and forking](#stepping-observing-and-forking)
 - [The optimization layer](#the-optimization-layer)
 
 ## The two halves of KubeTwin
@@ -118,7 +119,7 @@ All four are pure given their inputs (no `@event_queue`, no simulation-wide stat
 
 `Event` (`event.rb`) is a plain value object — `type`, `data`, `time`, `destination` — ordered by `time` via `Comparable`. `PriorityQueue` (`priority_queue.rb`) is a binary min-heap keyed on `(time, sequence_id)` (the sequence id breaks ties so same-time events stay in insertion order, for determinism) — it replaced an earlier sorted-array implementation for the same reason any event-driven simulator needs a real priority queue: pulling the next event and inserting a new one both need to be faster than O(n) once the queue gets large. This part of the design is already in good shape.
 
-There are eleven event types (`ET_END_OF_SIMULATION` is 100, the rest are 0–12 with a couple of gaps reserved for VM suspend/resume, never implemented):
+There are two dozen event types (`ET_END_OF_SIMULATION` is 100, the rest are 0–22; the parallel-execution events 9–12 support `WORKFLOW_MODELING.md`'s parallel blocks). The core ones:
 
 | Event | Triggered by | Handles |
 |---|---|---|
@@ -132,6 +133,18 @@ There are eleven event types (`ET_END_OF_SIMULATION` is 100, the rest are 0–12
 | `ET_ALLOCATE_NODE` / `ET_DEALLOCATE_NODE` | scheduled externally (not by any handler above) | adds/removes a `Node` from a `Cluster` — present but not currently driven by anything in the core loop |
 | `ET_END_OF_SIMULATION` | `configuration.end_time`, if set | drains the rest of the queue |
 
+The step API's models (see [`docs/STEP_API.md`](docs/STEP_API.md)) add their own:
+
+| Event | Triggered by | Handles |
+|---|---|---|
+| `ET_POD_READY` | a new or restarted pod with a `startup_time` | the pod starts serving |
+| `ET_ROUTE_RETRY` / `ET_NEW_REQUEST_RETRY` | a request finding no ready pod for its next (or first) component | tries again after `route_retry_interval` |
+| `ET_POD_FAILURE` | the `failures:` pod process | the pod crashes and restarts in place |
+| `ET_NODES_DOWN` / `ET_NODES_UP` | the `failures:` node and cluster processes, or scheduled outages | nodes fail, their pods leave their services; later they recover and the pods restart |
+| `ET_SHARED_COMPLETION` | a container with `cores` (CPU sharing) | the request in service with the least work left may have finished; rescheduled whenever the number of requests in service changes |
+| `ET_FEDERATION_RECONCILE` | federation policies: at setup, when a cluster has been down longer than the failover toleration, and when it recovers | sets each managed service's replicas per cluster, moving them off clusters that are down and back when they recover |
+| `ET_WORKLOAD_PULL` / `ET_EXTERNAL_REQUEST` | an external workload (`workload:`) | asks it for its next arrivals, one interval at a time, and injects each as a request |
+
 The life of one request: `ET_REQUEST_GENERATION` → `ET_REQUEST_ARRIVAL` → `ET_REQUEST_FORWARDING` → (queued on a `Container`, which schedules) → `ET_WORKFLOW_STEP_COMPLETED`, which either loops back to `ET_REQUEST_FORWARDING` for the next step, fans out into several parallel `ET_REQUEST_FORWARDING`s that each eventually rejoin, dispatches a nested call (another `ET_REQUEST_FORWARDING` for a child `Request`, returning via `NestedCallReturn` when done), or — if the workflow is finished and there's no parent request — schedules `ET_REQUEST_CLOSURE`.
 
 For the moment **all of this lives inside one method.** `KSimulation#evaluate_allocation` (`ksimulation.rb:157`–`1341`, roughly 1,185 of the file's 1,440 lines) does three things in sequence, with no internal method boundaries between them:
@@ -142,6 +155,17 @@ For the moment **all of this lives inside one method.** `KSimulation#evaluate_al
 
 We are in the process of refactoring and improving this code.
 
+
+## Stepping, observing and forking
+
+`Twin` (`twin.rb`) is a thin wrapper that turns a `KSimulation` into an environment driven in decision intervals (see [`docs/STEP_API.md`](docs/STEP_API.md) for the user's view). It relies on four pieces of `KSimulation`:
+
+- **`run_until(time)`** processes the event queue up to a time and stops, instead of draining it; `evaluate_allocation` is a run to the end, so stepping without actions gives exactly its result.
+- **Actions** (`scale_replicas`, `route`, `divide_replicas`) change the world between steps, each with a `*_rejection` predicate that says why it can't be applied without changing anything.
+- **`StepObserver`** (`step_observer.rb`) collects counters and the current window's samples as events happen (arrivals per placement, link latencies, workflow responses); `KSimulation#observation` turns them into a snapshot and starts a new window, so memory doesn't grow with the run.
+- **`fork`** deep-copies the simulation, random generators included (`IndependentStreams` gives every source of randomness its own seeded stream), so a copy replays the same future as the original; read-only or uncopyable parts (the MDN models, the messaging's network) are shared.
+
+Messages between components go through `Messaging` (`messaging.rb`), which sends them over a pluggable network model (`LegacyNetwork` wraps the configured latency models) and resends lost ones with TCP-like timeouts. `ReplicaDivision` (`replica_division.rb`) holds the federation's arithmetic: dividing replicas by weight, within each cluster's capacity.
 
 ## The optimization layer
 

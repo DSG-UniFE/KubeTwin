@@ -78,6 +78,27 @@ bundle exec bin/kube_twin examples/your.conf allocation.json [solution_id]
 
 which is how you evaluate a specific solution out of an optimizer's output (see `lib/kube_twin/allocation_replay.rb` and the `bin/optimizer*` scripts).
 
+## Driving KubeTwin step by step
+
+Besides simulating a configuration from start to end, KubeTwin can act as an
+environment that a controller (an autoscaler, a scheduler, a reinforcement
+learning agent) drives in decision intervals: observe, act, advance.
+
+```ruby
+twin = KUBETWIN::Twin.new(KUBETWIN::Configuration.load_from_file("examples/example-hpa.conf"))
+twin.reset
+twin.step([KUBETWIN::Twin::ScaleReplicas.new(service: "MS1", cluster: :one, replicas: 4)])
+# (this configuration's autoscaler keeps running too, and may rescale MS1)
+twin.observe   # clusters, links, placements and workflows over the last interval
+copy = twin.fork  # an independent copy that replays the same future: what-if rollouts
+```
+
+Actions scale services, route their requests among clusters, or divide their
+replicas across clusters (with Karmada-style federation and failover).
+Optional models add cold starts, CPU sharing, pod, node and cluster failures,
+a pluggable network with loss and retransmissions, and external workloads.
+**[docs/STEP_API.md](docs/STEP_API.md)** describes it all.
+
 ## Writing your own configuration
 
 A `.conf` file is a small Ruby DSL, not a data format &mdash; it's evaluated against a `Configuration` object, so it can use local variables, `require`, loops, anything plain Ruby can do. It declares your topology (either a simplified `federation` JSON blob, or lower-level `clusters` + `latency_models`), the microservices in your deployment and how they call each other (`workflow_types`), how traffic arrives (`request_gen` for synthetic load, or `request_generation` to replay a CSV), and optional pieces like autoscalers and SLO policies.

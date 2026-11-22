@@ -332,6 +332,8 @@ The hash key (`"productpage"`) is the component name referenced from
 | `use_configured_rps` | If `true`, always use the static `rps` value. If unset/`false`, RPS is instead computed live from a 10-second sliding window of recent arrivals, falling back to the static `rps` if too few samples exist. |
 | `resources_requirements_cpu` / `_memory` | Per-pod resource request, used by the scheduler for bin-packing. |
 | `node_affinity` | A `tier` string (`"local"`, `"t1"`, `"t2"`, `"rdc"`, ...) — the scheduler prefers a node whose cluster `tier` matches; otherwise falls back to the least-loaded node. |
+| `startup_time` | Optional. Seconds a new pod takes before it serves requests (a cold start), or a distribution (`{distribution:, args:}`, as in `service_time_distribution`'s entries). Without it, new pods serve at once. See [`STEP_API.md`](STEP_API.md#cold-starts). |
+| `cores` | Optional. The cores a pod's requests share (processor sharing): each runs at full speed while there are no more of them than `cores`, at `cores / n` otherwise. Without it, every request in service runs at full speed. See [`STEP_API.md`](STEP_API.md#cpu-sharing). |
 | `wait_for` | Array of other microservice-type names this one depends on. When this component's step completes, an upstream caller that's registered as waiting on it is only released once every name in `wait_for` has responded — use it to model a request that isn't "done" until a dependency also replies. |
 
 ## 7. `services` and `replica_sets`
