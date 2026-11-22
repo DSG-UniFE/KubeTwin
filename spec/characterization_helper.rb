@@ -16,6 +16,12 @@ require "kube_twin"
 module Characterization
   ROOT = File.expand_path("..", __dir__)
   EXAMPLES = %w[parallel-working-test example-hpa bookinfo-3c-xr].freeze
+  # Examples whose service times come from MDN models: LibTorch evaluates
+  # them in float32, and its results differ in the last bits across
+  # platforms (bookinfo-3c-xr's result differs by a relative 3e-8 between
+  # macOS on Apple Silicon and Linux on x86-64), so their completion times
+  # can't be expected to match to the microsecond everywhere.
+  MDN_EXAMPLES = %w[bookinfo-3c-xr].freeze
   FIXTURE = File.join(ROOT, "spec", "fixtures", "characterization.json")
 
   # Collects (request id, completion time) pairs while a run records.
