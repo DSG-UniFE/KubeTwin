@@ -1,0 +1,6 @@
+scenario,rps,requests,errors,traces,gateways,client_mean,client_p50,client_p95,client_p99,trace_mean,trace_p50,trace_p95,gap_mean,rho_gw,kt_pred_mean,kt_pred_sd,delta_vs_client_pct,delta_vs_traces_pct
+vector_remote,1,300,0,300,1,505,501,520,553,475,473,490,31,0.47,,,,
+vector_remote,2,601,0,600,1,511,501,560,806,474,472,490,36,0.95,,,,
+solution_46,4,1200,0,1200,5,696,621,1152,1925,537,536,671,159,0.43,573,8,-17.7,+6.8
+solution_8,4,1201,0,1200,6,888,770,1533,2570,668,653,878,220,0.45,648,8,-27.0,-3.0
+solution_48,4,1201,326,875,5,1040,888,1980,3062,714,703,952,326,0.57,730,13,-29.8,+2.2
