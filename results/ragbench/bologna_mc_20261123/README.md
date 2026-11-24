@@ -59,8 +59,11 @@ Prove che la differenza client − tracce è l'attesa al gateway:
 - Nelle run multi-cluster la differenza cresce con ρ per gateway (0.43, 0.45,
   0.57) e la distribuzione ha una coda lunga (mediana molto sotto la media).
 
-Togliendo i ~30 ms del portatile, KubeTwin sottostima la latenza del client del
-14–27%, di più per le allocazioni più distribuite. Ipotesi da verificare
+KubeTwin sottostima la latenza del client del 18–30% sulla media (39–48% al
+p99), di più per le allocazioni più distribuite. Nessuna correzione per il
+percorso dal portatile: i ~30 ms di vector_remote sono un'osservazione, non una
+misura separata. Analisi completa e figure: repo ragbench,
+`results/multicluster_20261123/`. Ipotesi da verificare
 scomponendo la simulazione (tempo nel gateway vs attesa in coda):
 1. Il gateway su un edge resta occupato anche per gli RTT verso i servizi su
    cluster1 (e per edge↔edge via cluster1): il modello potrebbe contare quelle
