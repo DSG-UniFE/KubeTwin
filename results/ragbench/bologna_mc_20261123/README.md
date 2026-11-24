@@ -126,5 +126,5 @@ da un pod di cluster1 a un servizio su ogni edge).
 3. Nel modello, meglio separare RTT fisico e numero di RTT per chiamata
    (parametro di KubeTwin) invece di usare un valore effettivo.
 
-Analisi con figure (latenze del modello originale): repo ragbench,
+Analisi con figure (entrambi i modelli, più il costo per chiamata): repo ragbench,
 `results/multicluster_20261123/`.
