@@ -331,11 +331,14 @@ module KUBETWIN
           { src: src.location_id, dst: dst.location_id, value: lm[:value].to_f / 2 }
         end
         # optional, in seconds: "intra_cluster_latency": {"mean": .., "sd": ..},
-        # "inter_cluster_jitter_sd", "min_latency" (see LatencyManagerFederation)
+        # "inter_cluster_jitter_sd", "min_latency"; "round_trips_per_call": n
+        # makes the values physical RTTs and a call between clusters cost n RTTs
+        # plus the local handling (see LatencyManagerFederation)
         latency_manager = LatencyManagerFederation.new(latency_models, seed: latency_seed,
                                                        intra_cluster: federation[:intra_cluster_latency],
                                                        jitter_sd: federation[:inter_cluster_jitter_sd],
-                                                       min_latency: federation[:min_latency])
+                                                       min_latency: federation[:min_latency],
+                                                       round_trips_per_call: federation[:round_trips_per_call])
       end
 
       # information regarding microservices

@@ -10,8 +10,19 @@ module KUBETWIN
     # jitter_sd: sd (seconds) of the noise added to inter-cluster latencies,
     # min_latency: floor (seconds) of every sampled latency. Defaults are the
     # historical values (5 +- 1 ms, 10 ms, 1 ms).
-    def initialize(latency_models, seed: nil, intra_cluster: nil, jitter_sd: nil, min_latency: nil)
+    #
+    # round_trips_per_call: how many network round trips one call between
+    # clusters costs. nil (default) keeps the historical model: a hop between
+    # clusters costs the configured value, nothing else. With a number n, the
+    # configured values are physical one-way latencies (half the RTT) and a hop
+    # costs n x that value plus a hop inside a cluster (the local handling of
+    # the call). Example: muBench cells run gunicorn sync workers, which close
+    # the connection after each response, so every call opens a new TCP
+    # connection: n = 2 (handshake + request/response).
+    def initialize(latency_models, seed: nil, intra_cluster: nil, jitter_sd: nil, min_latency: nil,
+                   round_trips_per_call: nil)
       @latency_models = latency_models
+      @round_trips = round_trips_per_call&.to_f
       intra = intra_cluster || {}
       @min_latency = min_latency || MIN_LATENCY
       @intra_dc_latency = ERV::RandomVariable.new(distribution: :gaussian,
@@ -27,7 +38,7 @@ module KUBETWIN
         if (model[:src] == loc1 && model[:dst] == loc2) ||
            (model[:src] == loc2 && model[:dst] == loc1)
           # value is a constant value in seconds. Add jitter and clamp the final latency.
-          lat = clamp_latency(model[:value] + @noise.next)
+          lat = clamp_latency(inter_cluster_base(model[:value]) + @noise.next)
           # puts "latency between #{loc1} and #{loc2} is #{lat} seconds"
           return lat
         elsif loc1 == loc2
@@ -40,8 +51,12 @@ module KUBETWIN
         # Check the latency from src 0 to dst loc1 and loc2 and then sum them
         # This is to simulate Liqo connectivity between leaf nodes via the home DC
         # If only a cluster is specified, we still need to return the intra-dc latency
-        if loc1 == 0 || loc2 == 0
+        if loc1 == loc2
           while (lat = @intra_dc_latency.next) < @min_latency; end
+        elsif loc1 == 0 || loc2 == 0
+          # a pair with the hub (location 0) must be configured: falling back
+          # to the intra-cluster latency would silently drop the link
+          raise "Latency model not found between locations #{loc1} and #{loc2} #{@latency_models}"
         else
           src_to_loc1 = @latency_models.find { |model| model[:src] == 0 && model[:dst] == loc1 }
           dst_to_loc2 = @latency_models.find { |model| model[:src] == 0 && model[:dst] == loc2 }
@@ -49,13 +64,21 @@ module KUBETWIN
             raise "Latency model not found for locations #{loc1} and #{loc2} #{@latency_models}"
           end
 
-          lat = clamp_latency(src_to_loc1[:value] + dst_to_loc2[:value] + @noise.next)
+          lat = clamp_latency(inter_cluster_base(src_to_loc1[:value] + dst_to_loc2[:value]) + @noise.next)
         end
       end
       lat
     end
 
     private
+
+    # one-way cost of a hop between clusters whose configured latency is value
+    def inter_cluster_base(value)
+      return value if @round_trips.nil?
+
+      while (local = @intra_dc_latency.next) < @min_latency; end
+      @round_trips * value + local
+    end
 
     def clamp_latency(value)
       [value, @min_latency].max
