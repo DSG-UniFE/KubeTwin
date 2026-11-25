@@ -1,0 +1,217 @@
+[
+ {
+  "solution_id": 3,
+  "candidate": "A",
+  "role": "Fastest (19 replicas)",
+  "predicted": {
+   "rps": 4,
+   "mean_ttr_ms": 643.9,
+   "mean_ttr_sd_ms_10_seeds": 7.5,
+   "gini": 0.67,
+   "total_replicas": 19,
+   "p50_ms": 585.5,
+   "p90_ms": 916.9,
+   "p95_ms": 1021.2,
+   "p99_ms": 1325.7
+  },
+  "microservice_allocation": {
+   "gateway": {
+    "cluster1": 5,
+    "cluster2edge": 2,
+    "cluster3edge": 0
+   },
+   "embedder": {
+    "cluster1": 2,
+    "cluster2edge": 1,
+    "cluster3edge": 0
+   },
+   "vector-search": {
+    "cluster1": 1,
+    "cluster2edge": 2,
+    "cluster3edge": 0
+   },
+   "reranker": {
+    "cluster1": 2,
+    "cluster2edge": 1,
+    "cluster3edge": 0
+   },
+   "llm-generate": {
+    "cluster1": 2,
+    "cluster2edge": 1,
+    "cluster3edge": 0
+   }
+  }
+ },
+ {
+  "solution_id": 28,
+  "candidate": "B",
+  "role": "Spreading ladder, 19 replicas",
+  "predicted": {
+   "rps": 4,
+   "mean_ttr_ms": 717.7,
+   "mean_ttr_sd_ms_10_seeds": 16.0,
+   "gini": 0.5,
+   "total_replicas": 19,
+   "p50_ms": 648.1,
+   "p90_ms": 1023.0,
+   "p95_ms": 1160.5,
+   "p99_ms": 1525.1
+  },
+  "microservice_allocation": {
+   "gateway": {
+    "cluster1": 3,
+    "cluster2edge": 4,
+    "cluster3edge": 0
+   },
+   "embedder": {
+    "cluster1": 2,
+    "cluster2edge": 1,
+    "cluster3edge": 0
+   },
+   "vector-search": {
+    "cluster1": 1,
+    "cluster2edge": 1,
+    "cluster3edge": 1
+   },
+   "reranker": {
+    "cluster1": 1,
+    "cluster2edge": 2,
+    "cluster3edge": 0
+   },
+   "llm-generate": {
+    "cluster1": 1,
+    "cluster2edge": 2,
+    "cluster3edge": 0
+   }
+  }
+ },
+ {
+  "solution_id": 44,
+  "candidate": "C",
+  "role": "Spreading ladder, 19 replicas",
+  "predicted": {
+   "rps": 4,
+   "mean_ttr_ms": 820.9,
+   "mean_ttr_sd_ms_10_seeds": 15.9,
+   "gini": 0.23,
+   "total_replicas": 19,
+   "p50_ms": 729.8,
+   "p90_ms": 1209.8,
+   "p95_ms": 1417.4,
+   "p99_ms": 1940.2
+  },
+  "microservice_allocation": {
+   "gateway": {
+    "cluster1": 4,
+    "cluster2edge": 3,
+    "cluster3edge": 0
+   },
+   "embedder": {
+    "cluster1": 2,
+    "cluster2edge": 1,
+    "cluster3edge": 0
+   },
+   "vector-search": {
+    "cluster1": 1,
+    "cluster2edge": 1,
+    "cluster3edge": 1
+   },
+   "reranker": {
+    "cluster1": 1,
+    "cluster2edge": 1,
+    "cluster3edge": 1
+   },
+   "llm-generate": {
+    "cluster1": 1,
+    "cluster2edge": 1,
+    "cluster3edge": 1
+   }
+  }
+ },
+ {
+  "solution_id": 27,
+  "candidate": "D",
+  "role": "Most spread, 19 replicas",
+  "predicted": {
+   "rps": 4,
+   "mean_ttr_ms": 957.7,
+   "mean_ttr_sd_ms_10_seeds": 11.9,
+   "gini": 0.1,
+   "total_replicas": 19,
+   "p50_ms": 826.3,
+   "p90_ms": 1470.9,
+   "p95_ms": 1779.4,
+   "p99_ms": 2436.0
+  },
+  "microservice_allocation": {
+   "gateway": {
+    "cluster1": 3,
+    "cluster2edge": 3,
+    "cluster3edge": 0
+   },
+   "embedder": {
+    "cluster1": 1,
+    "cluster2edge": 1,
+    "cluster3edge": 1
+   },
+   "vector-search": {
+    "cluster1": 1,
+    "cluster2edge": 1,
+    "cluster3edge": 1
+   },
+   "reranker": {
+    "cluster1": 1,
+    "cluster2edge": 2,
+    "cluster3edge": 1
+   },
+   "llm-generate": {
+    "cluster1": 1,
+    "cluster2edge": 1,
+    "cluster3edge": 1
+   }
+  }
+ },
+ {
+  "solution_id": 2,
+  "candidate": "E",
+  "role": "Fewest replicas (15)",
+  "predicted": {
+   "rps": 4,
+   "mean_ttr_ms": 759.8,
+   "mean_ttr_sd_ms_10_seeds": 23.9,
+   "gini": 0.87,
+   "total_replicas": 15,
+   "p50_ms": 646.2,
+   "p90_ms": 1199.1,
+   "p95_ms": 1467.9,
+   "p99_ms": 2018.8
+  },
+  "microservice_allocation": {
+   "gateway": {
+    "cluster1": 3,
+    "cluster2edge": 0,
+    "cluster3edge": 0
+   },
+   "embedder": {
+    "cluster1": 2,
+    "cluster2edge": 1,
+    "cluster3edge": 0
+   },
+   "vector-search": {
+    "cluster1": 1,
+    "cluster2edge": 2,
+    "cluster3edge": 0
+   },
+   "reranker": {
+    "cluster1": 3,
+    "cluster2edge": 0,
+    "cluster3edge": 0
+   },
+   "llm-generate": {
+    "cluster1": 3,
+    "cluster2edge": 0,
+    "cluster3edge": 0
+   }
+  }
+ }
+]
