@@ -39,3 +39,11 @@ Compared with the first front (`../opt3c_rps4`), spreading costs more: from
 Gini ~0.7 to ~0.1 at fixed replicas adds ~310 ms here (A→D), ~195 ms before
 (A→D there, 18 replicas). Allocations with 15–16 replicas spread over the
 edges are near saturation (1.3–8.5 s, large sd across seeds).
+
+## Validation at Bologna (round 2, 26 November 2026)
+
+Blind test of four candidates (A, C, D, E; B produced no data), analysis in
+the ragbench repo, `results/multicluster_round2_20261126/`. Mean response
+time, KubeTwin vs measured (k6 client): A −3.0%, C −1.5%, D −2.6%, E +5.6%;
+p50–p95 within ±10% for all; ranking A < E < C < D preserved. Independent
+pod-to-pod RTT through Liqo: 30.85 / 51.21 ms; cluster1 has 7.1 cores free.
