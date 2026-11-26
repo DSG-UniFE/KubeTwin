@@ -44,7 +44,12 @@ python tools/mdn/train_bookinfo_limits.py <dir> --mode install   # -> mdn_models
 Training is seeded (`--seed`, default 12345): the same data and seed give
 identical weights. The weights currently in `mdn_models/` were trained
 before this folder existed, without a seed, so a retraining gives slightly
-different weights, not the same files. `install` overwrites the files in
+different weights, not the same files. Checked on 26 November 2026: the
+ragbench data extracted here is identical to the data the current weights
+were trained on, and KubeTwin with retrained weights (seed 12345) predicts
+the round-2 candidates (`ragbench_3c_2rtt_client.conf`) within +0.0…+0.8%
+on the mean for A–D and +2.6% for E, the most loaded (p95 up to +5.4%).
+That is the spread due to training alone. `install` overwrites the files in
 `mdn_models/`; use `--mdn-models <dir>` to install somewhere else first.
 
 `tools/mdn/models/` (models, scalers, extracted data) is not tracked.
