@@ -74,3 +74,8 @@ The complete model (client-side + laptop) overestimates by 3–4% on A, C, D
 and 13% on E, the busiest gateways (0.65 per worker): the blind numbers were
 partly an offset between the missing ingress/laptop time and a slight
 overestimate of the queues. The blind column is the true out-of-sample test.
+
+**Reference model from 26 November 2026**: `examples/ragbench_3c_2rtt_client.conf`
+(client-side TTR). Round-2 comparison with it and figures: ragbench
+`results/multicluster_round2_20261126/` (mean −1.2 / +0.5 / −0.7 / +6.1% for
+A / C / D / E). The next optimization should use this conf.
