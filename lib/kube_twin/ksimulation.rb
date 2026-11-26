@@ -220,6 +220,14 @@ module KUBETWIN
       # Liqo federation
 
       federation = nil
+      # client connection set-up added to every arrival; a federation may
+      # override it with "client_connect_time" (seconds), e.g. when the load
+      # generator is not next to the ingress cluster
+      @connect_time = CONNECT_TIME
+      # "ttr_from_client": true measures the response time from the request's
+      # generation (as the load generator sees it) instead of its arrival at
+      # the first container
+      @ttr_from_client = false
       if @configuration.federation.nil?
         cid = -1
         # create clusters and relative nodes and store them in a repository
@@ -244,6 +252,8 @@ module KUBETWIN
         # }
         # Convert the @configuration.federation json object into a ruby hash
         federation = JSON.parse(@configuration.federation, symbolize_names: true)
+        @connect_time = federation[:client_connect_time].to_f if federation[:client_connect_time]
+        @ttr_from_client = federation[:ttr_from_client] == true
         # puts "Federation resources: #{federation[:resources]}
         cid = -1
         @clusters_mapping = {}
@@ -777,12 +787,13 @@ module KUBETWIN
 
           arrival_time = @current_time + latency_manager.sample_latency_between(customer_location_id,
                                                                                 cluster.location_id)
-          # here we should also add the HTTP connection time (8 ms)
-          arrival_time += CONNECT_TIME
+          # client connection set-up (CONNECT_TIME or the federation's client_connect_time)
+          arrival_time += @connect_time
 
           # generate the request here
           new_req = Request.new(**req_attrs.merge!(initial_data_center_id: cluster_id,
-                                                   arrival_time: arrival_time))
+                                                   arrival_time: arrival_time,
+                                                   ttr_from_generation: @ttr_from_client))
 
           # schedule arrival of current request
           new_event(Event::ET_REQUEST_ARRIVAL, [new_req, pod], arrival_time, nil)

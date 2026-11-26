@@ -47,3 +47,30 @@ the ragbench repo, `results/multicluster_round2_20261126/`. Mean response
 time, KubeTwin vs measured (k6 client): A −3.0%, C −1.5%, D −2.6%, E +5.6%;
 p50–p95 within ±10% for all; ranking A < E < C < D preserved. Independent
 pod-to-pod RTT through Liqo: 30.85 / 51.21 ms; cluster1 has 7.1 cores free.
+
+### Client-side response time (added after the round-2 runs)
+
+By default KubeTwin's TTR starts when a request reaches the first container,
+so it leaves out the client's connection set-up and the hop from cluster1
+(where k6's requests enter, through the NodePort) to a gateway on an edge.
+`"ttr_from_client": true` in the federation measures it from the request's
+generation, as k6 does; `"client_connect_time"` sets the set-up time (default
+1.48 ms). All of Bologna's requests enter through cluster1, so k6 on a laptop
+adds a fixed laptop<->cluster1 path: 28.6 ms from round 1 (vector_remote at
+1 RPS, 30.6 ms gap minus ~2 ms with k6 next to the node); round 2's
+low-quantile client − root-span gap (24–26 ms for A and E) shows it again.
+
+`reeval/run_percentiles_client.sh` → `kt_percentiles_candidates_{client,laptop}.csv`.
+Δ mean (p50, p95) vs Bologna's round 2, k6 client:
+
+| | blind (TTR from arrival) | client-side, k6 next to cluster1 | client-side + laptop (30.1 ms) |
+|---|---|---|---|
+| A (3) | −3.0% (−2.2, −5.4) | −1.2% (+0.6, −3.3) | +3.6% (+6.0, +0.7) |
+| C (44) | −1.5% (−2.7, +1.1) | +0.5% (−0.5, +2.6) | +3.8% (+3.5, +3.7) |
+| D (27) | −2.6% (−3.0, +0.0) | −0.7% (−0.6, +1.3) | +3.2% (+3.0, +4.4) |
+| E (2) | +5.6% (+4.4, +9.2) | +6.1% (+5.0, +9.5) | +13.0% (+12.0, +15.2) |
+
+The complete model (client-side + laptop) overestimates by 3–4% on A, C, D
+and 13% on E, the busiest gateways (0.65 per worker): the blind numbers were
+partly an offset between the missing ingress/laptop time and a slight
+overestimate of the queues. The blind column is the true out-of-sample test.

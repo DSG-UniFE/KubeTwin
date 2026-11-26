@@ -44,8 +44,13 @@ module KUBETWIN
                    component_sequence: nil,
                    branch_name: nil,
                    parent_request: nil,
-                   child_kind: nil)
+                   child_kind: nil,
+                   ttr_from_generation: false)
       @rid              = rid
+      # TTR origin: the arrival at the first container (default) or, from the
+      # client's point of view, the generation time (it then includes the
+      # client's connection set-up and the hop to the first container)
+      @ttr_from_generation = ttr_from_generation
       @generation_time  = generation_time
       @data_center_id   = initial_data_center_id
       @arrival_time     = arrival_time
@@ -115,12 +120,13 @@ module KUBETWIN
 
     def ttr(time)
       # if incident isn't closed yet, just return nil without raising an exception.
-      base_ttr = @closure_time.nil? ? (time - @arrival_at_container) : (@closure_time - @arrival_time)
+      origin = @ttr_from_generation ? @generation_time : @arrival_time
+      base_ttr = @closure_time.nil? ? (time - @arrival_at_container) : (@closure_time - origin)
       
       # For requests with completed branches, include maximum branch completion time
       if @completed_branches && !@completed_branches.empty?
         max_branch_time = @completed_branches.map { |branch| 
-          branch[:completed_at] ? (branch[:completed_at].to_f - @arrival_time.to_f) : 0 
+          branch[:completed_at] ? (branch[:completed_at].to_f - origin.to_f) : 0 
         }.max
         # Return the maximum between base TTR and branch completion times
         [base_ttr, max_branch_time].max
