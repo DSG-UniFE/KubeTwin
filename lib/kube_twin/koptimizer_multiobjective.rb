@@ -45,6 +45,9 @@ module KUBETWIN
 				                                random_seed: @seed && @seed + i)
 				sim.evaluate_allocation_multiobjective(rss, nil, nil, nil, nil, replicas_mapping)
 			end
+			# mean_ttr nil: the allocation does not fit (see optimize)
+			return metrics.first if metrics.any? { |m| m[:mean_ttr].nil? }
+
 			metrics.first.merge(mean_ttr: metrics.sum { |m| m[:mean_ttr] } / metrics.size)
 		end
 
@@ -61,6 +64,12 @@ module KUBETWIN
 			end
 
 			[rss, replicas_per_ms]
+		end
+
+		INFEASIBLE_TTR = 1.0e6
+
+		def infeasible_objectives
+			[INFEASIBLE_TTR, 1.0, @max_replicas * @n_ms + 1]
 		end
 
 		def total_replicas(vector)
@@ -92,6 +101,13 @@ module KUBETWIN
 				replicas_mapping = decode_cluster_mapping(component_allocation)
 
 				metrics = simulate(new_rss, replicas_mapping)
+
+				# Not every pod fits in the federation (the simulation stops before
+				# running, no mean TTR): objectives worse than those of any feasible
+				# allocation, so it is always dominated. A pod that does not fit in
+				# its assigned cluster but fits elsewhere is placed there by the
+				# scheduler, and metrics[:bmap] records where it went.
+				next infeasible_objectives if metrics[:mean_ttr].nil?
 
 				# Objectives, all minimized: mean TTR, replica spreading (normalized
 				# Gini) and total replica count

@@ -1,0 +1,217 @@
+[
+ {
+  "solution_id": 28,
+  "candidate": "A",
+  "role": "Fastest (17 replicas)",
+  "predicted": {
+   "rps": 4,
+   "mean_ttr_ms": 669.9,
+   "mean_ttr_sd_ms_10_seeds": 11.6,
+   "gini": 0.77,
+   "total_replicas": 17,
+   "p50_ms": 609.3,
+   "p90_ms": 976.1,
+   "p95_ms": 1105.5,
+   "p99_ms": 1468.7
+  },
+  "microservice_allocation": {
+   "gateway": {
+    "cluster1": 3,
+    "cluster2edge": 2,
+    "cluster3edge": 0
+   },
+   "embedder": {
+    "cluster1": 3,
+    "cluster2edge": 0,
+    "cluster3edge": 0
+   },
+   "vector-search": {
+    "cluster1": 3,
+    "cluster2edge": 0,
+    "cluster3edge": 0
+   },
+   "reranker": {
+    "cluster1": 1,
+    "cluster2edge": 2,
+    "cluster3edge": 0
+   },
+   "llm-generate": {
+    "cluster1": 2,
+    "cluster2edge": 1,
+    "cluster3edge": 0
+   }
+  }
+ },
+ {
+  "solution_id": 35,
+  "candidate": "B",
+  "role": "Spreading ladder, 17 replicas",
+  "predicted": {
+   "rps": 4,
+   "mean_ttr_ms": 852.6,
+   "mean_ttr_sd_ms_10_seeds": 16.8,
+   "gini": 0.42,
+   "total_replicas": 17,
+   "p50_ms": 718.7,
+   "p90_ms": 1318.2,
+   "p95_ms": 1547.0,
+   "p99_ms": 2128.7
+  },
+  "microservice_allocation": {
+   "gateway": {
+    "cluster1": 4,
+    "cluster2edge": 1,
+    "cluster3edge": 0
+   },
+   "embedder": {
+    "cluster1": 2,
+    "cluster2edge": 1,
+    "cluster3edge": 0
+   },
+   "vector-search": {
+    "cluster1": 1,
+    "cluster2edge": 2,
+    "cluster3edge": 0
+   },
+   "reranker": {
+    "cluster1": 1,
+    "cluster2edge": 1,
+    "cluster3edge": 1
+   },
+   "llm-generate": {
+    "cluster1": 1,
+    "cluster2edge": 1,
+    "cluster3edge": 1
+   }
+  }
+ },
+ {
+  "solution_id": 51,
+  "candidate": "C",
+  "role": "Spreading ladder, 17 replicas",
+  "predicted": {
+   "rps": 4,
+   "mean_ttr_ms": 968.2,
+   "mean_ttr_sd_ms_10_seeds": 35.9,
+   "gini": 0.23,
+   "total_replicas": 17,
+   "p50_ms": 813.5,
+   "p90_ms": 1537.7,
+   "p95_ms": 1878.1,
+   "p99_ms": 2678.9
+  },
+  "microservice_allocation": {
+   "gateway": {
+    "cluster1": 3,
+    "cluster2edge": 2,
+    "cluster3edge": 0
+   },
+   "embedder": {
+    "cluster1": 2,
+    "cluster2edge": 1,
+    "cluster3edge": 0
+   },
+   "vector-search": {
+    "cluster1": 1,
+    "cluster2edge": 1,
+    "cluster3edge": 1
+   },
+   "reranker": {
+    "cluster1": 1,
+    "cluster2edge": 1,
+    "cluster3edge": 1
+   },
+   "llm-generate": {
+    "cluster1": 1,
+    "cluster2edge": 1,
+    "cluster3edge": 1
+   }
+  }
+ },
+ {
+  "solution_id": 22,
+  "candidate": "D",
+  "role": "Most spread, 17 replicas",
+  "predicted": {
+   "rps": 4,
+   "mean_ttr_ms": 1093.9,
+   "mean_ttr_sd_ms_10_seeds": 24.1,
+   "gini": 0.1,
+   "total_replicas": 17,
+   "p50_ms": 915.3,
+   "p90_ms": 1791.9,
+   "p95_ms": 2179.3,
+   "p99_ms": 3070.6
+  },
+  "microservice_allocation": {
+   "gateway": {
+    "cluster1": 3,
+    "cluster2edge": 2,
+    "cluster3edge": 0
+   },
+   "embedder": {
+    "cluster1": 1,
+    "cluster2edge": 1,
+    "cluster3edge": 1
+   },
+   "vector-search": {
+    "cluster1": 1,
+    "cluster2edge": 1,
+    "cluster3edge": 1
+   },
+   "reranker": {
+    "cluster1": 1,
+    "cluster2edge": 1,
+    "cluster3edge": 1
+   },
+   "llm-generate": {
+    "cluster1": 1,
+    "cluster2edge": 1,
+    "cluster3edge": 1
+   }
+  }
+ },
+ {
+  "solution_id": 3,
+  "candidate": "E",
+  "role": "Fewest replicas (15)",
+  "predicted": {
+   "rps": 4,
+   "mean_ttr_ms": 791.5,
+   "mean_ttr_sd_ms_10_seeds": 20.3,
+   "gini": 0.87,
+   "total_replicas": 15,
+   "p50_ms": 667.9,
+   "p90_ms": 1315.3,
+   "p95_ms": 1538.9,
+   "p99_ms": 2047.2
+  },
+  "microservice_allocation": {
+   "gateway": {
+    "cluster1": 3,
+    "cluster2edge": 0,
+    "cluster3edge": 0
+   },
+   "embedder": {
+    "cluster1": 3,
+    "cluster2edge": 0,
+    "cluster3edge": 0
+   },
+   "vector-search": {
+    "cluster1": 3,
+    "cluster2edge": 0,
+    "cluster3edge": 0
+   },
+   "reranker": {
+    "cluster1": 1,
+    "cluster2edge": 2,
+    "cluster3edge": 0
+   },
+   "llm-generate": {
+    "cluster1": 2,
+    "cluster2edge": 1,
+    "cluster3edge": 0
+   }
+  }
+ }
+]
